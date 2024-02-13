@@ -3,7 +3,7 @@
 	<telegram rorg="0xD2" type="VLD" description="VLD Telegram">
 		<profiles func="0x32" description="AC current clamp">
 			<profile type="0x02" description="Type 0x02">
-				<data>
+				<data bits="5">
 					<enum description="Power Failure" shortcut="PF" offset="0" size="1">
 						<item description="Power Failure Detection disabled/not supported" value="0" />
 						<item description="Power Failure Detection enabled" value="1" />

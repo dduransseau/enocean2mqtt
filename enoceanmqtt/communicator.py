@@ -24,15 +24,6 @@ class Communicator:
 
     logger = logging.getLogger('enocean.mqtt.communicator')
 
-    CONNECTION_RETURN_CODE = [
-        "connection successful",
-        "incorrect protocol version",
-        "invalid client identifier",
-        "server unavailable",
-        "bad username or password",
-        "not authorised",
-    ]
-
     def __init__(self, config, sensors):
         self.conf = config
         # self.sensors = sensors
@@ -313,48 +304,48 @@ class Communicator:
     # ENOCEAN TO MQTT
     #=============================================================================================
 
-    def _publish_mqtt(self, sensor, mqtt_json):
+    def _publish_mqtt(self, equipment, mqtt_json):
         '''Publish decoded packet content to MQTT'''
 
         # Retain the to-be-published message ?
-        retain = sensor.retain
+        retain = equipment.retain
 
         # Is grouping enabled on this sensor
-        channel_id = sensor.channel
+        channel_id = equipment.channel
         channel_id = channel_id.split('/') if channel_id not in (None, '') else []
 
         # Handling Auxiliary data RSSI
         aux_data = {}
         # Publish RSSI ?
-        if sensor.publish_rssi:
+        if equipment.publish_rssi:
             # Publish using JSON format ?
-            if sensor.publish_json:
+            if equipment.publish_json:
                 # Keep _RSSI_ out of groups
                 if channel_id:
                     aux_data.update({"_RSSI_": mqtt_json['_RSSI_']})
             else:
-                self.mqtt.publish(sensor.topic+"/_RSSI_", mqtt_json['_RSSI_'], retain=retain)
+                self.mqtt.publish(equipment.topic + "/_RSSI_", mqtt_json['_RSSI_'], retain=retain)
         # Delete RSSI if already handled
-        if channel_id or not sensor.publish_json or not sensor.publish_rssi:
+        if channel_id or not equipment.publish_json or not equipment.publish_rssi:
             del mqtt_json['_RSSI_']
 
         # Handling Auxiliary data _DATE_
-        if str(sensor.publish_date) in ("True", "true", "1"):
-            # Publish _DATE_ both at device and group levels
-            if channel_id:
-                if sensor.publish_json:
-                    aux_data.update({"_DATE_": mqtt_json['_DATE_']})
-                else:
-                    self.mqtt.publish(sensor.topic+"/_DATE_", mqtt_json['_DATE_'], retain=retain)
-        else:
-            del mqtt_json['_DATE_']
+        # if str(sensor.publish_date) in ("True", "true", "1"):
+        #     # Publish _DATE_ both at device and group levels
+        #     if channel_id:
+        #         if sensor.publish_json:
+        #             aux_data.update({"_DATE_": mqtt_json['_DATE_']})
+        #         else:
+        #             self.mqtt.publish(sensor.topic+"/_DATE_", mqtt_json['_DATE_'], retain=retain)
+        # else:
+        #     del mqtt_json['_DATE_']
 
         # Publish auxiliary data
         if aux_data:
-            self.mqtt.publish(sensor.name, json.dumps(aux_data), retain=retain)
+            self.mqtt.publish(equipment.name, json.dumps(aux_data), retain=retain)
 
         # Determine MQTT topic
-        topic = sensor.topic
+        topic = equipment.topic
         for cur_id in channel_id:
             if mqtt_json.get(cur_id) not in (None, ''):
                 topic += f"/{cur_id}{mqtt_json[cur_id]}"
@@ -362,101 +353,98 @@ class Communicator:
 
         # Publish packet data to MQTT
         value = json.dumps(mqtt_json)
-        self.logger.debug("%s: Sent MQTT: %s", topic, value)
+        self.logger.debug(f"{topic}: Sent MQTT: {value}")
 
-        if sensor.publish_json:
-            self.mqtt.publish(topic, value, retain=retain)
-        else:
+        # if sensor.publish_json:
+        self.mqtt.publish(topic, value, retain=retain)
+        # else:
+        if equipment.publish_raw:
             for prop_name, value in mqtt_json.items():
                 if prop_name in ("json", "data", "description"):
                     continue
                 self.mqtt.publish(f"{topic}/{prop_name}", value, retain=retain)
 
-    def _read_packet(self, packet):
+    def _read_packet(self, packet, equipment):
         '''interpret packet, read properties and publish to MQTT'''
-        mqtt_json = {}
         # loop through all configured devices
-        sender_id = enocean.utils.combine_hex(packet.sender)
-        self.logger.debug(f"Received packet from {sender_id}")
-        equipment = self.equipments.get(sender_id)
-        if equipment:
-            self.logger.debug(f"Found equipment: {equipment}")
-            if not packet.learn or equipment.log_learn:
+        # sender_id = enocean.utils.combine_hex(packet.sender)
+        # self.logger.debug(f"Received packet from {sender_id}")
+        # equipment = self.equipments.get(sender_id)
+        self.logger.debug(f"Found equipment: {equipment}")
+        if not packet.learn or equipment.log_learn:
+            # Store receive date
+            # Use underscore so that it is unique and doesn't
+            # match a potential future EnOcean EEP field.
+            # mqtt_json['_DATE_'] = packet.received.isoformat()
+            # Handling received data packet
+            self.logger.debug(f"Handle data packet {packet}, {equipment.address}")
+            properties = self._handle_data_packet(packet, equipment)
+            if not properties:
+                self.logger.warning(f"message not interpretable: {equipment.name}")
+            else:
                 # Store RSSI
                 # Use underscore so that it is unique and doesn't
                 # match a potential future EnOcean EEP field.
-                mqtt_json['_RSSI_'] = packet.dBm
-
-                # Store receive date
-                # Use underscore so that it is unique and doesn't
-                # match a potential future EnOcean EEP field.
-                mqtt_json['_DATE_'] = packet.received.isoformat()
-                # Handling received data packet
-                self.logger.debug(f"Handle data packet {packet}, {equipment.address}")
-                found_property = self._handle_data_packet(packet, equipment, mqtt_json)
-                if not found_property:
-                    self.logger.warning(f"message not interpretable: {equipment.name}")
-                else:
-                    self._publish_mqtt(equipment, mqtt_json)
-            else:
-                # learn request received
-                self.logger.info("learn request not emitted to mqtt")
+                properties['_RSSI_'] = packet.dBm
+                self._publish_mqtt(equipment, properties)
+        else:
+            # learn request received
+            self.logger.info("learn request not emitted to mqtt")
 
 
-    def _handle_data_packet(self, packet, sensor, mqtt_json):
+    def _handle_data_packet(self, packet, equipment):
         # data packet received
-        found_property = False
-        if packet.packet_type == PACKET.RADIO and packet.rorg == sensor.rorg:
+        message_payload = dict()
+        if packet.packet_type == PACKET.RADIO and packet.rorg == equipment.rorg:
             # radio packet of proper rorg type received; parse EEP
-            self.logger.debug(f"Handle radio packet for sensor {sensor} {packet.rorg}-{packet.rorg_func}-{packet.rorg_type}")
+            self.logger.debug(f"Handle radio packet for sensor {equipment}")
             # Retrieve command from the received packet and pass it to parse_eep()
             self.logger.debug(f"Try to get command for packet: {packet}")
-            command = sensor.get_command_id(packet)
+            command = equipment.get_command_id(packet)
             if command:
                 logging.debug('Retrieved command id from packet: %s', hex(command))
 
             # Retrieve properties from EEP
-            self.logger.debug(f"Parse EEP {sensor.func}-{sensor.type} {sensor.direction} {command}")
+            self.logger.debug(f"Parse EEP {equipment.func}-{equipment.type} {equipment.direction} {command}")
             # properties = packet.parse_eep(sensor.func, sensor.type, direction, command)
-            message = sensor.get_message_form(command=command, direction=sensor.direction)
+            message = equipment.get_message_form(command=command, direction=equipment.direction)
             properties = packet.parse_message(message)
+            self.logger.debug(f"Found properties in message: {properties}")
             # loop through all EEP properties
-            found_property = True if properties else False
             for prop_name, prop in properties.items():
                 # cur_prop = packet.parsed[prop_name]
                 # we only extract numeric values, either the scaled ones
                 # or the raw values for enums
                 if prop_name in ("json", "command"):
-                    mqtt_json[prop_name] = prop
+                    message_payload[prop_name] = prop
                     continue
-                value = prop['value']
-                if not isinstance(prop.get('value'), numbers.Number):
+                # if not isinstance(prop.get('value'), numbers.Number):
                     # mqtt_json[f"{prop_name}_raw"] = prop['raw_value']
-                    mqtt_json[prop_name] = prop['raw_value']
+                message_payload[prop_name] = prop['raw_value']
                     # try:
                     #     value = cur_prop['raw_value']
                     #     mqtt_json[f"{prop_name}_desc"] = cur_prop['value']
                     # except KeyError:
                     #     pass
                 # publish extracted information
-                self.logger.debug("%s: %s (%s)=%s %s", sensor.name, prop_name,
-                              prop['description'], prop['value'], prop['unit'])
+                self.logger.debug("%s: %s (%s)=%s %s", equipment.name, prop_name,
+                                  prop['description'], prop['value'], prop['unit'])
 
                 # Store property
                 # mqtt_json[f"{prop_name}_desc"] = value
 
-        return found_property
+        return message_payload
 
 
     #=============================================================================================
     # LOW LEVEL FUNCTIONS
     #=============================================================================================
-    def _reply_packet(self, in_packet, sensor):
+    def _reply_packet(self, in_packet, equipment):
         '''send enocean message as a reply to an incoming message'''
         # prepare addresses
         destination = in_packet.sender
 
-        self._send_packet(sensor, destination, None, True,
+        self._send_packet(equipment, destination, None, True,
                           in_packet.data if in_packet.learn else None)
 
     def _send_packet(self, sensor, destination, command=None,
@@ -481,51 +469,37 @@ class Communicator:
             sender = self.enocean_sender
 
         try:
-            # Now pass command to RadioPacket.create()
-            self.logger.debug(f"Create packet {sensor.rorg}-{sensor.func}-{sensor.type} direction={direction} command={command} sender={sender} destination={destination} learn={is_learn}")
-            # packet = RadioPacket.create(sensor.rorg, sensor.func, sensor.type,
-            #                         direction=direction, command=command, sender=sender,
-            #                         destination=destination, learn=is_learn)
+            # self.logger.debug(f"Create message {sensor.address} direction={direction} command={command} sender={sender} destination={destination} learn={is_learn}")
             packet = RadioPacket.create_message(sensor, direction=direction, command=command, sender=sender,
                                         destination=destination, learn=is_learn)
             self.logger.debug(f"Packet built: {packet.data}")
         except ValueError as err:
-            logging.error("Cannot create RF packet: %s", err)
+            self.logger.error(f"Cannot create RF packet: {err}")
             return
 
         # assemble data based on packet type (learn / data)
-        if not is_learn:
-            # data packet received
-            # start with default data
-
-            # Initialize packet with default_data if specified
-            if sensor.default_data:
-                packet.data[1:5] = [(sensor.default_data >> i*8) &
-                                    0xff for i in reversed(range(4))]
-
-            # do we have specific data to send?
-            if sensor.data:
-                # override with specific data settings
-                logging.debug("sensor data: %s", sensor.data)
-                self.logger.debug(f"Packet with message {packet.message}")
-                if packet.message:
-                    packet = packet.build_message(sensor.data)
-                else:
-                    # Set packet data payload
-                    packet.set_eep(sensor.data)
-                    # Set packet status bits
-                    packet.data[-1] = packet.status
-                    packet.parse_eep()  # ensure that the logging output of packet is updated
-            else:
-                # what to do if we have no data to send yet?
-                logging.warning('sending only default data as answer to %s', sensor.name)
-
-        else:
+        if is_learn:
             # learn request received
             # copy EEP and manufacturer ID
             packet.data[1:5] = learn_data[1:5]
             # update flags to acknowledge learn request
             packet.data[4] = 0xf0
+        else:
+            # data packet received
+            # start with default data
+            # Initialize packet with default_data if specified
+            if sensor.default_data:
+                packet.data[1:5] = [(sensor.default_data >> i * 8) &
+                                    0xff for i in reversed(range(4))]
+            # do we have specific data to send?
+            if sensor.data:
+                # override with specific data settings
+                logging.debug("sensor data: %s", sensor.data)
+                self.logger.debug(f"Packet with message {packet.message}")
+                packet = packet.build_message(sensor.data)
+            else:
+                # what to do if we have no data to send yet?
+                logging.warning('sending only default data as answer to %s', sensor.name)
 
         # send it
         logging.info("sending: %s", packet)
@@ -549,7 +523,7 @@ class Communicator:
             self.logger.info("unknown sensor: %s", enocean.utils.to_hex_string(packet.sender))
             return
 
-        # Handling EnOcean library decision to set learn to True by default.
+        # Handling EnOcean library decision to set learn to False by default.
         # Only 1BS and 4BS are correctly handled by the EnOcean library.
         # -> VLD EnOcean devices use UTE as learn mechanism
         if equipement.rorg == RORG.VLD and packet.rorg != RORG.UTE:
@@ -560,7 +534,7 @@ class Communicator:
             packet.learn = False
 
         # interpret packet, read properties and publish to MQTT
-        self._read_packet(packet)
+        self._read_packet(packet, equipement)
 
         # check for neccessary reply
         if equipement.answer:
@@ -589,7 +563,7 @@ class Communicator:
                     packet = self.enocean.receive.get(block=True)
 
                 # check packet type
-                if packet.packet_type == PACKET.RADIO:
+                if packet.packet_type == PACKET.RADIO_ERP1:
                     self._process_radio_packet(packet)
                 elif packet.packet_type == PACKET.RESPONSE:
                     response_code = RETURN_CODE(packet.data[0])

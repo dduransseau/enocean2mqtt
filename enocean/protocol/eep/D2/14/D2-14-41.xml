@@ -3,7 +3,7 @@
   <telegram rorg="0xD2" type="VLD" description="VLD Telegram">
     <profiles func="0x14" description="Multi Function Sensors">
       <profile type="0x41" description="Indoor -Temperature, Humidity XYZ Acceleration, Illumination Sensor">
-        <data>
+        <data bits="9">
           <value description="Temperature 10" shortcut="TMP" offset="0" size="10" unit="°C">
             <range>
               <min>0</min>

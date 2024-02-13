@@ -109,6 +109,6 @@ def combine_xml_files(input_folder, output_file):
     combined_tree.write(output_file, encoding="utf-8", xml_declaration=True)
 
 if __name__ == "__main__":
-    input_folder = Path(r"C:\Users\Damien\Dev\enocean\enocean\protocol\eep")
-    output_file = "EEP.xml"
+    input_folder = Path(r"../enocean/protocol/eep")
+    output_file = "../enocean/protocol/EEP.xml"
     combine_xml_files(input_folder, output_file)

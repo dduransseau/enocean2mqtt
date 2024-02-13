@@ -7,7 +7,9 @@ import enocean.utils
 # Left as a helper
 from enocean.protocol.constants import RORG  # noqa: F401
 
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
+
+
 class BaseDataElt:
 
     logger = logging.getLogger('enocean.protocol.eep.data')
@@ -36,7 +38,6 @@ class BaseDataElt:
 
     def _set_raw(self, raw_value, bitarray):
         ''' put value into bit array '''
-        self.logger.debug(f"_set_raw from offset={self.offset} size={self.size} with value={raw_value}")
         size = self.size
         for digit in range(self.size):
             bitarray[self.offset+digit] = (raw_value >> (size-digit-1)) & 0x01 != 0
@@ -315,7 +316,7 @@ class ProfileData:
     def __init__(self, elt):
         self.command = int(elt.get("command")) if elt.get("command") else None
         self.direction = int(elt.get("direction")) if elt.get("direction") else None
-        self.bits = int(elt.get("bits")) if elt.get("bits") else 1
+        self.bits = int(elt.get("bits")) if elt.get("bits") else None
         self.items = list()
 
         for e in elt.iter():
@@ -353,7 +354,7 @@ class ProfileData:
 class Profile:
     logger = logging.getLogger('enocean.protocol.eep.profile')
 
-    def __init__(self, elt, rorg=None, func=None, direction=None, command=None):
+    def __init__(self, elt, rorg=None, func=None):
         self.rorg = rorg
         self.func = func
         self.type = elt.get("type")
@@ -380,7 +381,9 @@ class Profile:
 
     @property
     def code(self):
-        return f"{self.rorg}-{self.func}-{self.type}"
+        return (f"{enocean.utils.to_eep_hex_code(self.rorg)}"
+                f"-{enocean.utils.to_eep_hex_code(self.func)}"
+                f"-{enocean.utils.to_eep_hex_code(self.type)}")
 
     def __str__(self):
         txt = f"Profile {self.code} about {self.description}"
@@ -449,7 +452,7 @@ class Message:
         return self.telegram_data.items
 
     @property
-    def bits(self):
+    def data_length(self):
         return self.telegram_data.bits
 
     def get_values(self, bitarray, status):
@@ -497,35 +500,36 @@ class EEP:
     logger = logging.getLogger('enocean.protocol.eep')
 
     def __init__(self):
-        self.init_ok = False
         self.telegrams = {}
         try:
-            self.logger.debug("Start loading EEP xml files")
-            # eep_path = Path(__file__).parent.absolute().joinpath('EEP.xml')
-            # tree = ElementTree.parse(eep_path)
-            # tree_root = tree.getroot()
-            # self.__load_xml(tree_root)
-            eep_path = Path(__file__).parent.absolute().joinpath('eep')
-            self.__load_xml_files(eep_path)
+            self.logger.debug("Start loading EEP xml file")
+            eep_path = Path(__file__).parent.absolute().joinpath('EEP.xml')
+            self.__load_xml(eep_path)
+            # eep_path = Path(__file__).parent.absolute().joinpath('eep')
+            # self.__load_xml_files(eep_path)
             self.logger.debug("EEP loaded")
-            self.init_ok = True
-        except IOError:
+        except Exception as e:
             # Impossible to test with the current structure?
             # To be honest, as the XML is included with the library,
             # there should be no possibility of ever reaching this...
             self.logger.warning('Cannot load protocol file!')
-            self.init_ok = False
+            self.logger.exception(e)
 
-    def __load_xml(self, et):
+    def __load_xml(self, file_path):
+        tree = ElementTree.parse(file_path)
+        tree_root = tree.getroot()
         self.telegrams = {
             enocean.utils.from_hex_string(telegram.attrib['rorg']): {
                 enocean.utils.from_hex_string(function.attrib['func']): {
-                    enocean.utils.from_hex_string(profile.attrib['type'], ): Profile(profile, rorg=telegram.attrib['rorg'], func=function.attrib['func'])
+                    enocean.utils.from_hex_string(profile.attrib['type']):
+                        Profile(profile,
+                                rorg=enocean.utils.from_hex_string(telegram.attrib['rorg']),
+                                func=enocean.utils.from_hex_string(function.attrib['func']))
                     for profile in function.findall('profile')
                 }
                 for function in telegram.findall('profiles')
             }
-            for telegram in et.findall('telegram')
+            for telegram in tree_root.findall('telegram')
         }
 
     def __load_xml_files(self, folder_path):
@@ -537,11 +541,8 @@ class EEP:
             function = telegram.find("profiles")
             profile = function.find("profile")
 
-            rorg_hex = telegram.attrib['rorg']
-            func_hex = function.attrib['func']
-
-            rorg = enocean.utils.from_hex_string(rorg_hex)
-            func = enocean.utils.from_hex_string(func_hex)
+            rorg = enocean.utils.from_hex_string(telegram.attrib['rorg'])
+            func = enocean.utils.from_hex_string(function.attrib['func'])
             type_ = enocean.utils.from_hex_string(profile.attrib['type'])
 
             if rorg in self.telegrams:
@@ -549,20 +550,17 @@ class EEP:
                     if type_ in self.telegrams[rorg][func]:
                         continue # Should not occur
                     else:
-                        self.telegrams[rorg][func].update({type_: Profile(profile, rorg=rorg_hex, func=func_hex)})
+                        self.telegrams[rorg][func].update({type_: Profile(profile, rorg=rorg, func=func)})
                 else:
-                    self.telegrams[rorg].update({func : {type_ : Profile(profile, rorg=rorg_hex, func=func_hex)}})
+                    self.telegrams[rorg].update({func : {type_ : Profile(profile, rorg=rorg, func=func)}})
             else:
-                self.telegrams.update({rorg : {func : {type_ : Profile(profile, rorg=rorg_hex, func=func_hex)}}})
+                self.telegrams.update({rorg : {func : {type_ : Profile(profile, rorg=rorg, func=func)}}})
 
     def find_profile(self, eep_rorg, rorg_func, rorg_type, direction=None, command=None):
         ''' Find profile and data description, matching RORG, FUNC and TYPE
 
         return: ProfileData
         '''
-        if not self.init_ok:
-            self.logger.warning('EEP.xml not loaded!')
-            return None
         try:
             profile = self.telegrams[eep_rorg][rorg_func][rorg_type]
         except Exception as e:
@@ -572,18 +570,9 @@ class EEP:
         return profile.get(direction=direction, command=command)
 
     def get_eep(self, eep_rorg, rorg_func, rorg_type):
-        if not self.init_ok:
-            self.logger.warning('EEP.xml not loaded!')
-            return None
         try:
             return self.telegrams[eep_rorg][rorg_func][rorg_type]
         except Exception as e:
             self.logger.warning('Cannot find rorg %s func %s type %s in EEP!', hex(eep_rorg), hex(rorg_func),
                                 hex(rorg_type))
 
-class Profiles:
-
-    def __init__(self, elt):
-        self.func = elt.get("func")
-        self.description = elt.get("description")
-        self.profiles = [Profile(p) for p in elt.findall("profile")]

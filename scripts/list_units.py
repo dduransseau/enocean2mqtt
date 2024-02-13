@@ -5,7 +5,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 
-eep_file = "EEP.xml"
+eep_file = "../enocean/protocol/EEP.xml"
 
 vld_unit_pattern = re.compile(r"\[(\w+)\]")
 

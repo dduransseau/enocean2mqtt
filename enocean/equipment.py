@@ -26,7 +26,7 @@ class Equipment(object):
 
     @property
     def eep_code(self):
-        return f"{hex(self.rorg)[2:].zfill(2)}-{hex(self.func)[2:].zfill(2)}-{hex(self.type)[2:].zfill(2)}".upper()
+        return self.profile.code
 
     def __str__(self) -> str:
         if self.name:

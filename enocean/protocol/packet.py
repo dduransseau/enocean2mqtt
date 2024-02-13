@@ -3,7 +3,6 @@ import logging
 
 from enocean.utils import combine_hex, to_hex_string, to_bitarray, from_bitarray, from_hex_string
 from enocean.protocol import crc8
-from enocean.protocol.eep import EEP
 from enocean.protocol.constants import PACKET, RORG, PARSE_RESULT, DB0, DB2, DB3, DB4, DB6
 
 
@@ -14,7 +13,6 @@ class Packet(object):
     Packet.parse_msg(buf) for parsing message.
     parse_msg() returns subclass, if one is defined for the data type.
     '''
-    # eep = EEP()
     logger = logging.getLogger('enocean.protocol.packet')
 
     def __init__(self, packet_type, data=None, optional=None, status=0):
@@ -26,8 +24,8 @@ class Packet(object):
 
         self.received = None
 
-        if not isinstance(data, list) or data is None:
-            self.logger.warning('Replacing Packet.data with default value.')
+        if data is None or not isinstance(data, list):
+            self.logger.warning(f'Replacing Packet.data with default value, for packet type {self.packet_type}')
             self.data = []
             # self.data = [self._rorg]
         else:
@@ -35,7 +33,7 @@ class Packet(object):
             self.data = data
 
         if not isinstance(optional, list) or optional is None:
-            self.logger.warning('Replacing Packet.optional with default value.')
+            self.logger.warning(f'Replacing Packet.optional with default value, for packet type {self.packet_type}')
             self.optional = []
         else:
             self.optional = optional
@@ -169,90 +167,9 @@ class Packet(object):
         return PARSE_RESULT.OK, buf, packet
 
     @staticmethod
-    def create(packet_type, rorg, rorg_func, rorg_type, direction=None, command=None,
-               destination=None,
-               sender=None,
-               learn=False, **kwargs):
-        '''
-        Creates an packet ready for sending.
-        Uses rorg, rorg_func and rorg_type to determine the values set based on EEP.
-        Additional arguments (**kwargs) are used for setting the values.
-
-        Currently only supports:
-            - PACKET.RADIO_ERP1
-            - RORGs RPS, BS1, BS4, VLD.
-
-        TODO:
-            - Require sender to be set? Would force the "correct" sender to be set.
-            - Do we need to set telegram control bits?
-              Might be useful for acting as a repeater?
-        '''
-
-        if packet_type != PACKET.RADIO_ERP1:
-            # At least for now, only support PACKET.RADIO_ERP1.
-            raise ValueError('Packet type not supported by this function.')
-
-        if rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD, RORG.MSC]:
-            # At least for now, only support these RORGS.
-            raise ValueError('RORG not supported by this function.')
-
-        if destination is None:
-            Packet.logger.warning('Replacing destination with broadcast address.')
-            destination = [0xFF, 0xFF, 0xFF, 0xFF]
-
-        # TODO: Should use the correct Base ID as default.
-        #       Might want to change the sender to be an offset from the actual address?
-        if sender is None:
-            Packet.logger.warning('Replacing sender with default address.')
-            sender = [0xDE, 0xAD, 0xBE, 0xEF]
-
-        if not isinstance(destination, list) or len(destination) != 4:
-            raise ValueError('Destination must a list containing 4 (numeric) values.')
-
-        if not isinstance(sender, list) or len(sender) != 4:
-            raise ValueError('Sender must a list containing 4 (numeric) values.')
-
-        packet = Packet(packet_type, data=[], optional=[]) # , rorg=rorg
-        packet.rorg = rorg
-        packet.data = [packet.rorg]
-        # Select EEP at this point, so we know how many bits we're dealing with (for VLD).
-        packet.select_eep(rorg_func, rorg_type, direction, command)
-
-        # Initialize data depending on the profile.
-        if rorg in [RORG.RPS, RORG.BS1]:
-            packet.data.extend([0])
-        elif rorg == RORG.BS4:
-            packet.data.extend([0, 0, 0, 0])
-        else: # For VLD extend the data variable len
-            Packet.logger.debug(f'Extend the size of packet by {packet._profile.bits} bits')
-            packet.data.extend([0] * int(packet._profile.bits))
-        packet.data.extend(sender)
-        packet.data.extend([0])
-        Packet.logger.debug(f'Packet data length {len(packet.data)}')
-        # Always use sub-telegram 3, maximum dbm (as per spec, when sending),
-        # and no security (security not supported as per EnOcean Serial Protocol).
-        # p18 ESP3: SubTelNum + Destination ID + dBm + Security level
-        packet.optional = [3] + destination + [0xFF] + [0]
-
-        if command:
-            # Set CMD to command, if applicable.. Helps with VLD.
-            kwargs['CMD'] = command
-
-        packet.set_eep(kwargs)
-        if rorg in [RORG.BS1, RORG.BS4] and not learn:
-            if rorg == RORG.BS1:
-                packet.data[1] |= (1 << 3)
-            if rorg == RORG.BS4:
-                packet.data[4] |= (1 << 3)
-        packet.data[-1] = packet.status
-        Packet.logger.debug(f'Packet data length {len(packet.data)} after set_eep')
-        # Parse the built packet, so it corresponds to the received packages
-        # For example, stuff like RadioPacket.learn should be set.
-        packet = Packet.parse_msg(packet.build())[2]
-        packet.rorg = rorg
-        # TODO: confirm need of this
-        packet.parse_eep(rorg_func, rorg_type, direction, command)
-        return packet
+    def validate_address(address):
+        if not isinstance(address, list) or len(address) != 4:
+            raise ValueError('Address must a list containing 4 (numeric) values.')
 
     @staticmethod
     def create_message(packet_type, equipment, direction=None, command=None,
@@ -276,11 +193,8 @@ class Packet(object):
             Packet.logger.warning('Replacing sender with default address.')
             sender = [0xDE, 0xAD, 0xBE, 0xEF]
 
-        if not isinstance(destination, list) or len(destination) != 4:
-            raise ValueError('Destination must a list containing 4 (numeric) values.')
-
-        if not isinstance(sender, list) or len(sender) != 4:
-            raise ValueError('Sender must a list containing 4 (numeric) values.')
+        Packet.validate_address(destination)
+        Packet.validate_address(sender)
 
         packet = Packet(packet_type, data=[], optional=[])
         packet.rorg = equipment.rorg
@@ -295,22 +209,15 @@ class Packet(object):
         elif packet.rorg == RORG.BS4:
             packet.data.extend([0, 0, 0, 0])
         else:  # For VLD extend the data variable len
-            Packet.logger.debug(f'Extend the size of packet by {packet.message.bits} bits')
-            packet.data.extend([0] * int(packet.message.bits))
+            Packet.logger.debug(f'Extend the size of packet by {packet.message.data_length} bits')
+            packet.data.extend([0] * int(packet.message.data_length))
         packet.data.extend(sender)
-        packet.data.extend([0])
+        packet.data.extend([0]) # Add status byte
         Packet.logger.debug(f'Data length {len(packet.data)}')
         # Always use sub-telegram 3, maximum dbm (as per spec, when sending),
         # and no security (security not supported as per EnOcean Serial Protocol).
         # p18 ESP3: SubTelNum + Destination ID + dBm + Security level
         packet.optional = [3] + destination + [0xFF] + [0]
-
-        if command:
-            # Set CMD to command, if applicable.. Helps with VLD.
-            kwargs['CMD'] = command
-
-        # message.set_values(packet, kwargs)
-
 
         if packet.rorg in [RORG.BS1, RORG.BS4] and not learn:
             if packet.rorg == RORG.BS1:
@@ -334,27 +241,6 @@ class Packet(object):
 
         return self.parsed
 
-    def select_eep(self, rorg_func, rorg_type, direction=None, command=None):
-        ''' Set EEP based on FUNC and TYPE '''
-        # set EEP profile
-        self.rorg_func = rorg_func
-        self.rorg_type = rorg_type
-        self.logger.debug(f"Lookup profile {self.rorg}, {rorg_func}, {rorg_type}, direction={direction}, command={command}")
-        self._profile = self.eep.find_profile(self.rorg, rorg_func, rorg_type, direction, command)
-        self.logger.debug(f"Found profile {self._profile}")
-        return self._profile is not None
-
-    def parse_eep(self, rorg_func=None, rorg_type=None, direction=None, command=None):
-        ''' Parse EEP based on FUNC and TYPE '''
-        # set EEP profile, if demanded
-        if rorg_func is not None and rorg_type is not None:
-            self.select_eep(rorg_func, rorg_type, direction, command)
-        # parse data
-        values = self.eep.get_values(self._profile, self._bit_data, self._bit_status)
-        self.logger.debug(f"Parsed data values {values}")
-        self.parsed.update(values)
-        return list(values)
-
     def parse_message(self, message):
         ''' Parse EEP based on FUNC and TYPE '''
         # set EEP profile, if demanded
@@ -363,11 +249,6 @@ class Packet(object):
         self.logger.debug(f"Parsed data values {values}")
         self.parsed.update(values)
         return values
-
-    def set_eep(self, data):
-        ''' Update packet data based on EEP. Input data is a dictionary with keys corresponding to the EEP. '''
-        self.logger.debug(f"Set eep {self._profile} {self._bit_data} {self._bit_status} {data}")
-        self._bit_data, self._bit_status = self.eep.set_values(self._profile, self._bit_data, self._bit_status, data)
 
     def build(self):
         ''' Build Packet for sending to EnOcean controller '''

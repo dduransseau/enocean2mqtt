@@ -94,7 +94,7 @@
             <item description="Not active" value="0"/>
             <item description="Trigger signal" value="1"/>
           </enum>
-          <enum description="Measurement mode" shortcut="ep" offset="10" size="1">
+          <enum description="Measurement mode" shortcut="EP" offset="10" size="1">
             <item description="Energy" value="0"/>
             <item description="Power" value="1"/>
           </enum>
@@ -130,7 +130,7 @@
           <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
             <rangeitem description="Command ID {value}" start="0" end="13"/>
           </enum>
-          <enum description="Query" shortcut="qu" offset="10" size="1">
+          <enum description="Query" shortcut="QU" offset="10" size="1">
             <item description="Query energy" value="0"/>
             <item description="Query power" value="1"/>
           </enum>

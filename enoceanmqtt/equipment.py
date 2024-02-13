@@ -22,6 +22,7 @@ class Equipment(EnoceanEquipment):
         # self.logger.debug(f"Lookup profile for {rorg} {func} {type_}")
         super().__init__(address=address, rorg=rorg, func=func, type_=type_, name=name)
         self.publish_json = self.get_config_boolean(kwargs, "publish_json")
+        self.publish_raw = self.get_config_boolean(kwargs, "publish_raw")
         self.publish_rssi = self.get_config_boolean(kwargs, "publish_rssi")
         self.publish_date = self.get_config_boolean(kwargs, "publish_date")
         self.retain = self.get_config_boolean(kwargs, "persistent")

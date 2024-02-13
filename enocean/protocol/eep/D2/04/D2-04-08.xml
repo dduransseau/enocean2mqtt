@@ -3,7 +3,7 @@
 	<telegram rorg="0xD2" type="VLD" description="VLD Telegram">
 		<profiles func="0x04" description="CO2, Humidity, Temperature, Day/Night and Autonomy">
 			<profile type="0x08" description="Type 0x08">
-				<data>
+				<data bits="4">
 					<value description="CO2" shortcut="CO2" offset="0" size="8" unit="ppm">
 						<range>
 							<min>0</min>

@@ -2,7 +2,10 @@
 from pprint import pprint
 
 
-from enocean.protocol.eep import EEP, DataStatus, DataValue, DataEnum, ProfileData, Profile, Profiles
+from enocean.protocol.eep import EEP, DataStatus, DataValue, DataEnum, ProfileData, Profile
+
+def sum_items_bits(items):
+    return sum([i.size for i in items])
 
 
 if __name__ == "__main__":
@@ -16,7 +19,14 @@ if __name__ == "__main__":
         for func, v2 in v1.items():
             # print(rorg, func)
             for profile, definition in v2.items():
-                print(hex(rorg), hex(func), hex(profile))
+                # print(hex(rorg), hex(func), hex(profile))
+
+                for d in definition.datas.values():
+                    # print(definition.rorg, d.bits)
+                    if definition.rorg == 210:
+                        for i in d.items:
+                            if i.shortcut == "ep":
+                                print(f"Issue with eep ", hex(rorg), hex(func), hex(profile), len(definition.datas), d.bits, sum_items_bits(d.items)/8)
                 # p = Profile(definition)
                 # print(p)
                 # print(definition)

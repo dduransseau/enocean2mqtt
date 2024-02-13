@@ -3,7 +3,7 @@
 	<telegram rorg="0xD2" type="VLD" description="VLD Telegram">
 		<profiles func="0x15" description="Single Sensor">
 			<profile type="0x00" description="People Activity Counter">
-				<data>
+				<data bits="3">
 					<enum description="Presence Detector" shortcut="PRES" offset="0" size="2">
 						<item description="Present" value="0" />
 						<item description="Not present" value="1" />

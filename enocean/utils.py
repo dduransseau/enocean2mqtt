@@ -38,3 +38,8 @@ def from_hex_string(hex_string):
     if len(reval) == 1:
         return reval[0]
     return reval
+
+def to_eep_hex_code(c):
+    if isinstance(c, str):
+        c = int(c, 16)
+    return hex(c)[2:].zfill(2)

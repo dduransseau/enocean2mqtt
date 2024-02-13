@@ -3,7 +3,7 @@
   <telegram rorg="0xD2" type="VLD" description="VLD Telegram">
     <profiles func="0x03" description="Light, Switching + Blind Control">
       <profile type="0x0A" description="Push Button – Single Button">
-        <data>
+        <data bits="2">
           <value description="Battery Autonomy" shortcut="BATT" offset="0" size="8" unit="%">
             <range>
               <min>1</min>

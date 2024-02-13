@@ -3,7 +3,7 @@
   <telegram rorg="0xD2" type="VLD" description="VLD Telegram">
     <profiles func="0x14" description="Multi Function Sensors">
       <profile type="0x30" description="Sensor for Smoke, Air quality, Hygrothermal comfort, Temperature and Humidity">
-        <data>
+        <data bits="6">
           <enum description="Smoke Alarm status" shortcut="SMA0" offset="0" size="1">
             <item description="Smoke Alarm non-activated" value="0"/>
             <item description="Smoke Alarm activated" value="1"/>
