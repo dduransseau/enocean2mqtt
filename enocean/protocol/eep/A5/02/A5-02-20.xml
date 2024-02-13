@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+    <profiles func="0x02" description="Temperature Sensors">
+      <profile type="0x20" description="10 Bit Temperature Sensor Range -10°C to +41.2°C">
+        <data>
+          <value description="Temperature (linear)" shortcut="TMP" offset="14" size="10" unit="°C">
+            <range>
+              <min>1023</min>
+              <max>0</max>
+            </range>
+            <scale>
+              <min>-10.000000</min>
+              <max>41.200000</max>
+            </scale>
+          </value>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+    <profiles func="0x06" description="Light Sensor">
+      <profile type="0x01" description="Range 300lx to 60.000lx">
+        <data>
+          <value description="Supply voltage (linear)" shortcut="SVC" offset="0" size="8" unit="V">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0.000000</min>
+              <max>5.100000</max>
+            </scale>
+          </value>
+          <value description="Illumination 2 (linear)" shortcut="ILL2" offset="8" size="8" unit="lx">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>300.000000</min>
+              <max>30000.000000</max>
+            </scale>
+          </value>
+          <value description="Illumination 1 (linear)" shortcut="ILL1" offset="16" size="8" unit="lx">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>600.000000</min>
+              <max>60000.000000</max>
+            </scale>
+          </value>
+          <enum description="Range select" shortcut="RS" offset="31" size="1">
+            <item description="Range acc. to DB_1 (ILL1)" value="0"/>
+            <item description="Range acc. to DB_2 (ILL2)" value="1"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

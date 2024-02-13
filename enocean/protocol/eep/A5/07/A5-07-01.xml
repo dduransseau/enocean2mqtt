@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+    <profiles func="0x07" description="Occupancy Sensor">
+      <profile type="0x01" description="Occupancy with Supply voltage monitor">
+        <data>
+          <value shortcut="SVC" description="Supply voltage (OPTIONAL)" offset="0" size="8" unit="V">
+            <range>
+              <min>0</min>
+              <max>250</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>5.000000</max>
+            </scale>
+          </value>
+          <enum description="PIR Status" shortcut="PIRS" offset="16" size="1">
+            <item description="PIR off" value="0"/>
+            <item description="PIR on" value="1"/>
+          </enum>
+          <enum description="Supply voltage availability" shortcut="SVA" offset="31" size="1">
+            <item description="Supply voltage is not supported" value="0"/>
+            <item description="Supply voltage is supported" value="1"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

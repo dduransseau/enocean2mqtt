@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+		<profiles func="0x06" description="Light Sensor">
+			<profile type="0x03" description="10-bit measurement (1-Lux resolution) with range 0lx to 1000lx">
+				<data>
+					<value description="Supply voltage (linear)" shortcut="SVC" offset="0" size="8" unit="V">
+						<range>
+							<min>0</min>
+							<max>250</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>5.000000</max>
+						</scale>
+					</value>
+					<value description="Illumination (linear)" shortcut="ILL" offset="8" size="10" unit="lx">
+						<range>
+							<min>0</min>
+							<max>1000</max>
+						</range>
+						<scale>
+							<min>0</min>
+							<max>1000.000000</max>
+						</scale>
+					</value>
+					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
+						<item description="Teach-In" value="0" />
+						<item description="Data" value="1" />
+					</enum>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

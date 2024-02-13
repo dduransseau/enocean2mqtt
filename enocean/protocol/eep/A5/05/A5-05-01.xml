@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+		<profiles func="0x05" description="Barometric Sensor">
+			<profile type="0x01" description="Range 500 to 1150hPa">
+				<data>
+					<value description="Barometer" shortcut="BAR" offset="6" size="10" unit="hPa">
+						<range>
+							<min>0</min>
+							<max>1023</max>
+						</range>
+						<scale>
+							<min>500</min>
+							<max>1150</max>
+						</scale>
+					</value>
+					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
+						<item description="Teach-In" value="0" />
+						<item description="Data" value="1" />
+					</enum>
+					<enum description="Telegram Type" shortcut="TTP" offset="31" size="1">
+						<item description="Heartbeat" value="0" />
+						<item description="Event triggered" value="1" />
+					</enum>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

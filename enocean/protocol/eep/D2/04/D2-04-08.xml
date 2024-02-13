@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xD2" type="VLD" description="VLD Telegram">
+		<profiles func="0x04" description="CO2, Humidity, Temperature, Day/Night and Autonomy">
+			<profile type="0x08" description="Type 0x08">
+				<data>
+					<value description="CO2" shortcut="CO2" offset="0" size="8" unit="ppm">
+						<range>
+							<min>0</min>
+							<max>255</max>
+						</range>
+						<scale>
+							<min>0</min>
+							<max>5000</max>
+						</scale>
+					</value>
+					<value description="Humidity" shortcut="HUM" offset="8" size="8" unit="%">
+						<range>
+							<min>0</min>
+							<max>200</max>
+						</range>
+						<scale>
+							<min>0</min>
+							<max>100</max>
+						</scale>
+					</value>
+					<value description="Temperature" shortcut="TMP" offset="16" size="8" unit="°C">
+						<range>
+							<min>0</min>
+							<max>255</max>
+						</range>
+						<scale>
+							<min>0</min>
+							<max>51</max>
+						</scale>
+					</value>
+					<enum description="Day/Night" shortcut="DN" offset="24" size="1">
+						<item description="Day" value="0" />
+						<item description="Night" value="1" />
+					</enum>
+					<enum description="Battery Autonomy" shortcut="BA" offset="25" size="3">
+						<item description="100-87.5%" value="0" />
+						<item description="87.5-75%" value="1" />
+						<item description="75-62.5%" value="2" />
+						<item description="62.5-50%" value="3" />
+						<item description="50-37.5%" value="4" />
+						<item description="37.5-25%" value="5" />
+						<item description="25-12.5%" value="6" />
+						<item description="12.5-0%" value="7" />
+					</enum>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

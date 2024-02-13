@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xD2" type="VLD" description="VLD Telegram">
+		<profiles func="0x15" description="Single Sensor">
+			<profile type="0x00" description="People Activity Counter">
+				<data>
+					<enum description="Presence Detector" shortcut="PRES" offset="0" size="2">
+						<item description="Present" value="0" />
+						<item description="Not present" value="1" />
+						<item description="Not detectable" value="2" />
+						<item description="Presence detection error" value="3" />
+					</enum>
+					<enum description="Energy Storage Status" shortcut="ESSTS" offset="2" size="2">
+						<item description="High" value="0" />
+						<item description="Medium" value="1" />
+						<item description="Low" value="2" />
+						<item description="Critical" value="3" />
+					</enum>
+					<value description="PIR update rate" shortcut="PIRUPD" offset="4" size="4" unit="s">
+						<range>
+							<min>0</min>
+							<max>15</max>
+						</range>
+						<scale>
+							<min>1</min>
+							<max>16</max>
+						</scale>
+					</value>
+					<value description="PIR Counter" shortcut="PIRCOUNT" offset="8" size="16" unit="activations">
+						<range>
+							<min>0</min>
+							<max>65535</max>
+						</range>
+						<scale>
+							<min>0</min>
+							<max>65535</max>
+						</scale>
+					</value>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

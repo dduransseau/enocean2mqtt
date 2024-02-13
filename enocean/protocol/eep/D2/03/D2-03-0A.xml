@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xD2" type="VLD" description="VLD Telegram">
+    <profiles func="0x03" description="Light, Switching + Blind Control">
+      <profile type="0x0A" description="Push Button – Single Button">
+        <data>
+          <value description="Battery Autonomy" shortcut="BATT" offset="0" size="8" unit="%">
+            <range>
+              <min>1</min>
+              <max>100</max>
+            </range>
+            <scale>
+              <min>1</min>
+              <max>100</max>
+            </scale>
+          </value>
+          <enum description="Button Action" shortcut="BA" offset="8" size="8">
+            <item description="Reserved" value="0"/>
+            <item description="Simple press" value="1"/>
+            <item description="Double press" value="2"/>
+            <item description="Long press" value="3"/>
+            <item description="Long press released" value="4"/>
+            <rangeitem description="Reserved" start="5" end="255"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+    <profiles func="0x30" description="Digital Input">
+      <profile type="0x04" description="3 Digital Inputs, 1 Digital Input 8 bits">
+        <data>
+          <value shortcut="DV0" description="Digital Value 1 byte" offset="16" size="8" unit="">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>255</max>
+            </scale>
+          </value>
+          <enum shortcut="DI2" description="Digital Input 2" offset="29" size="1">
+            <item description="Low" value="0"/>
+            <item description="High" value="1"/>
+          </enum>
+          <enum shortcut="DI1" description="Digital Input 1" offset="30" size="1">
+            <item description="Low" value="0"/>
+            <item description="High" value="1"/>
+          </enum>
+          <enum shortcut="DI0" description="Digital Input 0" offset="31" size="1">
+            <item description="Low" value="0"/>
+            <item description="High" value="1"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

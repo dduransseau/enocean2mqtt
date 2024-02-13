@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xF6" type="RPS" description="RPS Telegram">
+		<profiles func="0x03" description="Rocker Switch, 4 Rocker">
+			<profile type="0x01" description="Light and Blind Control - Application Style 1">
+				<data>
+					<enum description="Rocker 1st action" shortcut="R1" offset="0" size="3">
+						<item description="Button AI" value="0" />
+						<item description="Button AO" value="1" />
+						<item description="Button BI" value="2" />
+						<item description="Button BO" value="3" />
+						<item description="Button CI" value="4" />
+						<item description="Button CO" value="5" />
+						<item description="Button DI" value="6" />
+						<item description="Button DO" value="7" />
+					</enum>
+					<enum description="Energy bow" shortcut="EB" offset="3" size="1">
+						<item description="released" value="0" />
+						<item description="pressed" value="1" />
+					</enum>
+					<enum description="Rocker 2nd action" shortcut="R2" offset="4" size="3">
+						<item description="Button AI" value="0" />
+						<item description="Button AO" value="1" />
+						<item description="Button BI" value="2" />
+						<item description="Button BO" value="3" />
+						<item description="Button CI" value="4" />
+						<item description="Button CO" value="5" />
+						<item description="Button DI" value="6" />
+						<item description="Button DO" value="7" />
+					</enum>
+					<enum description="2nd action" shortcut="SA" offset="7" size="1">
+						<item description="No 2nd action" value="0" />
+						<item description="2nd action valid" value="1" />
+					</enum>
+					<status description="T21" shortcut="T21" offset="2" size="1" />
+					<status description="NU" shortcut="NU" offset="3" size="1" />
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

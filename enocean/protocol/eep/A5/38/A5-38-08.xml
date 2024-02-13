@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+    <profiles func="0x38" description="Central Command">
+      <profile type="0x08" description="Gateway">
+        <command description="Command ID" shortcut="COM" offset="0" size="8">
+          <item description="Switching" value="1"/>
+          <item description="Dimming" value="2"/>
+        </command>
+        <data command="1">
+          <enum shortcut="COM" description="Command ID" offset="0" size="8">
+            <rangeitem description="Command ID {value}" start="0" end="13"/>
+          </enum>
+          <value shortcut="TIM" description="Time in 1/10 seconds. 0 = no time specifed" offset="8" size="16" unit="s">
+            <range>
+              <min>1</min>
+              <max>65535</max>
+            </range>
+            <scale>
+              <min>0.1</min>
+              <max>6553.5</max>
+            </scale>
+          </value>
+          <enum description="Lock for duration time if time &gt;0, unlimited time of no time specified. Locking may be cleared with &quot;unlock&quot;. During lock phase no other commands will be accepted or executed" shortcut="LCK" offset="29" size="1">
+            <item description="Unlock" value="0"/>
+            <item description="Lock" value="1"/>
+          </enum>
+          <enum description="Delay or duration (if Time &gt; 0); 0 = Duration (Execute switching command immediately and switch back after duration) 1 = Delay (Execute switching command after delay)" shortcut="DEL" offset="30" size="1">
+            <item description="Duration" value="0"/>
+            <item description="Delay" value="1"/>
+          </enum>
+          <enum description="Switching command ON/OFF" shortcut="SW" offset="31" size="1">
+            <item description="Off" value="0"/>
+            <item description="On" value="1"/>
+          </enum>
+        </data>
+        <data command="2">
+          <enum shortcut="COM" description="Command ID" offset="0" size="8">
+            <rangeitem description="Command ID {value}" start="0" end="13"/>
+          </enum>
+          <value shortcut="EDIM" description="Dimming value (absolute [0...255] or relative [0...100])" offset="8" size="8" unit="%">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>255</max>
+            </scale>
+          </value>
+          <value shortcut="RMP" description="Ramping time in seconds, 0 = no ramping, 1...255 = seconds to 100%" offset="16" size="8" unit="s">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>255</max>
+            </scale>
+          </value>
+          <enum shortcut="EDIMR" description="Dimming Range" offset="29" size="1">
+            <item description="Absolute value" value="0"/>
+            <item description="Relative value" value="1"/>
+          </enum>
+          <enum shortcut="STR" description="Store final value" offset="30" size="1">
+            <item description="No" value="0"/>
+            <item description="Yes" value="1"/>
+          </enum>
+          <enum shortcut="SW" description="Switching command" offset="31" size="1">
+            <item description="Off" value="0"/>
+            <item description="On" value="1"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xF6" type="RPS" description="RPS Telegram">
+    <profiles func="0x04" description="Position Switch, Home and Office Application">
+      <profile type="0x01" description="Key Card Activated Switch">
+        <data>
+          <enum description="Key Card" shortcut="KC" offset="0" size="8">
+            <item description="Taken out" value="0"/>
+            <item description="Inserted" value="112"/>
+          </enum>
+          <status description="T21" shortcut="T21" offset="2" size="1"/>
+          <status description="NU" shortcut="NU" offset="3" size="1"/>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

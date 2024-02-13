@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+		<profiles func="0x09" description="Gas Sensor">
+			<profile type="0x07" description="Particles">
+				<data>
+					<value description="Particles_10" shortcut="PM10" offset="0" size="9" unit="ug/m3">
+						<range>
+							<min>0</min>
+							<max>511</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>511.000000</max>
+						</scale>
+					</value>
+					<value description="Particles_2.5" shortcut="PM2.5" offset="9" size="9" unit="ug/m3">
+						<range>
+							<min>0</min>
+							<max>511</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>511.000000</max>
+						</scale>
+					</value>
+					<value description="Particles_1" shortcut="PM1" offset="18" size="9" unit="ug/m3">
+						<range>
+							<min>0</min>
+							<max>511</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>511.000000</max>
+						</scale>
+					</value>
+					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
+						<item description="Teach-In" value="0" />
+						<item description="Data" value="1" />
+					</enum>
+					<enum description="PM10 Active" shortcut="PM10a" offset="29" size="1">
+						<item description="PM10 not active" value="0" />
+						<item description="PM10 active" value="1" />
+					</enum>
+					<enum description="PM2.5 Active" shortcut="PM2.5a" offset="30" size="1">
+						<item description="PM2.5 not active" value="0" />
+						<item description="PM2.5 active" value="1" />
+					</enum>
+					<enum description="PM1 Active" shortcut="PM1a" offset="31" size="1">
+						<item description="PM1 not active" value="0" />
+						<item description="PM1 active" value="1" />
+					</enum>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+    <profiles func="0x13" description="Environmental Applications">
+      <profile type="0x03" description="Date Exchange">
+        <data>
+          <value description="Day" shortcut="DY" offset="3" size="5" unit="">
+            <range>
+              <min>1</min>
+              <max>31</max>
+            </range>
+            <scale>
+              <min>1</min>
+              <max>31</max>
+            </scale>
+          </value>
+          <value description="Month" shortcut="MTH" offset="12" size="4" unit="">
+            <range>
+              <min>1</min>
+              <max>12</max>
+            </range>
+            <scale>
+              <min>1</min>
+              <max>12</max>
+            </scale>
+          </value>
+          <value description="Year" shortcut="YR" offset="17" size="7" unit="">
+            <range>
+              <min>0</min>
+              <max>99</max>
+            </range>
+            <scale>
+              <min>2000</min>
+              <max>2099</max>
+            </scale>
+          </value>
+          <enum description="Identifier" shortcut="ID" offset="24" size="4">
+            <rangeitem description="Identifier {value}" start="0" end="15"/>
+          </enum>
+          <enum description="Source" shortcut="SRC" offset="31" size="1">
+            <item description="Real Time Clock" value="0"/>
+            <item description="GPS or equivalent (e.g. DCF77, WWV)" value="1"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

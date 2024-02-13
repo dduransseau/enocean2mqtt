@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+    <profiles func="0x13" description="Environmental Applications">
+      <profile type="0x02" description="Sun Intensity">
+        <data>
+          <value description="Sun - West" shortcut="SNW" offset="0" size="8" unit="klx">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>150</max>
+            </scale>
+          </value>
+          <value description="Sun - South" shortcut="SNS" offset="8" size="8" unit="klx">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>150</max>
+            </scale>
+          </value>
+          <value description="Sun - East" shortcut="SNE" offset="16" size="8" unit="klx">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>150</max>
+            </scale>
+          </value>
+          <enum description="Identifier" shortcut="ID" offset="24" size="4">
+            <rangeitem description="Identifier {value}" start="0" end="15"/>
+          </enum>
+          <enum description="Hemisphere" shortcut="HEM" offset="29" size="1">
+            <item description="North" value="0"/>
+            <item description="South" value="1"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

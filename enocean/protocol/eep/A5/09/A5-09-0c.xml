@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+		<profiles func="0x09" description="Gas Sensor">
+			<profile type="0x0c" description="VOC sensorNG">
+				<data>
+					<value description="VOC" shortcut="CONC" offset="0" size="16" unit="ug/m3">
+						<range>
+							<min>0</min>
+							<max>65535</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>65535.000000</max>
+						</scale>
+					</value>
+					<value description="VOCID" shortcut="VOCID" offset="16" size="8" unit="v">
+						<range>
+							<min>0</min>
+							<max>255</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>255.000000</max>
+						</scale>
+					</value>
+					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
+						<item description="Teach-In" value="0" />
+						<item description="Data" value="1" />
+					</enum>
+					<enum shortcut="Unit" description="Unit" offset="29" size="1">
+						<item description="ppb" value="0" />
+						<item description="ug/m3" value="1" />
+					</enum>
+					<enum description="Scale Multiplier" shortcut="SCM" offset="30" size="2">
+						<item description="0.01" value="0" />
+						<item description="0.1" value="1" />
+						<item description="1" value="2" />
+						<item description="10" value="3" />
+					</enum>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

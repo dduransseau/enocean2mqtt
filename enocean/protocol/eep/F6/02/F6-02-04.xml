@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xF6" type="RPS" description="RPS Telegram">
+		<profiles func="0x02" description="Rocker Switch, 2 Rocker">
+			<profile type="0x04" description="Light and blind control ERP2">
+				<data>
+					<enum description="State of the energy bow " shortcut="EB" offset="0" size="1">
+						<item description="released" value="0" />
+						<item description="pressed" value="1" />
+					</enum>
+					<enum description="Button coding" shortcut="BC" offset="1" size="1">
+						<item description="button" value="0" />
+					</enum>
+					<enum description="State I of the rocker B" shortcut="RBI" offset="4" size="1">
+						<item description="not pressed" value="0" />
+						<item description="pressed" value="1" />
+					</enum>
+					<enum description="State O of the rocker B" shortcut="RBO" offset="5" size="1">
+						<item description="not pressed" value="0" />
+						<item description="pressed" value="1" />
+					</enum>
+					<enum description="State I of the rocker A" shortcut="RAI" offset="6" size="1">
+						<item description="not pressed" value="0" />
+						<item description="pressed" value="1" />
+					</enum>
+					<enum description="State O of the rocker A" shortcut="RAO" offset="7" size="1">
+						<item description="not pressed" value="0" />
+						<item description="pressed" value="1" />
+					</enum>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

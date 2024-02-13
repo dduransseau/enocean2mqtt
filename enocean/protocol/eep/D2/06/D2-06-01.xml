@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xD2" type="VLD" description="VLD Telegram">
+		<profiles func="0x06" description="Multisensor Window Handle">
+			<profile type="0x01" description="Alarm, Position Sensor, Vacation Mode, Optional Sensors">
+				<command description="Message type" shortcut="MT" offset="0" size="8">
+					<item description="Sensor Values" value="0" />
+					<item description="Configuration Report" value="10" />
+					<item description="Log data 1" value="20" />
+					<item description="Log data 2" value="21" />
+					<item description="Log data 3" value="22" />
+					<item description="Log data 4" value="23" />
+					<item description="Control and Settings" value="80" />
+				</command>
+				<data command="0" bits="10">
+					<enum description="Message Type" shortcut="MT" offset="0" size="8">
+						<rangeitem description="Message Type ID {value}" start="0" end="8" />
+					</enum>
+					<enum description="Burglary Alarm" shortcut="BAL" offset="8" size="4">
+						<item description="Not triggered" value="0" />
+						<item description="Triggered" value="1" />
+						<item description="Supported + invalid" value="14" />
+						<item description="Not supported" value="15" />
+					</enum>
+					<enum description="Protection Plus Alarm" shortcut="PPAL" offset="12" size="4">
+						<item description="Protection Plus Alarm not triggered" value="0" />
+						<item description="Protection Plus Alarm triggered" value="1" />
+						<item description="Supported + invalid" value="14" />
+						<item description="Not supported" value="15" />
+					</enum>
+					<enum description="Handle Position" shortcut="HP" offset="16" size="4">
+						<item description="Handle Position undefined" value="0" />
+						<item description="Handle Up" value="1" />
+						<item description="Handle Down" value="2" />
+						<item description="Handle Left" value="3" />
+						<item description="Handle Right" value="4" />
+						<item description="Supported + invalid" value="14" />
+						<item description="Not supported" value="15" />
+					</enum>
+					<enum description="Window State" shortcut="WS" offset="20" size="4">
+						<item description="Window State undefined" value="0" />
+						<item description="Window tilted" value="1" />
+						<item description="Window not tilted" value="2" />
+						<item description="Supported + invalid" value="14" />
+						<item description="Not supported" value="15" />
+					</enum>
+					<enum description="Button Right" shortcut="BR" offset="24" size="4">
+						<item description="No Change" value="0" />
+						<item description="Button Pressed" value="1" />
+						<item description="Button Released" value="2" />
+						<item description="Supported + invalid" value="14" />
+						<item description="Not supported" value="15" />
+					</enum>
+					<enum description="Button Left" shortcut="BL" offset="28" size="4">
+						<item description="No Change" value="0" />
+						<item description="Button Pressed" value="1" />
+						<item description="Button Released" value="2" />
+						<item description="Supported + invalid" value="14" />
+						<item description="Not supported" value="15" />
+					</enum>
+					<enum description="Motion" shortcut="M" offset="32" size="4">
+						<item description="Motion not triggered" value="0" />
+						<item description="Motion triggered" value="1" />
+						<item description="Supported + invalid" value="14" />
+						<item description="Not supported" value="15" />
+					</enum>
+					<enum description="Vacation Mode" shortcut="V" offset="36" size="4">
+						<item description="No Change" value="0" />
+						<item description="Vacation On" value="1" />
+						<item description="Vacation Off" value="2" />
+						<item description="Supported + invalid" value="14" />
+						<item description="Not supported" value="15" />
+					</enum>
+					<value description="Temperature (linear)" shortcut="TMP" offset="40" size="8" unit="°C">
+						<range>
+							<min>0</min>
+							<max>250</max>
+						</range>
+						<scale>
+							<min>-20.000000</min>
+							<max>60.000000</max>
+						</scale>
+						<item description="Supported + invalid" value="254" />
+						<item description="Not supported" value="255" />
+					</value>
+					<value description="Humidity (linear)" shortcut="HUM" offset="48" size="8" unit="%">
+						<range>
+							<min>0</min>
+							<max>200</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>100.000000</max>
+						</scale>
+						<item description="Supported + invalid" value="254" />
+						<item description="Not supported" value="255" />
+					</value>
+					<value description="Illumination (linear)" shortcut="ILL" offset="56" size="16" unit="lx">
+						<range>
+							<min>0</min>
+							<max>60000</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>60000.000000</max>
+						</scale>
+						<item description="Over range" value="60001" />
+						<item description="Supported + invalid" value="65534" />
+						<item description="Not supported" value="65535" />
+					</value>
+					<value description="Battery State (linear)" shortcut="BS" offset="72" size="5" unit="%">
+						<range>
+							<min>0</min>
+							<max>20</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>100.000000</max>
+						</scale>
+					</value>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

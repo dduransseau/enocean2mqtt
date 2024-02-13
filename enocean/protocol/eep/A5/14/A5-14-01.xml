@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+    <profiles func="0x14" description="Multi-Func Sensor">
+      <profile type="0x01" description="Single Input Contact (Window/Door), Supply voltage monitor">
+        <data>
+          <value description="Supply voltage / super cap. (linear); 251 - 255 reserved for error code" shortcut="SVC" offset="0" size="8" unit="V">
+            <range>
+              <min>0</min>
+              <max>250</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>5.0</max>
+            </scale>
+          </value>
+          <enum description="Contact" shortcut="CT" offset="31" size="1">
+            <item description="open" value="1"/>
+            <item description="closed" value="0"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

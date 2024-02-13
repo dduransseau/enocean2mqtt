@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xD2" type="VLD" description="VLD Telegram">
+		<profiles func="0x32" description="AC current clamp">
+			<profile type="0x02" description="Type 0x02">
+				<data>
+					<enum description="Power Failure" shortcut="PF" offset="0" size="1">
+						<item description="Power Failure Detection disabled/not supported" value="0" />
+						<item description="Power Failure Detection enabled" value="1" />
+					</enum>
+					<enum description="Divisor" shortcut="DIV" offset="1" size="1">
+						<item description="x/1" value="0" />
+						<item description="x/10" value="1" />
+					</enum>
+					<value description="Channel 1" shortcut="CH1" offset="8" size="12" unit="A">
+						<range>
+							<min>0</min>
+							<max>4095</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>4095.000000</max>
+						</scale>
+					</value>
+					<value description="Channel 2" shortcut="CH2" offset="20" size="12" unit="A">
+						<range>
+							<min>0</min>
+							<max>4095</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>4095.000000</max>
+						</scale>
+					</value>
+					<value description="Channel 3" shortcut="CH3" offset="32" size="12" unit="A">
+						<range>
+							<min>0</min>
+							<max>4095</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>4095.000000</max>
+						</scale>
+					</value>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>

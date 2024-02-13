@@ -1,0 +1,865 @@
+{
+    "TMP": [
+        "Temperature from RCU",
+        "Temperature (linear)",
+        "Local Ambient or Feed temperature",
+        "Temperature",
+        "Room temperature from room control unit",
+        "Temperature 10",
+        "Outdoor Temp"
+    ],
+    "HUM": [
+        "Rel. Humidity (linear)",
+        "Humidity",
+        "Humidity (linear)"
+    ],
+    "TSN": [
+        "Availability of the Temperature Sensor"
+    ],
+    "TTP": [
+        "Telegram Type"
+    ],
+    "BAR": [
+        "Barometer"
+    ],
+    "LRNB": [
+        "Learn Bit",
+        "LRN Bit"
+    ],
+    "SVC": [
+        "Supply voltage (REQUIRED)",
+        "Supply voltage (linear)",
+        "Supply voltage / super cap. (linear); 251 - 255 reserved for error code",
+        "Supply Voltage",
+        "Supply voltage / super cap. (linear)",
+        "Supply voltage (OPTIONAL)"
+    ],
+    "ILL2": [
+        "Illumination 2 (linear)"
+    ],
+    "ILL1": [
+        "Illumination 1 (linear)"
+    ],
+    "RS": [
+        "Range select"
+    ],
+    "ILL": [
+        "Illumination",
+        "Illumination (linear)"
+    ],
+    "PIRS": [
+        "PIR Status"
+    ],
+    "SVA": [
+        "Supply voltage availability"
+    ],
+    "OCC": [
+        "Occupancy Button"
+    ],
+    "Conc": [
+        "Concentration (linear)",
+        "VOC Concentration"
+    ],
+    "HSN": [
+        "Availability of the Humidity Sensor"
+    ],
+    "VOC_ID": [
+        "VOC Identification"
+    ],
+    "ACT": [
+        "Radon"
+    ],
+    "PM10": [
+        "Particles_10"
+    ],
+    "PM2.5": [
+        "Particles_2.5"
+    ],
+    "PM1": [
+        "Particles_1"
+    ],
+    "PM10a": [
+        "PM10 Active"
+    ],
+    "PM2.5a": [
+        "PM2.5 Active"
+    ],
+    "PM1a": [
+        "PM1 Active"
+    ],
+    "CONC": [
+        "VOC"
+    ],
+    "VOCID": [
+        "VOCID"
+    ],
+    "Unit": [
+        "Unit"
+    ],
+    "SCM": [
+        "Scale Multiplier"
+    ],
+    "FAN": [
+        "Actual value of fan",
+        "Fan speed",
+        "Turn Switch for fan speed"
+    ],
+    "SP": [
+        "Set point (linear)",
+        "Set Point (linear)",
+        "Valve Position or Temperature Set point",
+        "Valve Position or Temperature Setpoint"
+    ],
+    "SLSW": [
+        "Slide switch"
+    ],
+    "CVAR": [
+        "Actual value of controller"
+    ],
+    "ASP": [
+        "Actual Setpoint"
+    ],
+    "ALR": [
+        "Alarm"
+    ],
+    "CTM": [
+        "Controller mode"
+    ],
+    "CTS": [
+        "Controller state"
+    ],
+    "ERH": [
+        "Energy hold-off"
+    ],
+    "RO": [
+        "Reset over current shut down",
+        "Room occupancy"
+    ],
+    "BSP": [
+        "Blind/shutter position"
+    ],
+    "AS": [
+        "Angle sign"
+    ],
+    "AN": [
+        "Angle in 2 degrees steps"
+    ],
+    "PVF": [
+        "Position value flag"
+    ],
+    "AVF": [
+        "Angle value flag"
+    ],
+    "ES": [
+        "Energy Storage Status",
+        "Charge level of energy storage",
+        "Energy storage sufficiently charged",
+        "Error state"
+    ],
+    "EP": [
+        "End position",
+        "Measurement mode"
+    ],
+    "ST": [
+        "Status"
+    ],
+    "SM": [
+        "Service mode"
+    ],
+    "MOTP": [
+        "Mode of the position"
+    ],
+    "MR": [
+        "current value in W or cumulative value in kWh",
+        "Current value in mA or cumulative value in A.h",
+        "Current value in or cumulative counter value"
+    ],
+    "CH": [
+        "Measurement channel",
+        "Channel no"
+    ],
+    "DT": [
+        "Current value or cumulative counter value",
+        "Current value or cumulative value"
+    ],
+    "DIV": [
+        "Divisor for value",
+        "Divisor"
+    ],
+    "TI": [
+        "Tariff info"
+    ],
+    "ID": [
+        "Identifier"
+    ],
+    "DWS": [
+        "Dawn sensor"
+    ],
+    "WND": [
+        "Wind speed"
+    ],
+    "DN": [
+        "User interface indication",
+        "Day / Night",
+        "Day/Night"
+    ],
+    "RAN": [
+        "Rain Indication"
+    ],
+    "SNW": [
+        "Sun - West"
+    ],
+    "SNS": [
+        "Sun - South"
+    ],
+    "SNE": [
+        "Sun - East"
+    ],
+    "HEM": [
+        "Hemisphere"
+    ],
+    "DY": [
+        "Day"
+    ],
+    "MTH": [
+        "Month"
+    ],
+    "YR": [
+        "Year"
+    ],
+    "SRC": [
+        "Source"
+    ],
+    "WDY": [
+        "Weekday"
+    ],
+    "HR": [
+        "Hour"
+    ],
+    "MIN": [
+        "Minute"
+    ],
+    "SEC": [
+        "Second"
+    ],
+    "TMF": [
+        "Time Format"
+    ],
+    "AMPM": [
+        "AM/PM"
+    ],
+    "ELV": [
+        "Elevation"
+    ],
+    "AZM": [
+        "Azimut"
+    ],
+    "LAT_MSB": [
+        "Latitude(MSB)"
+    ],
+    "LOT_MSB": [
+        "Longitude(MSB)"
+    ],
+    "LAT_LSB": [
+        "Latitude(LSB)"
+    ],
+    "LOT_LSB": [
+        "Longitude(LSB)"
+    ],
+    "DBAA": [
+        "Average Sound Level"
+    ],
+    "DBAP": [
+        "Peak Sound Level"
+    ],
+    "SL": [
+        "Source Localization"
+    ],
+    "CT": [
+        "Contact"
+    ],
+    "VIB": [
+        "Vibration"
+    ],
+    "CV": [
+        "Current Valve position",
+        "Current Value"
+    ],
+    "SO": [
+        "Service On"
+    ],
+    "ENIE": [
+        "Harvesting status",
+        "Energy input enabled"
+    ],
+    "BCAP": [
+        "Battery capacity; change battery next days"
+    ],
+    "CCO": [
+        "Contact, cover open"
+    ],
+    "FTS": [
+        "Failure Temperature sensor, out of range",
+        "Feed Temperature OR Temperature Set Point"
+    ],
+    "DWO": [
+        "Detection, window open",
+        "Window open detection"
+    ],
+    "ACO": [
+        "Actuator obstructed",
+        "Reports blocked actuator (motor)"
+    ],
+    "RIN": [
+        "Run init sequence"
+    ],
+    "LFS": [
+        "Lift set"
+    ],
+    "VO": [
+        "Valve open / maintenance"
+    ],
+    "VC": [
+        "Valve closed"
+    ],
+    "SB": [
+        "Initiate summer mode (reduced communication)",
+        "Summer bit, Reduction of energy consumption"
+    ],
+    "SPS": [
+        "Set point selection",
+        "Set point selection for DB3"
+    ],
+    "SPN": [
+        "Set point inverse"
+    ],
+    "RCU": [
+        "Select function"
+    ],
+    "CP": [
+        "Current Value"
+    ],
+    "TMPFC": [
+        "Room Temperature OR Failure Code"
+    ],
+    "MST": [
+        "Measurement Status"
+    ],
+    "STR": [
+        "Status Request",
+        "Store final value"
+    ],
+    "BLS": [
+        "Button Lock Status"
+    ],
+    "TS": [
+        "Temperature Selection"
+    ],
+    "FL": [
+        "Failure"
+    ],
+    "POS": [
+        "Current vertical position",
+        "Valve Position",
+        "Vertical position"
+    ],
+    "TSP": [
+        "Temperature Set Point"
+    ],
+    "MC": [
+        "Measure Control"
+    ],
+    "WUC": [
+        "Wake Up Cycle"
+    ],
+    "DSO": [
+        "Display Orientation"
+    ],
+    "BLC": [
+        "Button Lock Control"
+    ],
+    "SER": [
+        "Service command"
+    ],
+    "LOM": [
+        "Local Offset Mode"
+    ],
+    "LO": [
+        "Local Offset"
+    ],
+    "TSL": [
+        "Indicates which sensor is used for TMP",
+        "Temperature requested from the actuator"
+    ],
+    "RCE": [
+        "Indicates radio communication errors"
+    ],
+    "RSS": [
+        "Weak radio signal warning"
+    ],
+    "REF": [
+        "Execute reference-run"
+    ],
+    "RFC": [
+        "Radio duty cycle selection."
+    ],
+    "SBY": [
+        "Enter standby mode, refer to Appendix"
+    ],
+    "IPS": [
+        "Input State"
+    ],
+    "WA0": [
+        "Value of wake signal"
+    ],
+    "DI3": [
+        "Digital Input 3"
+    ],
+    "DI2": [
+        "Digital Input 2"
+    ],
+    "DI1": [
+        "Digital Input 1"
+    ],
+    "DI0": [
+        "Digital Input 0"
+    ],
+    "DV0": [
+        "Digital Value 1 byte"
+    ],
+    "COM": [
+        "Command ID"
+    ],
+    "TIM": [
+        "Time in 1/10 seconds. 0 = no time specifed"
+    ],
+    "LCK": [
+        "Lock for duration time if time >0, unlimited time of no time specified. Locking may be cleared with \"unlock\". During lock phase no other commands will be accepted or executed"
+    ],
+    "DEL": [
+        "Delay or duration (if Time > 0); 0 = Duration (Execute switching command immediately and switch back after duration) 1 = Delay (Execute switching command after delay)"
+    ],
+    "SW": [
+        "Switching command",
+        "Switching command ON/OFF"
+    ],
+    "EDIM": [
+        "Dimming value (absolute [0...255] or relative [0...100])"
+    ],
+    "RMP": [
+        "Ramping time in seconds, 0 = no ramping, 1...255 = seconds to 100%"
+    ],
+    "EDIMR": [
+        "Dimming Range"
+    ],
+    "DB3": [
+        "Data Byte 3"
+    ],
+    "DB2": [
+        "Data Byte 2"
+    ],
+    "DB1": [
+        "Data Byte 1"
+    ],
+    "DB0": [
+        "Data Byte 0"
+    ],
+    "CMD": [
+        "Command identifier",
+        "command indentifier",
+        "Command indentifier",
+        "command identifier",
+        "Command Id"
+    ],
+    "PF": [
+        "Power Failure"
+    ],
+    "PFD": [
+        "Power Failure Detection"
+    ],
+    "OC": [
+        "Over current switch off",
+        "Over shut down"
+    ],
+    "EL": [
+        "Error level"
+    ],
+    "IO": [
+        "I/O channel"
+    ],
+    "LC": [
+        "Local control",
+        "Local Control"
+    ],
+    "OV": [
+        "Output value"
+    ],
+    "DV": [
+        "Dim value"
+    ],
+    "DE": [
+        "Taught-in devices"
+    ],
+    "DT2": [
+        "Dim timer 2"
+    ],
+    "DT3": [
+        "Dim timer 3"
+    ],
+    "DS": [
+        "Default State"
+    ],
+    "DT1": [
+        "Dim timer 1"
+    ],
+    "RM": [
+        "Report measurement"
+    ],
+    "RE": [
+        "Reset measurement"
+    ],
+    "MDLSB": [
+        "Measurement delta to be reported (LSB)"
+    ],
+    "UN": [
+        "Unit"
+    ],
+    "MDMSB": [
+        "Measurement delta to be reported (MSB)"
+    ],
+    "MAT": [
+        "Maximum time between two subsequent actuator messages",
+        "Max message time"
+    ],
+    "MIT": [
+        "Min message time",
+        "Minimum time between two subsequent actuator messages"
+    ],
+    "QU": [
+        "Query"
+    ],
+    "MV": [
+        "Measurement value"
+    ],
+    "PM": [
+        "PilotWireMode",
+        "Pilotwire mode"
+    ],
+    "AOT": [
+        "Auto Off Timer"
+    ],
+    "DOT": [
+        "Delay OFF Timer"
+    ],
+    "EBM": [
+        "External Switch/Push Button"
+    ],
+    "SWT": [
+        "2-state switch"
+    ],
+    "ep": [
+        "Measurement mode"
+    ],
+    "MD_LSB": [
+        "Measurement delta LSB"
+    ],
+    "MD_MSB": [
+        "Measurement delta MSB"
+    ],
+    "qu": [
+        "Query"
+    ],
+    "BATT": [
+        "Battery Autonomy"
+    ],
+    "BA": [
+        "Button Action",
+        "Battery Autonomy"
+    ],
+    "CO2": [
+        "CO2"
+    ],
+    "ANG": [
+        "Current rotation angle",
+        "Rotation angle"
+    ],
+    "REPO": [
+        "Repositioning"
+    ],
+    "LOCK": [
+        "Current locking mode",
+        "Locking modes"
+    ],
+    "CHN": [
+        "Channel"
+    ],
+    "MT": [
+        "Message Type",
+        "Message type"
+    ],
+    "BAL": [
+        "Burglary Alarm"
+    ],
+    "PPAL": [
+        "Protection Plus Alarm"
+    ],
+    "HP": [
+        "Handle Position"
+    ],
+    "WS": [
+        "Window State"
+    ],
+    "BR": [
+        "Button Right"
+    ],
+    "BL": [
+        "Button Left"
+    ],
+    "M": [
+        "Motion"
+    ],
+    "V": [
+        "Vacation Mode"
+    ],
+    "BS": [
+        "Battery State (linear)"
+    ],
+    "SMA0": [
+        "Smoke Alarm status"
+    ],
+    "SMA1": [
+        "Sensor fault mode status"
+    ],
+    "SMA2": [
+        "Smoke Alarm Condition analysis: Maintenance"
+    ],
+    "SMA3": [
+        "Smoke Alarm Condition analysis: Humidity"
+    ],
+    "SMA4": [
+        "Smoke Alarm Condition analysis: Temperature"
+    ],
+    "SMA5": [
+        "Time since last maintenance"
+    ],
+    "RPLT": [
+        "Countdown time until product end of life"
+    ],
+    "TMP8": [
+        "Temperature"
+    ],
+    "HCI": [
+        "Hygrothermal Comfort Index"
+    ],
+    "IAQTH": [
+        "T/Hum. Indoor Air Analysis"
+    ],
+    "ACC": [
+        "Acceleration Status"
+    ],
+    "ACX": [
+        "Absolute Acceleration on X axis"
+    ],
+    "ACY": [
+        "Absolute Acceleration on Y axis"
+    ],
+    "ACZ": [
+        "Absolute Acceleration on Z axis"
+    ],
+    "CO": [
+        "Contact"
+    ],
+    "PRES": [
+        "Presence Detector"
+    ],
+    "ESSTS": [
+        "Energy Storage Status"
+    ],
+    "PIRUPD": [
+        "PIR update rate"
+    ],
+    "PIRCOUNT": [
+        "PIR Counter"
+    ],
+    "CH1": [
+        "Channel 1"
+    ],
+    "CH2": [
+        "Channel 2"
+    ],
+    "CH3": [
+        "Channel 3"
+    ],
+    "RMT": [
+        "Requested Message Type"
+    ],
+    "DOMC": [
+        "Direct Operation Mode Control"
+    ],
+    "OMC": [
+        "Operation Mode Control"
+    ],
+    "TOMC": [
+        "Timer Operation Mode Control"
+    ],
+    "COT": [
+        "CO2 Threshold"
+    ],
+    "HT": [
+        "Humidity Threshold"
+    ],
+    "AQT": [
+        "Air Quality Threshold"
+    ],
+    "OMS": [
+        "Operation Mode Status"
+    ],
+    "SFP": [
+        "Supply Air Flap Position"
+    ],
+    "EFP": [
+        "Exhaust Air Flap Position"
+    ],
+    "DMS": [
+        "Defrost Mode Status"
+    ],
+    "CPS": [
+        "Cooling Protection Status"
+    ],
+    "DHS": [
+        "Drain Heater Status"
+    ],
+    "TOMS": [
+        "Timer Operation Mode Status"
+    ],
+    "FMS": [
+        "Filter Maintenance Status"
+    ],
+    "AQS1": [
+        "Air Quality Sensor 1"
+    ],
+    "MSS": [
+        "Master/Slave Configuration Status"
+    ],
+    "OUTT": [
+        "Outdoor Air Temperature"
+    ],
+    "SPLYT": [
+        "Supply Air Temperature"
+    ],
+    "SPLYFF": [
+        "Supply Air Fan Air Flow Rate"
+    ],
+    "EXHFF": [
+        "Exhaust Air Fan Air Flow Rate"
+    ],
+    "SPLYFS": [
+        "Supply Fan Speed"
+    ],
+    "EXHFS": [
+        "Exhaust Fan Speed"
+    ],
+    "SVI": [
+        "Software Version Info"
+    ],
+    "OHC": [
+        "Operation Hours Counter"
+    ],
+    "IMS": [
+        "Info Message 0...15 Status"
+    ],
+    "FS": [
+        "Fault 0...31 Status"
+    ],
+    "OHS": [
+        "Outdoor Air Heater Status"
+    ],
+    "RTT": [
+        "Room temperature threshold"
+    ],
+    "SHS": [
+        "Supply Air Heater Status"
+    ],
+    "WTPS": [
+        "Weekly Timer Program Status"
+    ],
+    "RTCS": [
+        "Room Temperature Control Status"
+    ],
+    "AQS2": [
+        "Air Quality Sensor 2"
+    ],
+    "INT": [
+        "Indoor Air Temperature"
+    ],
+    "EXHT": [
+        "Exhaust Air Temperature"
+    ],
+    "DIS": [
+        "Digital Input 0...15 Status"
+    ],
+    "DOS": [
+        "Digital Output 0...15 Status"
+    ],
+    "HBC": [
+        "Heat Exchanger Bypass Control"
+    ],
+    "SMS": [
+        "Safety Mode Status"
+    ],
+    "HBS": [
+        "Heat Exchanger Bypass Status"
+    ],
+    "PB": [
+        "Status of the push button"
+    ],
+    "R1": [
+        "Rocker 1st action"
+    ],
+    "EB": [
+        "Energy bow",
+        "State of the energy bow "
+    ],
+    "R2": [
+        "Rocker 2nd action"
+    ],
+    "SA": [
+        "2nd action"
+    ],
+    "T21": [
+        "T21"
+    ],
+    "NU": [
+        "NU"
+    ],
+    "RA": [
+        "Rocker action"
+    ],
+    "BC": [
+        "Button coding"
+    ],
+    "RBI": [
+        "State I of the rocker B"
+    ],
+    "RBO": [
+        "State O of the rocker B"
+    ],
+    "RAI": [
+        "State I of the rocker A"
+    ],
+    "RAO": [
+        "State O of the rocker A"
+    ],
+    "KC": [
+        "Key Card"
+    ],
+    "WAS": [
+        "Water Sensor"
+    ],
+    "SMO": [
+        "Status of detection and battery"
+    ],
+    "WIN": [
+        "Window handle"
+    ]
+}

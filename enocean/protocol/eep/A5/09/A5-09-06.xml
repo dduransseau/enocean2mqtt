@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+	<telegram rorg="0xA5" type="4BS" description="4BS Telegram">
+		<profiles func="0x09" description="Gas Sensor">
+			<profile type="0x06" description="Radon">
+				<data>
+					<value description="Radon" shortcut="ACT" offset="0" size="10" unit="bq/m3">
+						<range>
+							<min>0</min>
+							<max>1023</max>
+						</range>
+						<scale>
+							<min>0.000000</min>
+							<max>1023.000000</max>
+						</scale>
+					</value>
+					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
+						<item description="Teach-In" value="0" />
+						<item description="Data" value="1" />
+					</enum>
+				</data>
+			</profile>
+		</profiles>
+	</telegram>
+</telegrams>
