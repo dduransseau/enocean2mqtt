@@ -52,12 +52,11 @@ class Communicator:
         mqtt_keepalive = int(self.conf['mqtt_keepalive']) if 'mqtt_keepalive' in self.conf else 60
 
         # setup mqtt connection
-        client_id = self.conf['mqtt_client_id'] if 'mqtt_client_id' in self.conf else ''
-        self.mqtt = mqtt.Client(client_id=client_id)
+        client_id = self.conf.get('mqtt_client_id', "")
+        self.mqtt = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
         self.mqtt.on_connect = self._on_connect
         self.mqtt.on_disconnect = self._on_disconnect
         self.mqtt.on_message = self._on_mqtt_message
-        self.mqtt.on_publish = self._on_mqtt_publish
         if 'mqtt_user' in self.conf:
             logging.info("Authenticating: %s", self.conf['mqtt_user'])
             self.mqtt.username_pw_set(self.conf['mqtt_user'], self.conf['mqtt_pwd'])
@@ -105,9 +104,9 @@ class Communicator:
     #=============================================================================================
     # MQTT CLIENT
     #=============================================================================================
-    def _on_connect(self, mqtt_client, _userdata, _flags, return_code):
+    def _on_connect(self, mqtt_client, userdata, flags, reason_code, properties):
         '''callback for when the client receives a CONNACK response from the MQTT server.'''
-        if return_code == 0:
+        if reason_code == 0:
             self.logger.info("Succesfully connected to MQTT broker.")
             self.logger.debug(f"Subscribe to root req topic: {self.topic_prefix}req")
             mqtt_client.subscribe(f"{self.topic_prefix}req")
@@ -128,20 +127,16 @@ class Communicator:
             except Exception:
                 self.logger.exception(Exception)
         else:
-            self.logger.error("Error connecting to MQTT broker: %s",
-                          self.CONNECTION_RETURN_CODE[return_code]
-                          if return_code < len(self.CONNECTION_RETURN_CODE) else return_code)
+            self.logger.error(f"Error connecting to MQTT broker: {reason_code}")
 
-    def _on_disconnect(self, _mqtt_client, _userdata, return_code):
+    def _on_disconnect(self, mqtt_client, userdata, flags, reason_code, properties):
         '''callback for when the client disconnects from the MQTT server.'''
-        if return_code == 0:
+        if reason_code == 0:
             self.logger.warning("Successfully disconnected from MQTT broker")
         else:
-            self.logger.warning("Unexpectedly disconnected from MQTT broker: %s",
-                            self.CONNECTION_RETURN_CODE[return_code]
-                            if return_code < len(self.CONNECTION_RETURN_CODE) else return_code)
+            self.logger.warning(f"Unexpectedly disconnected from MQTT broker: {reason_code}")
 
-    def _on_mqtt_message(self, _mqtt_client, _userdata, msg):
+    def _on_mqtt_message(self, mqtt_client, userdata, msg):
         '''the callback for when a PUBLISH message is received from the MQTT server.'''
         # search for sensor
         found_topic = False
@@ -174,10 +169,6 @@ class Communicator:
             except Exception:
                 self.logger.error(f"Unable to send {msg}")
                 self.logger.exception(Exception)
-
-    def _on_mqtt_publish(self, _mqtt_client, _userdata, _mid):
-        '''the callback for when a PUBLISH message is successfully sent to the MQTT server.'''
-        #logging.debug("Published MQTT message "+str(mid))
 
 
     #=============================================================================================
