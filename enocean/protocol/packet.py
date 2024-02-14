@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 import logging
 
-from enocean.utils import combine_hex, to_hex_string, to_bitarray, from_bitarray, from_hex_string
+from enocean.utils import combine_hex, to_hex_string, to_bitarray, from_bitarray, address_to_bytes_list
 from enocean.protocol import crc8
 from enocean.protocol.constants import PACKET, RORG, PARSE_RESULT, DB0, DB2, DB3, DB4, DB6
 
@@ -29,7 +29,7 @@ class Packet(object):
             self.data = []
             # self.data = [self._rorg]
         else:
-            # TODO: Maybe check that RORG is correctly set at begining of data ?
+            # TODO: Maybe check that RORG is correctly set at beginning of data ?
             self.data = data
 
         if not isinstance(optional, list) or optional is None:
@@ -179,28 +179,32 @@ class Packet(object):
             # At least for now, only support PACKET.RADIO_ERP1.
             raise ValueError('Packet type not supported by this function.')
 
-        if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD, RORG.MSC]:
+        if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD]: # , RORG.MSC
             # At least for now, only support these RORGS.
             raise ValueError('RORG not supported by this function.')
 
         if destination is None:
-            Packet.logger.warning('Replacing destination with broadcast address.')
-            destination = [0xFF, 0xFF, 0xFF, 0xFF]
+            if equipment.address:
+                destination = address_to_bytes_list(equipment.address)
+            else:
+                destination = [0xFF, 0xFF, 0xFF, 0xFF]
+                Packet.logger.warning('Replacing destination with broadcast address.')
+        else:
+            Packet.validate_address(destination)
 
         # TODO: Should use the correct Base ID as default.
         #       Might want to change the sender to be an offset from the actual address?
         if sender is None:
             Packet.logger.warning('Replacing sender with default address.')
             sender = [0xDE, 0xAD, 0xBE, 0xEF]
-
-        Packet.validate_address(destination)
-        Packet.validate_address(sender)
+        else:
+            Packet.validate_address(sender)
 
         packet = Packet(packet_type, data=[], optional=[])
         packet.rorg = equipment.rorg
         packet.data = [packet.rorg]
 
-        Packet.logger.debug(f"Create packet with message: {equipment.profile.get_message_form(command=command, direction=direction)}")
+        # Packet.logger.debug(f"Packet with message: {equipment.profile.get_message_form(command=command, direction=direction)}")
         packet.message = equipment.profile.get_message_form(command=command, direction=direction)
 
         # Initialize data depending on the profile.
@@ -227,7 +231,6 @@ class Packet(object):
         packet.data[-1] = packet.status
         Packet.logger.debug(f'Packet data length {len(packet.data)} after set_eep')
         return packet
-
 
     def parse(self):
         ''' Parse data from Packet '''

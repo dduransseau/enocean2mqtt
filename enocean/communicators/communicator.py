@@ -36,8 +36,8 @@ class Communicator(threading.Thread):
         ''' Get message from send queue, if one exists '''
         try:
             packet = self.transmit.get(block=False)
-            self.logger.info('Sending packet')
-            self.logger.debug(packet)
+            # self.logger.debug(packet)
+            self.logger.debug("Sending: %s", packet)
             return packet
         except queue.Empty:
             pass

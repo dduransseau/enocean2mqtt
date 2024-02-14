@@ -43,3 +43,7 @@ def to_eep_hex_code(c):
     if isinstance(c, str):
         c = int(c, 16)
     return hex(c)[2:].zfill(2)
+
+def address_to_bytes_list(a):
+    return [(a >> i * 8) &
+     0xff for i in reversed(range(4))]

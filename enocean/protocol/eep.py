@@ -4,11 +4,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 import enocean.utils
-# Left as a helper
 from enocean.protocol.constants import RORG  # noqa: F401
-
-logging.basicConfig(level=logging.DEBUG)
-
 
 class BaseDataElt:
 
@@ -247,7 +243,7 @@ class DataEnum(BaseDataElt):
         return max
 
     def get(self, val=None, description=None):
-        self.logger.debug(f"Get enum item for value {val} and/or description {description}")
+        # self.logger.debug(f"Get enum item for value {val} and/or description {description}")
         if val is not None:
             if item := self.items.get(val):
                 return item
@@ -383,7 +379,7 @@ class Profile:
     def code(self):
         return (f"{enocean.utils.to_eep_hex_code(self.rorg)}"
                 f"-{enocean.utils.to_eep_hex_code(self.func)}"
-                f"-{enocean.utils.to_eep_hex_code(self.type)}")
+                f"-{enocean.utils.to_eep_hex_code(self.type)}").upper()
 
     def __str__(self):
         txt = f"Profile {self.code} about {self.description}"
@@ -488,23 +484,21 @@ class Message:
             #     target = self.command_item
             # else:
             target = self.telegram_data.get(shortcut)
-            # self.logger.debug(f"Get {target} for shortcut {shortcut}")
-            self.logger.debug(f"Set bitarray for target type {type(target)}")
             if isinstance(target, DataStatus):
                 packet._bit_status = target.set_value(value, packet._bit_data)
             else:
                 packet._bit_data = target.set_value(value, packet._bit_data)
 
 
-class EEP:
-    logger = logging.getLogger('enocean.protocol.eep')
+class EepLibrary:
+    logger = logging.getLogger('enocean.protocol.eep_library')
 
     def __init__(self):
-        self.telegrams = {}
+
         try:
-            self.logger.debug("Start loading EEP xml file")
+            self.logger.info("load EEP xml file")
             eep_path = Path(__file__).parent.absolute().joinpath('EEP.xml')
-            self.__load_xml(eep_path)
+            self.telegrams = self.__load_xml(eep_path)
             # eep_path = Path(__file__).parent.absolute().joinpath('eep')
             # self.__load_xml_files(eep_path)
             self.logger.debug("EEP loaded")
@@ -515,10 +509,11 @@ class EEP:
             self.logger.warning('Cannot load protocol file!')
             self.logger.exception(e)
 
-    def __load_xml(self, file_path):
+    @staticmethod
+    def __load_xml(file_path):
         tree = ElementTree.parse(file_path)
         tree_root = tree.getroot()
-        self.telegrams = {
+        return {
             enocean.utils.from_hex_string(telegram.attrib['rorg']): {
                 enocean.utils.from_hex_string(function.attrib['func']): {
                     enocean.utils.from_hex_string(profile.attrib['type']):
@@ -532,8 +527,10 @@ class EEP:
             for telegram in tree_root.findall('telegram')
         }
 
-    def __load_xml_files(self, folder_path):
+    @staticmethod
+    def __load_xml_files(folder_path):
         """ Used for case of usage of xml profile file per profile"""
+        telegrams = dict()
         for file_path in folder_path.glob("**/*.xml"):
             tree = ElementTree.parse(file_path)
             tree_root = tree.getroot()
@@ -545,34 +542,48 @@ class EEP:
             func = enocean.utils.from_hex_string(function.attrib['func'])
             type_ = enocean.utils.from_hex_string(profile.attrib['type'])
 
-            if rorg in self.telegrams:
-                if func in self.telegrams[rorg]:
-                    if type_ in self.telegrams[rorg][func]:
+            if rorg in telegrams:
+                if func in telegrams[rorg]:
+                    if type_ in telegrams[rorg][func]:
                         continue # Should not occur
                     else:
-                        self.telegrams[rorg][func].update({type_: Profile(profile, rorg=rorg, func=func)})
+                        telegrams[rorg][func].update({type_: Profile(profile, rorg=rorg, func=func)})
                 else:
-                    self.telegrams[rorg].update({func : {type_ : Profile(profile, rorg=rorg, func=func)}})
+                    telegrams[rorg].update({func : {type_ : Profile(profile, rorg=rorg, func=func)}})
             else:
-                self.telegrams.update({rorg : {func : {type_ : Profile(profile, rorg=rorg, func=func)}}})
+                telegrams.update({rorg : {func : {type_ : Profile(profile, rorg=rorg, func=func)}}})
+        return telegrams
 
-    def find_profile(self, eep_rorg, rorg_func, rorg_type, direction=None, command=None):
+
+
+class EEP:
+    logger = logging.getLogger('enocean.protocol.eep')
+
+    telegrams = EepLibrary().telegrams
+
+    @classmethod
+    def find_profile(cls, eep_rorg, rorg_func, rorg_type, direction=None, command=None):
         ''' Find profile and data description, matching RORG, FUNC and TYPE
 
         return: ProfileData
         '''
         try:
-            profile = self.telegrams[eep_rorg][rorg_func][rorg_type]
+            profile = cls.telegrams[eep_rorg][rorg_func][rorg_type]
+            return profile.get(direction=direction, command=command)
         except Exception as e:
-            self.logger.warning('Cannot find rorg %s func %s type %s in EEP!', hex(eep_rorg), hex(rorg_func),
+            cls.logger.warning('Cannot find rorg %s func %s type %s in EEP!', hex(eep_rorg), hex(rorg_func),
                                 hex(rorg_type))
             return None
-        return profile.get(direction=direction, command=command)
 
-    def get_eep(self, eep_rorg, rorg_func, rorg_type):
+    @classmethod
+    def get_eep(cls, eep_rorg, rorg_func, rorg_type):
         try:
-            return self.telegrams[eep_rorg][rorg_func][rorg_type]
+            return cls.telegrams[eep_rorg][rorg_func][rorg_type]
         except Exception as e:
-            self.logger.warning('Cannot find rorg %s func %s type %s in EEP!', hex(eep_rorg), hex(rorg_func),
+            cls.logger.warning('Cannot find rorg %s func %s type %s in EEP!', hex(eep_rorg), hex(rorg_func),
                                 hex(rorg_type))
+
+    @classmethod
+    def load_library(cls):
+        cls.telegrams = EepLibrary().telegrams
 
