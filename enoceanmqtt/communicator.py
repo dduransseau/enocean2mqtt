@@ -48,20 +48,20 @@ class Communicator:
         self.mqtt.on_disconnect = self._on_disconnect
         self.mqtt.on_message = self._on_mqtt_message
         if 'mqtt_user' in self.conf:
-            self.logger.info("Authenticating: %s", self.conf['mqtt_user'])
+            self.logger.info(f"authenticating: {self.conf['mqtt_user']}")
             self.mqtt.username_pw_set(self.conf['mqtt_user'], self.conf['mqtt_pwd'])
-        if str(self.conf.get('mqtt_ssl')) in ("True", "true", "1"):
-            self.logger.info("Enabling SSL")
+        if self.get_config_boolean('mqtt_ssl'):
+            self.logger.info("enabling SSL")
             ca_certs = self.conf['mqtt_ssl_ca_certs'] if 'mqtt_ssl_ca_certs' in self.conf else None
             certfile = self.conf['mqtt_ssl_certfile'] if 'mqtt_ssl_certfile' in self.conf else None
             keyfile = self.conf['mqtt_ssl_keyfile'] if 'mqtt_ssl_keyfile' in self.conf else None
             self.mqtt.tls_set(ca_certs=ca_certs, certfile=certfile, keyfile=keyfile)
-            if str(self.conf.get('mqtt_ssl_insecure')) in ("True", "true", "1"):
-                self.logger.warning("Disabling SSL certificate verification")
+            if self.get_config_boolean('mqtt_ssl_insecure'):
+                self.logger.warning("disabling SSL certificate verification")
                 self.mqtt.tls_insecure_set(True)
-        if str(self.conf.get('mqtt_debug')) in ("True", "true", "1"):
+        if self.get_config_boolean('mqtt_debug'):
             self.mqtt.enable_logger()
-        logging.debug("Connecting to host %s, port %s, keepalive %s",
+        logging.debug("connecting to host %s, port %s, keepalive %s",
                       self.conf['mqtt_host'], mqtt_port, mqtt_keepalive)
         self.mqtt.connect_async(self.conf['mqtt_host'], port=mqtt_port, keepalive=mqtt_keepalive)
         self.mqtt.loop_start()
@@ -75,6 +75,9 @@ class Communicator:
     def __del__(self):
         if self.enocean is not None and self.enocean.is_alive():
             self.enocean.stop()
+
+    def get_config_boolean(self, key):
+        return True if self.conf.get(key, False) in ("true", "True", "1", 1, True) else False
 
     @staticmethod
     def setup_devices_list(topic_prefix, sensors):
@@ -92,15 +95,15 @@ class Communicator:
     def _on_connect(self, mqtt_client, userdata, flags, reason_code, properties):
         '''callback for when the client receives a CONNACK response from the MQTT server.'''
         if reason_code == 0:
-            self.logger.info("Succesfully connected to MQTT broker.")
-            self.logger.debug(f"Subscribe to root req topic: {self.topic_prefix}req")
+            self.logger.info("succesfully connected to MQTT broker.")
+            self.logger.debug(f"subscribe to root req topic: {self.topic_prefix}req")
             mqtt_client.subscribe(f"{self.topic_prefix}req")
             mqtt_client.subscribe(f"{self.topic_prefix}gateway/learn")
             equipments_definition_list = list()
             # listen to enocean send requests
             for equipment in self.equipments.values():
                 # logging.debug("MQTT subscribing: %s", cur_sensor['name']+'/req/#')
-                mqtt_client.subscribe(equipment.topic+'/req/#')
+                mqtt_client.subscribe(equipment.topic+'/req')
                 equipments_definition_list.append(equipment.definition)
             mqtt_client.publish(f"{self.topic_prefix}gateway/equipments", json.dumps(equipments_definition_list), retain=True)
             # Wait that enocean communicator is initialized before publishing teach in mode
@@ -108,18 +111,18 @@ class Communicator:
                 time.sleep(0.1)
             try:
                 learn = "ON" if self.enocean.teach_in else "OFF"
-                mqtt_client.publish(f"{self.topic_prefix}gateway/learn", learn)
+                mqtt_client.publish(f"{self.topic_prefix}gateway/learn", learn, retain=True)
             except Exception:
                 self.logger.exception(Exception)
         else:
-            self.logger.error(f"Error connecting to MQTT broker: {reason_code}")
+            self.logger.error(f"error connecting to MQTT broker: {reason_code}")
 
     def _on_disconnect(self, mqtt_client, userdata, flags, reason_code, properties):
         '''callback for when the client disconnects from the MQTT server.'''
         if reason_code == 0:
-            self.logger.warning("Successfully disconnected from MQTT broker")
+            self.logger.warning("successfully disconnected from MQTT broker")
         else:
-            self.logger.warning(f"Unexpectedly disconnected from MQTT broker: {reason_code}")
+            self.logger.warning(f"unexpectedly disconnected from MQTT broker: {reason_code}")
 
     def _on_mqtt_message(self, mqtt_client, userdata, msg):
         '''the callback for when a PUBLISH message is received from the MQTT server.'''
@@ -127,33 +130,33 @@ class Communicator:
         found_topic = False
         self.logger.info("received MQTT message: %s", msg.topic)
         if msg.topic == f"{self.topic_prefix}gateway/learn":
-            command = msg.payload.decode("utf-8").upper()
-            if command == "ON":
-                self.enocean.teach_in = True
-                self.logger.info(f"Gateway teach in mode enabled")
-            elif command == "OFF":
-                self.enocean.teach_in = False
-                self.logger.info(f"Gateway teach in mode disabled ")
-            else:
-                self.logger.warning(f"Not supported command: {command} for learn")
+            self.handle_learn_activation_request(msg)
         else:
             # Get how to handle MQTT message
             try:
+                mqtt_payload = json.loads(msg.payload)
                 try:
-                    mqtt_payload = json.loads(msg.payload)
-                except json.decoder.JSONDecodeError:
-                    mqtt_payload = msg.payload
+                    self._mqtt_message_json(msg.topic, mqtt_payload)
+                except Exception as e:
+                    self.logger.warning(f"unexpected or erroneous MQTT message: {msg.topic}: {msg.payload}")
+                    self.logger.exception(e)
 
-                if isinstance(mqtt_payload, dict):
-                    found_topic = self._mqtt_message_json(msg.topic, mqtt_payload)
-                else:
-                    found_topic = self._mqtt_message_normal(msg)
-
-                if not found_topic:
-                    self.logger.warning("Unexpected or erroneous MQTT message: %s: %s", msg.topic, msg.payload)
+            except json.decoder.JSONDecodeError:
+                self.logger.warning(f"Received message payload is not json type: {msg.payload}")
             except Exception:
-                self.logger.error(f"Unable to send {msg}")
+                self.logger.error(f"unable to send {msg}")
                 self.logger.exception(Exception)
+
+    def handle_learn_activation_request(self, msg):
+        command = msg.payload.decode("utf-8").upper()
+        if command == "ON":
+            self.enocean.teach_in = True
+            self.logger.info(f"gateway teach in mode enabled")
+        elif command == "OFF":
+            self.enocean.teach_in = False
+            self.logger.info(f"gateway teach in mode disabled ")
+        else:
+            self.logger.warning(f"not supported command: {command} for learn")
 
 
     #=============================================================================================
@@ -177,21 +180,18 @@ class Communicator:
         '''Handle received PUBLISH message from the MQTT server as a normal payload.'''
         found_topic = False
         if equipment := self.get_equipment_by_topic(msg.topic):
-            self.logger.debug(f"Received message on {equipment.topic}")
+            self.logger.debug(f"received message on {equipment.topic}")
             # get message topic
             prop = msg.topic[len(f"{equipment.topic}/req/"):]
             # do we face a send request?
             if prop == "send":
                 found_topic = True
-
                 # Clear sent data, if requested by the send message
                 # MQTT payload is binary data, thus we need to decode it
                 clear = False
                 if msg.payload.decode('UTF-8') == "clear":
                     clear = True
-
                 self._send_message(equipment, clear)
-
             else:
                 found_topic = True
                 # parse message content
@@ -199,29 +199,24 @@ class Communicator:
                 try:
                     value = int(msg.payload)
                 except ValueError:
-                    self.logger.warning("Cannot parse int value for %s: %s", msg.topic, msg.payload)
+                    self.logger.warning("cannot parse int value for %s: %s", msg.topic, msg.payload)
                     # Prevent storing undefined value, as it will trigger exception in EnOcean library
                     return
                 equipment.data[prop] = value
-
         return found_topic
 
     def _mqtt_message_json(self, mqtt_topic, mqtt_json_payload):
         '''Handle received PUBLISH message from the MQTT server as a JSON payload.'''
-        found_topic = False
-        send = True
-        clear = True
         equipment = self.get_equipment_by_topic(mqtt_topic)
         # If the equipment is not specified in topic path, check if specified in payload
         if not equipment and mqtt_json_payload.get("equipment"):
             equipment_id = mqtt_json_payload["equipment"]
             equipment = self.get_equipment(equipment_id)
             del(mqtt_json_payload["equipment"]) # Remove key to avoid to have it during for loop
-        self.logger.info(f"Found equipment {equipment} for message in {mqtt_topic}")
-        if equipment:
+        self.logger.info(f"found equipment {equipment} for message in {mqtt_topic}")
+        try:
             # JSON payload shall be sent to '/req' topic
             if mqtt_topic.endswith("/req"):
-                found_topic = True
                 # send = False
                 # clear = False
                 #
@@ -241,7 +236,7 @@ class Communicator:
                     try:
                         message_params[topic] = int(mqtt_json_payload[topic])
                     except ValueError:
-                        self.logger.debug("Cannot parse int value for %s: %s", topic, mqtt_json_payload[topic])
+                        self.logger.debug(f"cannot parse int value for {topic}: {mqtt_json_payload[topic]}")
                         # Prevent storing undefined value, as it will trigger exception in EnOcean library
                         # del mqtt_json_payload[topic]
 
@@ -251,45 +246,35 @@ class Communicator:
                 # in a single MQTT message.
                 self.logger.debug(f"{equipment.name}: req={message_params}")
                 equipment.data.update(message_params)
-
                 # Finally, send the message
-                if send:
-                    self._send_message(equipment, clear)
-        else:
-            self.logger.warning(f"Unable to get equipment topic={mqtt_topic} payload={mqtt_json_payload}")
+                self._send_message(equipment)
+        except AttributeError:
+            self.logger.warning(f"unable to get equipment topic={mqtt_topic} payload={mqtt_json_payload}")
 
-        return found_topic
-
-    def _send_message(self, sensor, clear):
+    def _send_message(self, sensor):
         '''Send received MQTT message to EnOcean.'''
-        self.logger.debug(f"Trigger message to: {sensor.name}")
+        self.logger.debug(f"trigger message to: {sensor.name}")
         destination = [(sensor.address >> i*8) &
                        0xff for i in reversed(range(4))]
         self.logger.debug(f"Message {sensor.data} to send to {sensor.address}")
         command = None
         command_shortcut = sensor.command
-
         if command_shortcut:
             # Check MQTT message has valid data
             if not sensor.data:
-                self.logger.warning('No data to send from MQTT message!')
+                self.logger.warning('no data to send from MQTT message!')
                 return
             # Check MQTT message sets the command field
             if command_shortcut not in sensor.data or sensor.data[command_shortcut] is None:
                 self.logger.warning(
-                    f'Command field {command_shortcut} must be set in MQTT message!')
+                    f'command field {command_shortcut} must be set in MQTT message!')
                 return
             # Retrieve command id from MQTT message
             command = sensor.data[command_shortcut]
-            self.logger.debug(f'Retrieved command id from MQTT message: {hex(command)}')
-
+            self.logger.debug(f'retrieved command id from MQTT message: {hex(command)}')
         self._send_packet(sensor, command=command)
-
-        # Clear sent data, if requested by the sent message
-        if clear:
-            self.logger.debug('Clearing data buffer.')
-            sensor.data = {}
-
+        self.logger.debug('Clearing data buffer.')
+        sensor.data = {}
 
     #=============================================================================================
     # ENOCEAN TO MQTT
@@ -368,7 +353,7 @@ class Communicator:
             # match a potential future EnOcean EEP field.
             # mqtt_json['_DATE_'] = packet.received.isoformat()
             # Handling received data packet
-            self.logger.debug(f"Handle data packet {packet}, {equipment.address}")
+            self.logger.debug(f"handle data packet {packet}, {equipment.address}")
             properties = self._handle_data_packet(packet, equipment)
             if not properties:
                 self.logger.warning(f"message not interpretable: {equipment.name}")
@@ -388,19 +373,19 @@ class Communicator:
         message_payload = dict()
         if packet.packet_type == PACKET.RADIO and packet.rorg == equipment.rorg:
             # radio packet of proper rorg type received; parse EEP
-            self.logger.debug(f"Handle radio packet for sensor {equipment}")
+            self.logger.debug(f"handle radio packet for sensor {equipment}")
             # Retrieve command from the received packet and pass it to parse_eep()
-            self.logger.debug(f"Try to get command for packet: {packet}")
+            self.logger.debug(f"try to get command for packet: {packet}")
             command = equipment.get_command_id(packet)
             if command:
-                logging.debug('Retrieved command id from packet: %s', hex(command))
+                logging.debug('retrieved command id from packet: %s', hex(command))
 
             # Retrieve properties from EEP
-            self.logger.info(f"Handle packet for {equipment.name}: {equipment.eep_code} direction={equipment.direction} command={command}")
+            self.logger.info(f"handle packet for {equipment.name}: {equipment.eep_code} direction={equipment.direction} command={command}")
             # properties = packet.parse_eep(sensor.func, sensor.type, direction, command)
             message = equipment.get_message_form(command=command, direction=equipment.direction)
             properties = packet.parse_message(message)
-            self.logger.debug(f"Found properties in message: {properties}")
+            self.logger.debug(f"found properties in message: {properties}")
             # loop through all EEP properties
             for prop_name, prop in properties.items():
                 # cur_prop = packet.parsed[prop_name]
@@ -440,7 +425,7 @@ class Communicator:
                      negate_direction=False, learn_data=None):
         '''triggers sending of an enocean packet'''
         # determine direction indicator
-        self.logger.info(f"Send packet to device {equipment.name} {equipment.address}")
+        self.logger.info(f"send packet to device {equipment.name} {equipment.address}")
         direction = equipment.direction
         if negate_direction:
             # we invert the direction in this reply
@@ -456,11 +441,10 @@ class Communicator:
         sender = enocean.utils.address_to_bytes_list(equipment.sender) if equipment.sender else self.enocean_sender
 
         try:
-            # self.logger.debug(f"Create message {sensor.address} direction={direction} command={command} sender={sender} destination={destination} learn={is_learn}")
             packet = RadioPacket.create_message(equipment, direction=direction, command=command, sender=sender, learn=is_learn)
             self.logger.debug(f"Packet built: {packet.data}")
         except ValueError as err:
-            self.logger.error(f"Cannot create RF packet: {err}")
+            self.logger.error(f"cannot create RF packet: {err}")
             return
 
         # assemble data based on packet type (learn / data)
@@ -480,8 +464,7 @@ class Communicator:
             # do we have specific data to send?
             if equipment.data:
                 # override with specific data settings
-                # self.logger.debug("sensor data: %s", sensor.data)
-                self.logger.debug(f"Packet with message {packet.message}")
+                self.logger.debug(f"packet with message {packet.message}")
                 packet = packet.build_message(equipment.data)
             else:
                 # what to do if we have no data to send yet?
@@ -502,11 +485,11 @@ class Communicator:
 
         # log packet, if not disabled
         if str(self.conf.get('log_packets')) in ("True", "true", "1"):
-            self.logger.debug("received: %s", packet)
+            self.logger.debug(f"received: {packet}")
 
         # abort loop if sensor not found
         if not equipment:
-            self.logger.info("unknown sensor: %s", enocean.utils.to_hex_string(packet.sender))
+            self.logger.info(f"unknown sensor: {enocean.utils.to_hex_string(packet.sender)}")
             return
 
         # Handling EnOcean library decision to set learn to False by default.

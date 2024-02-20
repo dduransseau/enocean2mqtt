@@ -6,6 +6,7 @@ from xml.etree import ElementTree
 import enocean.utils
 from enocean.protocol.constants import RORG  # noqa: F401
 
+
 class BaseDataElt:
 
     logger = logging.getLogger('enocean.protocol.eep.data')
@@ -454,7 +455,6 @@ class Message:
     def get_values(self, bitarray, status):
         ''' Get keys and values from bitarray '''
         # self.logger.debug(f"Parse bitarray {bitarray} {hex(int("".join(map(str, map(int, bitarray))), 2))[2:]}")
-        output = dict(json=dict(data=dict()))
         output = dict()
         for source in self.items:
             # if source.shortcut == self.command_shortcut:
@@ -497,9 +497,9 @@ class EepLibrary:
 
         try:
             self.logger.info("load EEP xml file")
-            eep_path = Path(__file__).parent.absolute().joinpath('EEP.xml')
+            eep_path = Path(__file__).parent.joinpath('EEP.xml')
             self.telegrams = self.__load_xml(eep_path)
-            # eep_path = Path(__file__).parent.absolute().joinpath('eep')
+            # eep_path = Path(__file__).parent.joinpath('eep')
             # self.__load_xml_files(eep_path)
             self.logger.debug("EEP loaded")
         except Exception as e:

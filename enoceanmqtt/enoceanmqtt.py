@@ -16,7 +16,7 @@ from communicator import Communicator
 conf = {
     'debug': False,
     'config': ['/etc/enoceanmqtt.conf'],
-    'logfile': Path(__file__).parent.absolute().joinpath('..', 'enoceanmqtt.log')
+    'logfile': Path(__file__).parent.parent.joinpath('enoceanmqtt.log')
 }
 
 
@@ -80,7 +80,7 @@ def load_config_file(config_files):
 def setup_logging(log_filename='', log_level=logging.INFO):
     """initialize python logging infrastructure"""
     # create formatter
-    log_formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+    log_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s') # %(asctime)s - %(name)s - %(levelname)s - %(message)s
 
     # set root logger to lowest log level
     logging.getLogger().setLevel(log_level)
