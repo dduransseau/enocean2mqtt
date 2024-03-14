@@ -282,7 +282,7 @@ class DataEnum(BaseDataElt):
 
         # Find value description
         item = self.get(int(self._raw_value))
-        self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
+        #self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
         value = item.parse(self._raw_value)
         return {
             self.shortcut: {

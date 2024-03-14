@@ -14,7 +14,7 @@ from communicator import Communicator
 
 
 conf = {
-    'debug': True,
+    'debug': False,
     'config': ['/etc/enoceanmqtt.conf', '../enoceanmqtt.conf', '../equipments.conf'],
     'logfile': Path(__file__).parent.parent.joinpath('enoceanmqtt.log')
 }
