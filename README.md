@@ -1,4 +1,4 @@
-# Python EnOcean MQTT gateway#
+# Python EnOcean MQTT gateway #
 
 A Python library for reading and controlling [EnOcean](http://www.enocean.com/) devices trough MQTT.
 
