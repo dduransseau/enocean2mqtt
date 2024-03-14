@@ -38,15 +38,16 @@ def load_config_file(config_files):
     # extract sensor configuration
     sensors = []
     global_config = {}
-    print(config_files)
+
+    logger = logging.getLogger("enocean.mqtt.config")
     for conf_file in config_files:
         config_parser = ConfigParser(inline_comment_prefixes=('#', ';'), interpolation=None)
         if not Path(conf_file).is_file():
-            logging.warning("Config file %s does not exist, skipping", conf_file)
+            logger.warning("Config file %s does not exist, skipping", conf_file)
             continue
-        logging.info("Loading config file %s", conf_file)
+        logger.info("Loading config file %s", conf_file)
         if not config_parser.read(conf_file):
-            logging.error("Cannot read config file: %s", conf_file)
+            logger.error("Cannot read config file: %s", conf_file)
             sys.exit(1)
 
         for section in config_parser.sections():
@@ -67,12 +68,12 @@ def load_config_file(config_files):
                     except KeyError:
                         new_sens[key] = None
                 sensors.append(new_sens)
-                logging.debug("Created sensor: %s", new_sens)
+                logger.debug("Created sensor: %s", new_sens)
 
     logging_global_config = copy.deepcopy(global_config)
     if "mqtt_pwd" in logging_global_config:
         logging_global_config["mqtt_pwd"] = "*****"
-    logging.debug("Global config: %s", logging_global_config)
+    logger.debug("Global config: %s", logging_global_config)
 
     return sensors, global_config
 

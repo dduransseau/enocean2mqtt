@@ -61,6 +61,10 @@ class Communicator:
                 self.mqtt.tls_insecure_set(True)
         if self.get_config_boolean('mqtt_debug'):
             self.mqtt.enable_logger()
+        if self.get_config_boolean('log_packets'):
+            self.log_packets = True
+        else:
+            self.log_packets = False
         logging.debug("connecting to host %s, port %s, keepalive %s",
                       self.conf['mqtt_host'], mqtt_port, mqtt_keepalive)
         self.mqtt.connect_async(self.conf['mqtt_host'], port=mqtt_port, keepalive=mqtt_keepalive)
@@ -107,13 +111,15 @@ class Communicator:
                 equipments_definition_list.append(equipment.definition)
             mqtt_client.publish(f"{self.topic_prefix}gateway/equipments", json.dumps(equipments_definition_list), retain=True)
             # Wait that enocean communicator is initialized before publishing teach in mode
-            while not self.enocean:
-                time.sleep(0.1)
-            try:
-                learn = "ON" if self.enocean.teach_in else "OFF"
-                mqtt_client.publish(f"{self.topic_prefix}gateway/learn", learn)
-            except Exception:
-                self.logger.exception(Exception)
+            # while not self.enocean:
+            #     time.sleep(0.1)
+            # try:
+            #     learn = "ON" if self.enocean.teach_in else "OFF"
+            #     mqtt_client.publish(f"{self.topic_prefix}gateway/learn", learn, retain=True)
+            # except Exception:
+            #     self.logger.exception(Exception)
+            # Subscribe to learn topic only after status is sent, to avoid two time status update
+
         else:
             self.logger.error(f"error connecting to MQTT broker: {reason_code}")
 
@@ -477,7 +483,7 @@ class Communicator:
     def _process_radio_packet(self, packet):
         # first, look whether we have this sensor configured
         sender_address = enocean.utils.combine_hex(packet.sender)
-        self.logger.info(f"process radio for address {sender_address}")
+        self.logger.debug(f"process radio for address {sender_address}")
         equipment = self.equipments.get(sender_address)
 
         # skip ignored sensors
@@ -485,7 +491,7 @@ class Communicator:
             return
 
         # log packet, if not disabled
-        if str(self.conf.get('log_packets')) in ("True", "true", "1"):
+        if self.log_packets:
             self.logger.debug(f"received: {packet}")
 
         # abort loop if sensor not found
@@ -537,7 +543,7 @@ class Communicator:
                     self._process_radio_packet(packet)
                 elif packet.packet_type == PACKET.RESPONSE:
                     response_code = RETURN_CODE(packet.data[0])
-                    logging.info("got response packet: %s", response_code.name)
+                    self.logger.info(f"got response packet: {response_code.name}")
                 else:
                     logging.info("got non-RF packet: %s", packet)
                     continue
