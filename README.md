@@ -4,7 +4,7 @@ A Python library for reading and controlling [EnOcean](http://www.enocean.com/) 
 
 Based on work of [kipe](https://github.com/kipe/enocean), [embyt](https://github.com/embyt/enocean-mqtt), [mak-gitdev](https://github.com/mak-gitdev/enocean).
 
-## Fork modification ##
+## Modifications ##
 
 
 - Remove Beautifulsoup4 dependencies (use ElementTree) lxml should work without effort
