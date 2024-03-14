@@ -1,0 +1,6 @@
+[pilote_lab]
+address         = 0x0590FFFF
+rorg            = 0xD2
+func            = 0x01
+type            = 0x0C
+
