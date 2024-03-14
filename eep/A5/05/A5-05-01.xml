@@ -14,10 +14,10 @@
 							<max>1150</max>
 						</scale>
 					</value>
-					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
-						<item description="Teach-In" value="0" />
-						<item description="Data" value="1" />
-					</enum>
+<!--					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">-->
+<!--						<item description="Teach-In" value="0" />-->
+<!--						<item description="Data" value="1" />-->
+<!--					</enum>-->
 					<enum description="Telegram Type" shortcut="TTP" offset="31" size="1">
 						<item description="Heartbeat" value="0" />
 						<item description="Event triggered" value="1" />

@@ -111,7 +111,7 @@ class Communicator:
                 time.sleep(0.1)
             try:
                 learn = "ON" if self.enocean.teach_in else "OFF"
-                mqtt_client.publish(f"{self.topic_prefix}gateway/learn", learn, retain=True)
+                mqtt_client.publish(f"{self.topic_prefix}gateway/learn", learn)
             except Exception:
                 self.logger.exception(Exception)
         else:
@@ -396,7 +396,8 @@ class Communicator:
                     continue
                 # if not isinstance(prop.get('value'), numbers.Number):
                     # mqtt_json[f"{prop_name}_raw"] = prop['raw_value']
-                message_payload[prop_name] = prop['raw_value']
+                # message_payload[prop_name] = prop['raw_value']
+                message_payload[prop_name] = prop['value']
                     # try:
                     #     value = cur_prop['raw_value']
                     #     mqtt_json[f"{prop_name}_desc"] = cur_prop['value']
@@ -532,7 +533,7 @@ class Communicator:
                     packet = self.enocean.receive.get(block=True)
 
                 # check packet type
-                if packet.packet_type == PACKET.RADIO_ERP1:
+                if packet.packet_type == PACKET.RADIO:
                     self._process_radio_packet(packet)
                 elif packet.packet_type == PACKET.RESPONSE:
                     response_code = RETURN_CODE(packet.data[0])

@@ -1,8 +1,6 @@
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-from pprint import pprint
-
 SHORTCUT_CORRECTION = {
 	"TMP": "Temperature",
 	"HUM": "Humidity",
@@ -109,6 +107,6 @@ def combine_xml_files(input_folder, output_file):
     combined_tree.write(output_file, encoding="utf-8", xml_declaration=True)
 
 if __name__ == "__main__":
-    input_folder = Path(r"../enocean/protocol/eep")
+    input_folder = Path(r"../eep")
     output_file = "../enocean/protocol/EEP.xml"
     combine_xml_files(input_folder, output_file)

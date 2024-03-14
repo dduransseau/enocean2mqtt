@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xD2" type="VLD" description="VLD Telegram">
+    <profiles func="0x60" description="Special applications">
+      <profile type="0x01" description="IAQ setpoints">
+        <data>
+          <value description="CO2 threshold in ppm" shortcut="CO2T" offset="0" size="8" unit="ppm">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>2550</max>
+            </scale>
+          </value>
+          <value description="VOC threshold in ppm" shortcut="VOCT" offset="8" size="8" unit="ppm /mg/m3">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>2550</max>
+            </scale>
+          </value>
+          <enum description="Humidity threshold" shortcut="HUMT" offset="16" size="8">
+            <rangeitem description="Percentage" start="0" end="200">
+              <range>
+                <min>0</min>
+                <max>100</max>
+              </range>
+              <scale>
+                <min>0</min>
+                <max>200</max>
+              </scale>
+            </rangeitem>
+            <rangeitem description="Reserved" start="201" end="255"/>
+          </enum>
+          <value description="PM2.5 threshold" shortcut="PM2T" offset="24" size="8" unit="μg/m3">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>255</max>
+            </scale>
+          </value>
+          <value description="NOx threshold" shortcut="NOXT" offset="32" size="8" unit="μg/m3">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>255</max>
+            </scale>
+          </value>
+          <value description="O3 threshold" shortcut="NOXT" offset="40" size="8" unit="μg/m3">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>255</max>
+            </scale>
+          </value>
+          <value description="Specific VOC threshold" shortcut="SNOXT" offset="48" size="8" unit="μg/m3">
+            <range>
+              <min>0</min>
+              <max>255</max>
+            </range>
+            <scale>
+              <min>0</min>
+              <max>255</max>
+            </scale>
+          </value>
+          <enum shortcut="VOC_ID" description="VOC Identification" offset="56" size="8">
+            <item description="VOCT (total)" value="0"/>
+            <item description="Formaldehyde" value="1"/>
+            <item description="Benzene" value="2"/>
+            <item description="Styrene" value="3"/>
+            <item description="Toluene" value="4"/>
+            <item description="Tetrachloroethylene" value="5"/>
+            <item description="Xylene" value="6"/>
+            <item description="n-Hexane" value="7"/>
+            <item description="n-Octane" value="8"/>
+            <item description="Cyclopentane" value="9"/>
+            <item description="Methanol" value="10"/>
+            <item description="Ethanol" value="11"/>
+            <item description="1-Pentanol" value="12"/>
+            <item description="Acetone" value="13"/>
+            <item description="Ethylene Oxide" value="14"/>
+            <item description="Acetaldehyde ue" value="15"/>
+            <item description="Acetic Acid" value="16"/>
+            <item description="Propionice Acid" value="17"/>
+            <item description="ValericAcid" value="18"/>
+            <item description="ButyricAcid" value="19"/>
+            <item description="Ammoniac" value="20"/>
+            <item description="Hydrogen Sulfide" value="21"/>
+            <item description="Reserved" value="22"/>
+            <item description="Dimethylsulfide" value="23"/>
+            <item description="2-Butanol (butyl Alcohol)" value="24"/>
+            <item description="2-Methylpropanol" value="25"/>
+            <item description="Diethyl ether" value="26"/>
+            <item description="Free for other VOC" value="27"/>
+            <rangeitem description="Reserved" start="28" end="253"/>
+            <item description="NOx" value="254"/>
+            <item description="Ozone" value="255"/>
+          </enum>
+          <enum description="Mode" shortcut="MDE" offset="64" size="2">
+            <item description="Comfort" value="0"/>
+            <item description="Eco" value="1"/>
+            <item description="Night" value="2"/>
+            <item description="Maintenance" value="3"/>
+          </enum>
+          <enum description="TVOC Scale Multiplier" shortcut="TVOM" offset="69" size="3">
+            <item description="0.01" value="0"/>
+            <item description="0.1" value="1"/>
+            <item description="1" value="2"/>
+            <item description="10" value="3"/>
+            <item description="100" value="4"/>
+            <rangeitem description="Reserved" start="5" end="7"/>
+          </enum>
+          <enum description="TVOC unit" shortcut="TVOU" offset="72" size="2">
+            <item description="ppm" value="0"/>
+            <item description="mg/m3" value="1"/>
+          </enum>
+          <enum description="Specific VOC unit" shortcut="SVOCU" offset="73" size="2">
+            <item description="ppm" value="0"/>
+            <item description="mg/m3" value="1"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

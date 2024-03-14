@@ -14,8 +14,8 @@ from communicator import Communicator
 
 
 conf = {
-    'debug': False,
-    'config': ['/etc/enoceanmqtt.conf'],
+    'debug': True,
+    'config': ['/etc/enoceanmqtt.conf', '../enoceanmqtt.conf', '../equipments.conf'],
     'logfile': Path(__file__).parent.parent.joinpath('enoceanmqtt.log')
 }
 
@@ -38,7 +38,7 @@ def load_config_file(config_files):
     # extract sensor configuration
     sensors = []
     global_config = {}
-
+    print(config_files)
     for conf_file in config_files:
         config_parser = ConfigParser(inline_comment_prefixes=('#', ';'), interpolation=None)
         if not Path(conf_file).is_file():
@@ -55,8 +55,8 @@ def load_config_file(config_files):
                 for key in config_parser[section]:
                     global_config[key] = config_parser[section][key]
             else:
-                mqtt_prefix = config_parser['CONFIG']['mqtt_prefix'] \
-                    if 'mqtt_prefix' in config_parser['CONFIG'] else "enocean/"
+                mqtt_prefix = global_config['mqtt_prefix'] \
+                    if 'mqtt_prefix' in global_config else "enocean/"
                 new_sens = {'name': mqtt_prefix + section}
                 for key in config_parser[section]:
                     try:
@@ -106,7 +106,6 @@ def main():
 
     # setup logger
     setup_logging(conf['logfile'], logging.DEBUG if conf['debug'] else logging.INFO)
-
     # load config file
     sensors, global_config = load_config_file(conf['config'])
     conf.update(global_config)

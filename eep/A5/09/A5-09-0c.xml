@@ -50,14 +50,15 @@
 						<item description="Cadaverine" value="33" />
 						<item description="Putrescine" value="34" />
 						<item description="Caproic acid" value="35" />
+						<item description="Sulfurous smells?" value="250" />
 						<item description="Sulfurous smells" value="253" />
 						<item description="NOx" value="254" />
 						<item description="Ozone" value="255" />
 					</enum>
-					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
-						<item description="Teach-In" value="0" />
-						<item description="Data" value="1" />
-					</enum>
+<!--					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">-->
+<!--						<item description="Teach-In" value="0" />-->
+<!--						<item description="Data" value="1" />-->
+<!--					</enum>-->
 					<enum shortcut="Unit" description="Unit" offset="29" size="1">
 						<item description="ppb" value="0" />
 						<item description="ug/m3" value="1" />

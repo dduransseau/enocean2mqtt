@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<telegrams version="2.6.4" major_version="2" minor_version="6" revision="4">
+  <telegram rorg="0xD2" type="VLD" description="VLD Telegram">
+    <profiles func="0x14" description="Multi Function Sensors">
+      <profile type="0x5A" description="Light level, color temperature and flickering">
+        <data>
+          <enum description="Illumination" shortcut="ILL1" offset="0" size="16" unit="°C">
+            <rangeitem description="Lux" start="0" end="20000 "/>
+            <rangeitem description="Reserved" start="20001" end="65534"/>
+            <item description="Sensor not present" value="65535"/>
+          </enum>
+          <enum description="Color Temperature" shortcut="COLT" offset="17" size="15" unit="K">
+            <rangeitem description="Color temperature" start="0" end="30000"/>
+            <rangeitem description="Reserved" start="30001" end="32765"/>
+            <item description="Sensor not present" value="32766"/>
+            <item description="Error" value="32767"/>
+          </enum>
+          <enum description="Percentage of light oscillation" shortcut="LIFL" offset="32" size="8" unit="%">
+            <rangeitem description="Percentage" start="0" end="200 "/>
+            <rangeitem description="Reserved" start="201" end="254"/>
+            <item description="Sensor not present" value="255"/>
+          </enum>
+          <enum description="Sensor position" shortcut="SPOS" offset="46" size="2">
+            <item description="Vertical, looking horizontal" value="0"/>
+            <item description="Horizontal, looking up" value="1"/>
+            <item description="Horizontal, looking down" value="2"/>
+            <item description="Other" value="3"/>
+          </enum>
+        </data>
+      </profile>
+    </profiles>
+  </telegram>
+</telegrams>

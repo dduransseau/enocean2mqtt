@@ -96,6 +96,8 @@ class DataValue(BaseDataElt):
             </scale>
           </value>
     """
+    ROUNDING = 2
+
     def __init__(self, elt):
         super().__init__(elt)
         if r := elt.find("range"):
@@ -113,7 +115,7 @@ class DataValue(BaseDataElt):
 
     def process_value(self, val):
         # p8 EEP profile documentation
-        return self.multiplier * (val - self.range_min) + self.scale_min
+        return round(self.multiplier * (val - self.range_min) + self.scale_min, self.ROUNDING)
 
     def parse(self, bitarray, status):
         self._raw_value = self.parse_raw(bitarray)
@@ -158,7 +160,8 @@ class DataEnumItem(BaseDataElt):
         return f"Enum Item {self.description}"
 
     def parse(self, val):
-        return self.description.replace(" ", "_").lower()
+        return self.description
+        # return self.description.replace(" ", "_").lower()
 
     def to_dict(self):
         d = super().to_dict()
@@ -172,8 +175,22 @@ class DataEnumRangeItem(BaseDataElt):
 
     def __init__(self, elt):
         super().__init__(elt)
-        self.start = int(elt.get("start"))
-        self.end = int(elt.get("end"))
+
+        range = elt.find("range")
+        scale = elt.find("scale")
+        self.multiplier = 1
+        if range and scale:
+            self.range_min = float(range.find("min").text)
+            self.range_max = float(range.find("max").text)
+            self.scale_min = float(scale.find("min").text)
+            self.scale_max = float(scale.find("max").text)
+            try:
+                self.multiplier = (self.scale_max - self.scale_min) / (self.range_max - self.range_min)
+            except Exception as e:
+                self.logger.debug(f"Unable to set multiplier")
+        else:
+            self.start = int(elt.get("start"))
+            self.end = int(elt.get("end"))
 
     @property
     def limit(self):
@@ -202,7 +219,8 @@ class DataEnumRangeItem(BaseDataElt):
         return d
 
     def parse(self, val):
-        return self.description.replace(" ", "_").lower().format(value=val)
+        return val * self.multiplier
+        # return self.description.replace(" ", "_").lower().format(value=val)
 
 
 class DataEnum(BaseDataElt):
@@ -264,7 +282,7 @@ class DataEnum(BaseDataElt):
 
         # Find value description
         item = self.get(int(self._raw_value))
-        self.logger.debug(f"Found item {item} for value {self._raw_value}")
+        self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
         value = item.parse(self._raw_value)
         return {
             self.shortcut: {
@@ -457,16 +475,6 @@ class Message:
         # self.logger.debug(f"Parse bitarray {bitarray} {hex(int("".join(map(str, map(int, bitarray))), 2))[2:]}")
         output = dict()
         for source in self.items:
-            # if source.shortcut == self.command_shortcut:
-            #     val = source.parse(bitarray, status)
-            #     self.logger.debug(f"Identify command description for item {val}")
-            #     val[self.command_shortcut]["value"] = self.command_item.description
-            #     # val["command"] = self.command_item.description
-            #     output.update(val)
-            #     # output["json"]["command"] = dict(value=self.command_item.description, raw_value=val["CMD"]["raw_value"])
-            # else:
-            #     output.update(source.parse(bitarray, status))
-            #     # output["json"]["data"].update(source.parse(bitarray, status))
             output.update(source.parse(bitarray, status))
         self.logger.debug(f"get_values {output}")
         return output
@@ -479,10 +487,6 @@ class Message:
         # self.logger.debug(f"Profile with selected command {self.profile.command_item} {self.profile.command_data}")
 
         for shortcut, value in values.items():
-            # find the given property from EEP
-            # if shortcut == "CMD":
-            #     target = self.command_item
-            # else:
             target = self.telegram_data.get(shortcut)
             if isinstance(target, DataStatus):
                 packet._bit_status = target.set_value(value, packet._bit_data)
@@ -496,11 +500,10 @@ class EepLibrary:
     def __init__(self):
 
         try:
-            self.logger.info("load EEP xml file")
+
             eep_path = Path(__file__).parent.joinpath('EEP.xml')
+            self.logger.info(f"load EEP xml file: {eep_path}")
             self.telegrams = self.__load_xml(eep_path)
-            # eep_path = Path(__file__).parent.joinpath('eep')
-            # self.__load_xml_files(eep_path)
             self.logger.debug("EEP loaded")
         except Exception as e:
             # Impossible to test with the current structure?
@@ -526,35 +529,6 @@ class EepLibrary:
             }
             for telegram in tree_root.findall('telegram')
         }
-
-    @staticmethod
-    def __load_xml_files(folder_path):
-        """ Used for case of usage of xml profile file per profile"""
-        telegrams = dict()
-        for file_path in folder_path.glob("**/*.xml"):
-            tree = ElementTree.parse(file_path)
-            tree_root = tree.getroot()
-            telegram = tree_root.find("telegram")
-            function = telegram.find("profiles")
-            profile = function.find("profile")
-
-            rorg = enocean.utils.from_hex_string(telegram.attrib['rorg'])
-            func = enocean.utils.from_hex_string(function.attrib['func'])
-            type_ = enocean.utils.from_hex_string(profile.attrib['type'])
-
-            if rorg in telegrams:
-                if func in telegrams[rorg]:
-                    if type_ in telegrams[rorg][func]:
-                        continue # Should not occur
-                    else:
-                        telegrams[rorg][func].update({type_: Profile(profile, rorg=rorg, func=func)})
-                else:
-                    telegrams[rorg].update({func : {type_ : Profile(profile, rorg=rorg, func=func)}})
-            else:
-                telegrams.update({rorg : {func : {type_ : Profile(profile, rorg=rorg, func=func)}}})
-        return telegrams
-
-
 
 class EEP:
     logger = logging.getLogger('enocean.protocol.eep')

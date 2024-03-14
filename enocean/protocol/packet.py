@@ -151,7 +151,7 @@ class Packet(object):
             return PARSE_RESULT.CRC_MISMATCH, buf, None
 
         # If we got this far, everything went ok (?)
-        if packet_type == PACKET.RADIO_ERP1:
+        if packet_type == PACKET.RADIO:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:
                 packet = UTETeachInPacket(packet_type, data, opt_data)
@@ -175,8 +175,8 @@ class Packet(object):
     def create_message(packet_type, equipment, direction=None, command=None,
                destination=None, sender=None, learn=False, **kwargs):
         Packet.logger.debug(f'Create packet for equipment profile {equipment.profile}')
-        if packet_type != PACKET.RADIO_ERP1:
-            # At least for now, only support PACKET.RADIO_ERP1.
+        if packet_type != PACKET.RADIO:
+            # At least for now, only support PACKET.RADIO.
             raise ValueError('Packet type not supported by this function.')
 
         if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD]: # , RORG.MSC
@@ -280,18 +280,11 @@ class RadioPacket(Packet):
         return '%s->%s (%d dBm): %s' % (self.sender_hex, self.destination_hex, self.dBm, packet_str)
 
     @staticmethod
-    def create(rorg, rorg_func, rorg_type, direction=None, command=None,
-               destination=None, sender=None, learn=False, **kwargs):
-        Packet.logger.debug(f"Create RadioPacket for rorg {rorg}")
-        return Packet.create(PACKET.RADIO_ERP1, rorg, rorg_func, rorg_type,
-                             direction, command, destination, sender, learn, **kwargs)
-
-    @staticmethod
     def create_message(equipment, direction=None, command=None,
                               destination=None, sender=None, learn=False, **kwargs):
         Packet.logger.debug(f"Create message RadioPacket for rorg {equipment.rorg}")
-        return Packet.create_message(PACKET.RADIO_ERP1, equipment,
-                             direction, command, destination, sender, learn, **kwargs)
+        return Packet.create_message(PACKET.RADIO, equipment,
+                                     direction, command, destination, sender, learn, **kwargs)
 
     @property
     def sender_int(self):
@@ -397,7 +390,7 @@ class UTETeachInPacket(RadioPacket):
         # Always use 0x03 to indicate sending, attach sender ID, dBm, and security level
         optional = [0x03] + self.sender + [0xFF, 0x00]
 
-        return RadioPacket(PACKET.RADIO_ERP1, data=data, optional=optional)
+        return RadioPacket(PACKET.RADIO, data=data, optional=optional)
 
 
 class ResponsePacket(Packet):

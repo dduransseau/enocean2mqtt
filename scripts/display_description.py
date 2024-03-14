@@ -1,15 +1,19 @@
 
 import json
+import logging
 
 from pprint import pprint
 from enocean.protocol.eep import EEP
 
-# eep = EEP()
 r = None
 f = None
 
+logging.basicConfig(level=logging.DEBUG)
+
 d = dict()
-for k1, rorg in EEP().telegrams.items():
+
+eep = EEP()
+for k1, rorg in eep.telegrams.items():
     # r = hex(k1)[2:].zfill(2)
     r = int(k1)
     d[r] = dict()

@@ -34,10 +34,10 @@
 							<max>511.000000</max>
 						</scale>
 					</value>
-					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
-						<item description="Teach-In" value="0" />
-						<item description="Data" value="1" />
-					</enum>
+<!--					<enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">-->
+<!--						<item description="Teach-In" value="0" />-->
+<!--						<item description="Data" value="1" />-->
+<!--					</enum>-->
 					<enum description="PM10 Active" shortcut="PM10a" offset="29" size="1">
 						<item description="PM10 not active" value="0" />
 						<item description="PM10 active" value="1" />
