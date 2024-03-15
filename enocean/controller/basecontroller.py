@@ -8,15 +8,15 @@ from enocean.protocol.packet import Packet, UTETeachInPacket
 from enocean.protocol.constants import PACKET, PARSE_RESULT, RETURN_CODE, COMMON_COMMAND
 
 
-class Communicator(threading.Thread):
+class BaseController(threading.Thread):
     '''
     Communicator base-class for EnOcean.
     Not to be used directly, only serves as base class for SerialCommunicator etc.
     '''
-    logger = logging.getLogger('enocean.communicators.Communicator')
+    logger = logging.getLogger('enocean.controller.BaseController')
 
     def __init__(self, callback=None, teach_in=True):
-        super(Communicator, self).__init__()
+        super(BaseController, self).__init__()
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
         # Input buffer

@@ -6,7 +6,7 @@ import json
 import platform
 import time
 
-from enocean.communicators.serialcommunicator import SerialCommunicator
+from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket
 from enocean.protocol.constants import PACKET, RETURN_CODE, RORG
 from equipment import Equipment
@@ -70,7 +70,7 @@ class Communicator:
         self.mqtt.loop_start()
 
         # setup enocean communication
-        self.enocean = SerialCommunicator(self.conf['enocean_port'], teach_in=False)
+        self.enocean = SerialController(self.conf['enocean_port'], teach_in=False)
         self.enocean.start()
         # sender will be automatically determined
         self.controller_address = None

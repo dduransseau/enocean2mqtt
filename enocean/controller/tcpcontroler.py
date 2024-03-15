@@ -2,15 +2,15 @@
 import logging
 import socket
 
-from enocean.communicators.communicator import Communicator
+from enocean.controller.basecontroller import BaseController
 
 
-class TCPCommunicator(Communicator):
+class TCPControler(BaseController):
     ''' Socket communicator class for EnOcean radio '''
-    logger = logging.getLogger('enocean.communicators.TCPCommunicator')
+    logger = logging.getLogger('enocean.controller.TCPControler')
 
     def __init__(self, host='', port=9637):
-        super(TCPCommunicator, self).__init__()
+        super(TCPControler, self).__init__()
         self.host = host
         self.port = port
 

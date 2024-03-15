@@ -3,15 +3,15 @@ import logging
 import serial
 import time
 
-from enocean.communicators.communicator import Communicator
+from enocean.controller.basecontroller import BaseController
 
 
-class SerialCommunicator(Communicator):
+class SerialController(BaseController):
     ''' Serial port communicator class for EnOcean radio '''
-    logger = logging.getLogger('enocean.communicators.SerialCommunicator')
+    logger = logging.getLogger('enocean.controller.SerialController')
 
     def __init__(self, port='/dev/ttyAMA0', baudrate=57600, timeout=0.1, **kwargs):
-        super(SerialCommunicator, self).__init__(**kwargs)
+        super(SerialController, self).__init__(**kwargs)
         # Initialize serial port
         self.__port = port
         self.__baudrate = baudrate
