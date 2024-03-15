@@ -48,6 +48,36 @@ class EVENT_CODE(IntEnum):
     CO_LRN_MODE_DISABLED = 0x09
 
 
+class COMMON_COMMAND(IntEnum):
+    CO_WR_SLEEP = 0x01
+    CO_WR_RESET = 0x02
+    CO_RD_VERSION = 0x03
+    CO_RD_SYS_LOG = 0x4
+    CO_WR_SYS_LOG = 0x5
+    CO_WR_BIST = 0x6
+    CO_WR_IDBASE = 0x7
+    CO_RD_IDBASE = 0x8
+    CO_WR_REPEATER = 0x9
+    CO_RD_REPEATER = 0xa
+    CO_WR_FILTER_ADD = 0xb
+    CO_WR_FILTER_DEL = 0xc
+    CO_WR_FILTER_DEL_ALL = 0xd
+    CO_WR_FILTER_ENABLE = 0xe
+    CO_RD_FILTER = 0xf
+    CO_WR_WAIT_MATURITY = 0x10
+    CO_WR_SUBTEL = 0x11
+    CO_WR_MEM = 0x12
+    CO_RD_MEM = 0x13
+    CO_RD_MEM_ADDRESS = 0x14
+    CO_RD_SECURITY = 0x15
+    CO_WR_SECURITY = 0x16
+    CO_WR_LEARNMODE = 0x17
+    CO_RD_LEARNMODE = 0x18
+    CO_WR_SECUREDEVICE_ADD = 0x19
+    CO_WR_SECUREDEVICE_DEL = 0x1a
+    CO_RD_SECUREDEVICES = 0x1b
+
+
 # EnOcean_Equipment_Profiles_EEP_V2.61_public.pdf / 8
 class RORG(IntEnum):
     UNDEFINED = 0x00
@@ -75,7 +105,7 @@ class PARSE_RESULT(IntEnum):
 
 # Data byte indexing
 # Starts from the end, so works on messages of all length.
-class DB0(object):
+class DB0:
     BIT_0 = -1
     BIT_1 = -2
     BIT_2 = -3
@@ -86,7 +116,7 @@ class DB0(object):
     BIT_7 = -8
 
 
-class DB1(object):
+class DB1:
     BIT_0 = -9
     BIT_1 = -10
     BIT_2 = -11
@@ -97,7 +127,7 @@ class DB1(object):
     BIT_7 = -16
 
 
-class DB2(object):
+class DB2:
     BIT_0 = -17
     BIT_1 = -18
     BIT_2 = -19
@@ -108,7 +138,7 @@ class DB2(object):
     BIT_7 = -24
 
 
-class DB3(object):
+class DB3:
     BIT_0 = -25
     BIT_1 = -26
     BIT_2 = -27
@@ -119,7 +149,7 @@ class DB3(object):
     BIT_7 = -32
 
 
-class DB4(object):
+class DB4:
     BIT_0 = -33
     BIT_1 = -34
     BIT_2 = -35
@@ -130,7 +160,7 @@ class DB4(object):
     BIT_7 = -40
 
 
-class DB5(object):
+class DB5:
     BIT_0 = -41
     BIT_1 = -42
     BIT_2 = -43
@@ -141,7 +171,7 @@ class DB5(object):
     BIT_7 = -48
 
 
-class DB6(object):
+class DB6:
     BIT_0 = -49
     BIT_1 = -50
     BIT_2 = -51

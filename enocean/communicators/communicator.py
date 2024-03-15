@@ -5,7 +5,7 @@ import datetime
 import threading
 import queue
 from enocean.protocol.packet import Packet, UTETeachInPacket
-from enocean.protocol.constants import PACKET, PARSE_RESULT, RETURN_CODE
+from enocean.protocol.constants import PACKET, PARSE_RESULT, RETURN_CODE, COMMON_COMMAND
 
 
 class Communicator(threading.Thread):
@@ -31,6 +31,11 @@ class Communicator(threading.Thread):
         # Should new messages be learned automatically? Defaults to True.
         # TODO: Not sure if we should use CO_WR_LEARNMODE??
         self.teach_in = teach_in
+        self.app_version = None
+        self.api_version = None
+        self._chip_id = None
+        self._chip_version = None
+        self.app_description = None
 
     def _get_from_send_queue(self):
         ''' Get message from send queue, if one exists '''
@@ -85,26 +90,52 @@ class Communicator(threading.Thread):
             return self._base_id
 
         # Send COMMON_COMMAND 0x08, CO_RD_IDBASE request to the module
-        self.send(Packet(PACKET.COMMON_COMMAND, data=[0x08]))
-        # Loop over 10 times, to make sure we catch the response.
+        self.send(Packet(PACKET.COMMON_COMMAND, data=[COMMON_COMMAND.CO_RD_IDBASE]))
+        # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
         # Unfortunately, all other messages received during this time are ignored.
-        for i in range(0, 10):
+        for i in range(0, 5):
             try:
                 packet = self.receive.get(block=True, timeout=0.1)
                 # We're only interested in responses to the request in question.
                 if packet.packet_type == PACKET.RESPONSE and packet.response == RETURN_CODE.OK and len(packet.response_data) == 4:  # noqa: E501
+                    self.logger.debug(f"Get base info response {packet} | {packet.response_data}")
                     # Base ID is set in the response data.
                     self._base_id = packet.response_data
                     # Put packet back to the Queue, so the user can also react to it if required...
-                    self.receive.put(packet)
-                    break
+                    # self.receive.put(packet)
+                    return self._base_id
                 # Put other packets back to the Queue.
                 self.receive.put(packet)
             except queue.Empty:
                 continue
         # Return the current Base ID (might be None).
         return self._base_id
+
+    @property
+    def controller_info_details(self):
+        # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
+        self.send(Packet(PACKET.COMMON_COMMAND, data=[COMMON_COMMAND.CO_RD_VERSION]))
+        # Loop over 5 times, to make sure we catch the response.
+        # Thanks to timeout, shouldn't take more than a second.
+        # Unfortunately, all other messages received during this time are ignored.
+        for i in range(0, 5):
+            try:
+                packet = self.receive.get(block=True, timeout=0.1)
+                # We're only interested in responses to the request in question.
+                if packet.packet_type == PACKET.RESPONSE and packet.response == RETURN_CODE.OK:  # noqa: E501
+                    self.logger.debug(f"Get gateway info response {packet} | {packet.response_data}")
+                    self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
+                    self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
+                    self._chip_id = int.from_bytes(packet.response_data[8:12])
+                    self._chip_version = int.from_bytes(packet.response_data[12:16])
+                    self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
+                    return dict(app_version=self.app_version, api_version=self.api_version, app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
+                # Put other packets back to the Queue.
+                self.receive.put(packet)
+            except queue.Empty:
+                continue
+        return True
 
     @base_id.setter
     def base_id(self, base_id):

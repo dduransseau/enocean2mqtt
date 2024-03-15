@@ -73,7 +73,8 @@ class Communicator:
         self.enocean = SerialCommunicator(self.conf['enocean_port'], teach_in=False)
         self.enocean.start()
         # sender will be automatically determined
-        self.enocean_sender = None
+        self.controller_address = None
+        self.controller_info = None
 
     def __del__(self):
         if self.enocean is not None and self.enocean.is_alive():
@@ -432,7 +433,7 @@ class Communicator:
         # Add possibility for the user to indicate a specific sender address
         # in sensor configuration using added 'sender' field.
         # So use specified sender address if any
-        sender = enocean.utils.address_to_bytes_list(equipment.sender) if equipment.sender else self.enocean_sender
+        sender = enocean.utils.address_to_bytes_list(equipment.sender) if equipment.sender else self.controller_address
 
         try:
             packet = RadioPacket.create_message(equipment, direction=direction, command=command, sender=sender, learn=is_learn)
@@ -512,9 +513,11 @@ class Communicator:
         # start endless loop for listening
         while self.enocean.is_alive():
             # Request transmitter ID, if needed
-            if self.enocean_sender is None:
-                self.enocean_sender = self.enocean.base_id
-                self.logger.info(f"Set base id {self.enocean_sender}")
+            if self.controller_address is None:
+                self.controller_address = self.enocean.base_id
+                self.logger.info(f"Set base id {enocean.utils.to_hex_string(self.controller_address)}")
+                self.controller_info = self.enocean.controller_info_details
+                self.logger.info(f"Controller info: {self.controller_info}")
 
             # Loop to empty the queue...
             try:
