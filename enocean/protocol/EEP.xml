@@ -484,6 +484,34 @@
    </profile>
   </profiles>
   <profiles func="0x06" description="Light Sensor">
+   <profile type="0x03" description="10-bit measurement (1-Lux resolution) with range 0lx to 1000lx">
+    <data>
+     <value description="Supply voltage (linear)" shortcut="SVC" offset="0" size="8" unit="V">
+      <range>
+       <min>0</min>
+       <max>250</max>
+      </range>
+      <scale>
+       <min>0.000000</min>
+       <max>5.000000</max>
+      </scale>
+     </value>
+     <value description="Illumination (linear)" shortcut="ILL" offset="8" size="10" unit="lx">
+      <range>
+       <min>0</min>
+       <max>1000</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>1000.000000</max>
+      </scale>
+     </value>
+     <enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
+      <item description="Teach-In" value="0" />
+      <item description="Data" value="1" />
+     </enum>
+    </data>
+   </profile>
    <profile type="0x01" description="Range 300lx to 60.000lx">
     <data>
      <value description="Supply voltage (linear)" shortcut="SVC" offset="0" size="8" unit="V">
@@ -557,34 +585,6 @@
      <enum description="Range select" shortcut="RS" offset="31" size="1">
       <item description="Range acc. to DB_1 (ILL1)" value="0" />
       <item description="Range acc. to DB_2 (ILL2)" value="1" />
-     </enum>
-    </data>
-   </profile>
-   <profile type="0x03" description="10-bit measurement (1-Lux resolution) with range 0lx to 1000lx">
-    <data>
-     <value description="Supply voltage (linear)" shortcut="SVC" offset="0" size="8" unit="V">
-      <range>
-       <min>0</min>
-       <max>250</max>
-      </range>
-      <scale>
-       <min>0.000000</min>
-       <max>5.000000</max>
-      </scale>
-     </value>
-     <value description="Illumination (linear)" shortcut="ILL" offset="8" size="10" unit="lx">
-      <range>
-       <min>0</min>
-       <max>1000</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>1000.000000</max>
-      </scale>
-     </value>
-     <enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
-      <item description="Teach-In" value="0" />
-      <item description="Data" value="1" />
      </enum>
     </data>
    </profile>
@@ -788,52 +788,6 @@
    </profile>
   </profiles>
   <profiles func="0x09" description="Gas Sensor">
-   <profile type="0x07" description="Particles">
-    <data>
-     <value description="Particles_10" shortcut="PM10" offset="0" size="9" unit="ug/m3">
-      <range>
-       <min>0</min>
-       <max>511</max>
-      </range>
-      <scale>
-       <min>0.000000</min>
-       <max>511.000000</max>
-      </scale>
-     </value>
-     <value description="Particles_2.5" shortcut="PM2.5" offset="9" size="9" unit="ug/m3">
-      <range>
-       <min>0</min>
-       <max>511</max>
-      </range>
-      <scale>
-       <min>0.000000</min>
-       <max>511.000000</max>
-      </scale>
-     </value>
-     <value description="Particles_1" shortcut="PM1" offset="18" size="9" unit="ug/m3">
-      <range>
-       <min>0</min>
-       <max>511</max>
-      </range>
-      <scale>
-       <min>0.000000</min>
-       <max>511.000000</max>
-      </scale>
-     </value>
-     <enum description="PM10 Active" shortcut="PM10a" offset="29" size="1">
-      <item description="PM10 not active" value="0" />
-      <item description="PM10 active" value="1" />
-     </enum>
-     <enum description="PM2.5 Active" shortcut="PM2.5a" offset="30" size="1">
-      <item description="PM2.5 not active" value="0" />
-      <item description="PM2.5 active" value="1" />
-     </enum>
-     <enum description="PM1 Active" shortcut="PM1a" offset="31" size="1">
-      <item description="PM1 not active" value="0" />
-      <item description="PM1 active" value="1" />
-     </enum>
-    </data>
-   </profile>
    <profile type="0x0c" description="VOC sensorNG">
     <data>
      <value description="VOC" shortcut="CONC" offset="0" size="16" unit="ug/m3">
@@ -896,6 +850,52 @@
       <item description="0.1" value="1" />
       <item description="1" value="2" />
       <item description="10" value="3" />
+     </enum>
+    </data>
+   </profile>
+   <profile type="0x07" description="Particles">
+    <data>
+     <value description="Particles_10" shortcut="PM10" offset="0" size="9" unit="ug/m3">
+      <range>
+       <min>0</min>
+       <max>511</max>
+      </range>
+      <scale>
+       <min>0.000000</min>
+       <max>511.000000</max>
+      </scale>
+     </value>
+     <value description="Particles_2.5" shortcut="PM2.5" offset="9" size="9" unit="ug/m3">
+      <range>
+       <min>0</min>
+       <max>511</max>
+      </range>
+      <scale>
+       <min>0.000000</min>
+       <max>511.000000</max>
+      </scale>
+     </value>
+     <value description="Particles_1" shortcut="PM1" offset="18" size="9" unit="ug/m3">
+      <range>
+       <min>0</min>
+       <max>511</max>
+      </range>
+      <scale>
+       <min>0.000000</min>
+       <max>511.000000</max>
+      </scale>
+     </value>
+     <enum description="PM10 Active" shortcut="PM10a" offset="29" size="1">
+      <item description="not active" value="0" />
+      <item description="active" value="1" />
+     </enum>
+     <enum description="PM2.5 Active" shortcut="PM2.5a" offset="30" size="1">
+      <item description="not active" value="0" />
+      <item description="active" value="1" />
+     </enum>
+     <enum description="PM1 Active" shortcut="PM1a" offset="31" size="1">
+      <item description="not active" value="0" />
+      <item description="active" value="1" />
      </enum>
     </data>
    </profile>
