@@ -1,5 +1,4 @@
-# Copyright (c) 2020 embyt GmbH. See LICENSE for further details.
-# Author: Roman Morawek <roman.morawek@embyt.com>
+# Author: Roman Morawek <roman.morawek@embyt.com>, Damien Duransseau <damien@duransseau.net>
 """this class handles the enocean and mqtt interfaces"""
 import logging
 import queue
@@ -299,17 +298,17 @@ class Communicator:
         # Handling Auxiliary data RSSI
         aux_data = {}
         # Publish RSSI ?
-        if equipment.publish_rssi:
-            # Publish using JSON format ?
-            if equipment.publish_json:
-                # Keep _RSSI_ out of groups
-                if channel_id:
-                    aux_data.update({"_RSSI_": mqtt_json['_RSSI_']})
-            else:
-                self.mqtt.publish(equipment.topic + "/_RSSI_", mqtt_json['_RSSI_'], retain=retain)
-        # Delete RSSI if already handled
-        if channel_id or not equipment.publish_json or not equipment.publish_rssi:
-            del mqtt_json['_RSSI_']
+        # if equipment.publish_rssi:
+        #     # Publish using JSON format ?
+        #     if equipment.publish_json:
+        #         # Keep _RSSI_ out of groups
+        #         if channel_id:
+        #             aux_data.update({"_RSSI_": mqtt_json['_RSSI_']})
+        #     else:
+        #         self.mqtt.publish(equipment.topic + "/_RSSI_", mqtt_json['_RSSI_'], retain=retain)
+        # # Delete RSSI if already handled
+        # if channel_id or not equipment.publish_json or not equipment.publish_rssi:
+        #     del mqtt_json['_RSSI_']
 
         # Handling Auxiliary data _DATE_
         # if str(sensor.publish_date) in ("True", "true", "1"):
@@ -364,10 +363,14 @@ class Communicator:
             if not properties:
                 self.logger.warning(f"message not interpretable: {equipment.name}")
             else:
-                # Store RSSI
-                # Use underscore so that it is unique and doesn't
-                # match a potential future EnOcean EEP field.
-                properties['_RSSI_'] = packet.dBm
+                if equipment.publish_rssi:
+                    # Store RSSI
+                    # Use underscore so that it is unique and doesn't
+                    # match a potential future EnOcean EEP field.
+                    try:
+                        properties['_RSSI_'] = packet.dBm
+                    except AttributeError:
+                        self.logger.warning(f"Unable to set RSSI value in packet {packet}")
                 self._publish_mqtt(equipment, properties)
         else:
             # learn request received
@@ -393,27 +396,11 @@ class Communicator:
             properties = packet.parse_message(message)
             self.logger.debug(f"found properties in message: {properties}")
             # loop through all EEP properties
-            for prop_name, prop in properties.items():
-                # cur_prop = packet.parsed[prop_name]
-                # we only extract numeric values, either the scaled ones
-                # or the raw values for enums
-                if prop_name in ("json", "command"):
-                    message_payload[prop_name] = prop
-                    continue
-                # if not isinstance(prop.get('value'), numbers.Number):
-                    # mqtt_json[f"{prop_name}_raw"] = prop['raw_value']
-                # message_payload[prop_name] = prop['raw_value']
-                message_payload[prop_name] = prop['value']
-                    # try:
-                    #     value = cur_prop['raw_value']
-                    #     mqtt_json[f"{prop_name}_desc"] = cur_prop['value']
-                    # except KeyError:
-                    #     pass
-                # publish extracted information
-
-                # Store property
-                # mqtt_json[f"{prop_name}_desc"] = value
-
+            for prop in properties:
+                if equipment.publish_raw:
+                    message_payload[prop['shortcut']] = prop['raw_value']
+                else:
+                    message_payload[prop['description']] = prop['value']
         return message_payload
 
 

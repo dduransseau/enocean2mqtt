@@ -65,12 +65,11 @@ class DataStatus(BaseDataElt):
         ''' Get boolean value, based on the data in XML '''
         self._raw_value = self.parse_raw(status)
         return {
-            self.shortcut: {
-                'description': self.description,
-                'unit': self.unit,
-                'value': True if self._raw_value else False,
-                'raw_value': self._raw_value,
-            }
+            'description': self.description,
+            'shortcut': self.shortcut,
+            'unit': self.unit,
+            'value': True if self._raw_value else False,
+            'raw_value': self._raw_value
         }
 
     def set_value(self, data, bitarray):
@@ -121,12 +120,11 @@ class DataValue(BaseDataElt):
         self._raw_value = self.parse_raw(bitarray)
 
         return {
-            self.shortcut: {
-                'description': self.description,
-                'unit': self.unit,
-                'value': self.process_value(self._raw_value),
-                'raw_value': self._raw_value,
-            }
+            'description': self.description,
+            'shortcut': self.shortcut,
+            'unit': self.unit,
+            'value': self.process_value(self._raw_value),
+            'raw_value': self._raw_value,
         }
 
     def set_value(self, data, bitarray):
@@ -285,12 +283,11 @@ class DataEnum(BaseDataElt):
         #self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
         value = item.parse(self._raw_value)
         return {
-            self.shortcut: {
-                'description': item.description if item else "",
-                'unit': self.unit,
-                'value': value,
-                'raw_value': self._raw_value,
-            }
+            'description': self.description,
+            'shortcut': self.shortcut,
+            'unit': self.unit,
+            'value': value,
+            'raw_value': self._raw_value
         }
 
     def set_value(self, val, bitarray):
@@ -473,9 +470,17 @@ class Message:
     def get_values(self, bitarray, status):
         ''' Get keys and values from bitarray '''
         # self.logger.debug(f"Parse bitarray {bitarray} {hex(int("".join(map(str, map(int, bitarray))), 2))[2:]}")
-        output = dict()
+        output = []
         for source in self.items:
-            output.update(source.parse(bitarray, status))
+            # Manage to get the command related value as define in profile
+            if source.shortcut == "CMD":
+                output.append({
+                    'description': "Command identifier",
+                    'value': self.command_item.description,
+                    'raw_value': self.command_item.value,
+                })
+            else:
+                output.append(source.parse(bitarray, status))
         self.logger.debug(f"get_values {output}")
         return output
 

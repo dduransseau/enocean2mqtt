@@ -39,7 +39,7 @@ class Packet(object):
             self.optional = optional
 
         self.status = status
-        self.parsed = dict()
+        # self.parsed = dict()
         self.repeater_count = 0
         self._profile = None
         self.message = None
@@ -48,11 +48,10 @@ class Packet(object):
         self.parse()
 
     def __str__(self):
-        return '0x%02X %s %s %s' % (
+        return '0x%02X %s %s' % (
             self.packet_type,
             [hex(o) for o in self.data],
-            [hex(o) for o in self.optional],
-            self.parsed)
+            [hex(o) for o in self.optional])
 
     def __eq__(self, other):
         return self.packet_type == other.packet_type and self.rorg == other.rorg \
@@ -242,7 +241,7 @@ class Packet(object):
         if self.rorg == RORG.VLD:
             self.status = self.optional[-1]
 
-        return self.parsed
+        # return self.parsed
 
     def parse_message(self, message):
         ''' Parse EEP based on FUNC and TYPE '''
@@ -250,7 +249,6 @@ class Packet(object):
         # parse data
         values = message.get_values(self._bit_data, self._bit_status)
         self.logger.debug(f"Parsed data values {values}")
-        self.parsed.update(values)
         return values
 
     def build(self):
@@ -374,7 +372,7 @@ class UTETeachInPacket(RadioPacket):
         if self.teach_in:
             self.learn = True
         self.logger.debug(f"Received UTE teach in packet from {self.sender} manu:{self.rorg_manufacturer}")
-        return self.parsed
+        # return self.parsed
 
     def create_response_packet(self, sender_id, response=TEACHIN_ACCEPTED):
         # Create data:

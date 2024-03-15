@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 embyt GmbH. See LICENSE for further details.
-# Author: Roman Morawek <roman.morawek@embyt.com>
+# Author: Roman Morawek <roman.morawek@embyt.com>, Damien Duransseau <damien@duransseau.net>
 """this is the main entry point, which sets up the Communicator class"""
 import logging
 import sys
@@ -16,7 +15,7 @@ from communicator import Communicator
 conf = {
     'debug': False,
     'config': ['/etc/enoceanmqtt.conf', '../enoceanmqtt.conf', '../equipments.conf'],
-    'logfile': Path(__file__).parent.parent.joinpath('enoceanmqtt.log')
+    'logfile': '../enoceanmqtt.log'
 }
 
 
