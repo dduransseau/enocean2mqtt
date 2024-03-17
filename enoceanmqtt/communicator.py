@@ -20,6 +20,8 @@ class Communicator:
     mqtt = None
     enocean = None
 
+    TEACH_IN_TOPIC = "gateway/teach-in"
+
     logger = logging.getLogger('enocean.mqtt.communicator')
 
     def __init__(self, config, sensors):
@@ -105,7 +107,7 @@ class Communicator:
             self.logger.info("succesfully connected to MQTT broker.")
             self.logger.debug(f"subscribe to root req topic: {self.topic_prefix}req")
             mqtt_client.subscribe(f"{self.topic_prefix}req")
-            mqtt_client.subscribe(f"{self.topic_prefix}gateway/learn")
+            mqtt_client.subscribe(f"{self.topic_prefix}learn")
             equipments_definition_list = list()
             # listen to enocean send requests
             for equipment in self.equipments.values():
@@ -114,13 +116,13 @@ class Communicator:
                 equipments_definition_list.append(equipment.definition)
             mqtt_client.publish(f"{self.topic_prefix}gateway/equipments", json.dumps(equipments_definition_list), retain=True)
             # Wait that enocean communicator is initialized before publishing teach in mode
-            # while not self.enocean:
-            #     time.sleep(0.1)
-            # try:
-            #     learn = "ON" if self.enocean.teach_in else "OFF"
-            #     mqtt_client.publish(f"{self.topic_prefix}gateway/learn", learn, retain=True)
-            # except Exception:
-            #     self.logger.exception(Exception)
+            while not self.enocean:
+                time.sleep(0.1)
+            try:
+                teach_in = "ON" if self.enocean.teach_in else "OFF"
+                mqtt_client.publish(f"{self.topic_prefix}{self.TEACH_IN_TOPIC}", teach_in, retain=True)
+            except Exception:
+                self.logger.exception(Exception)
             # Subscribe to learn topic only after status is sent, to avoid two time status update
 
         else:
@@ -138,7 +140,7 @@ class Communicator:
         # search for sensor
         found_topic = False
         self.logger.info("received MQTT message: %s", msg.topic)
-        if msg.topic == f"{self.topic_prefix}gateway/learn":
+        if msg.topic == f"{self.topic_prefix}learn":
             self.handle_learn_activation_request(msg)
         else:
             # Get how to handle MQTT message
@@ -161,9 +163,11 @@ class Communicator:
         if command == "ON":
             self.enocean.teach_in = True
             self.logger.info(f"gateway teach in mode enabled")
+            self.mqtt.publish(f"{self.topic_prefix}{self.TEACH_IN_TOPIC}", command, retain=True)
         elif command == "OFF":
             self.enocean.teach_in = False
             self.logger.info(f"gateway teach in mode disabled ")
+            self.mqtt.publish(f"{self.topic_prefix}{self.TEACH_IN_TOPIC}", command, retain=True)
         else:
             self.logger.warning(f"not supported command: {command} for learn")
 
@@ -221,30 +225,21 @@ class Communicator:
             equipment_id = mqtt_json_payload["equipment"]
             equipment = self.get_equipment(equipment_id)
             del(mqtt_json_payload["equipment"]) # Remove key to avoid to have it during for loop
+            if not equipment:
+                self.logger.warning(f"unable to get equipment topic={mqtt_topic} payload={mqtt_json_payload}")
+                return None
         self.logger.info(f"found equipment {equipment} for message in {mqtt_topic}")
         try:
             # JSON payload shall be sent to '/req' topic
             if mqtt_topic.endswith("/req"):
-                # send = False
-                # clear = False
-                #
-                # # do we face a send request?
-                # if "send" in mqtt_json_payload.keys():
-                #     send = True
-                #     # Check whether the data buffer shall be cleared
-                #     if mqtt_json_payload['send'] == "clear":
-                #         clear = True
-                #
-                #     # Remove 'send' field as it is not part of EnOcean data
-                #     del mqtt_json_payload['send']
-
                 # Parse message content
                 message_params = dict()
-                for topic in mqtt_json_payload:
+                for key in mqtt_json_payload:
                     try:
-                        message_params[topic] = int(mqtt_json_payload[topic])
+                        # TODO: Manage to resolve the int value using profile when receive str value
+                        message_params[key] = int(mqtt_json_payload[key])
                     except ValueError:
-                        self.logger.debug(f"cannot parse int value for {topic}: {mqtt_json_payload[topic]}")
+                        self.logger.debug(f"cannot parse int value for {key}: {mqtt_json_payload[key]}")
                         # Prevent storing undefined value, as it will trigger exception in EnOcean library
                         # del mqtt_json_payload[topic]
 
@@ -257,13 +252,11 @@ class Communicator:
                 # Finally, send the message
                 self._send_message(equipment)
         except AttributeError:
-            self.logger.warning(f"unable to get equipment topic={mqtt_topic} payload={mqtt_json_payload}")
+            self.logger.warning(f"unable to handle message topic={mqtt_topic} payload={mqtt_json_payload}")
 
     def _send_message(self, sensor):
         '''Send received MQTT message to EnOcean.'''
-        self.logger.debug(f"trigger message to: {sensor.name}")
-        destination = [(sensor.address >> i*8) &
-                       0xff for i in reversed(range(4))]
+        # self.logger.debug(f"trigger message to: {sensor.name}")
         self.logger.debug(f"Message {sensor.data} to send to {sensor.address}")
         command = None
         command_shortcut = sensor.command
@@ -393,12 +386,12 @@ class Communicator:
 
             # Retrieve properties from EEP
             self.logger.info(f"handle packet for {equipment.name}: {equipment.eep_code} direction={equipment.direction} command={command}")
-            # properties = packet.parse_eep(sensor.func, sensor.type, direction, command)
             message = equipment.get_message_form(command=command, direction=equipment.direction)
             properties = packet.parse_message(message)
             self.logger.debug(f"found properties in message: {properties}")
             # loop through all EEP properties
             for prop in properties:
+                # Remove / from key name to avoid sub topic issue
                 if equipment.publish_raw or self.conf.get("publish_raw"):
                     message_payload[prop['shortcut'].replace("/", "")] = prop['raw_value']
                 else:
@@ -475,16 +468,15 @@ class Communicator:
         self.logger.debug(f"process radio for address {sender_address}")
         equipment = self.equipments.get(sender_address)
 
+        # log packet, if not disabled
+        if self.log_packets:
+            self.logger.info(f"received: {packet}")
+
         # skip ignored sensors
         if equipment and equipment.ignore:
             return
-
-        # log packet, if not disabled
-        if self.log_packets:
-            self.logger.debug(f"received: {packet}")
-
         # abort loop if sensor not found
-        if not equipment:
+        elif not equipment:
             self.logger.info(f"unknown sensor: {enocean.utils.to_hex_string(packet.sender)}")
             return
 
@@ -546,7 +538,7 @@ class Communicator:
 
         # Run finished, close MQTT client and stop Enocean thread
         logging.debug("Cleaning up")
+        self.enocean.stop()
         self.mqtt.loop_stop()
         self.mqtt.disconnect()
         self.mqtt.loop_forever()  # will block until disconnect complete
-        self.enocean.stop()

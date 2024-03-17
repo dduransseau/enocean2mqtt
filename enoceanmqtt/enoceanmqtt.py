@@ -14,8 +14,8 @@ from communicator import Communicator
 
 conf = {
     'debug': False,
-    'config': ['/etc/enoceanmqtt.conf', '../enoceanmqtt.conf', '../equipments.conf'],
-    'logfile': '../enoceanmqtt.log'
+    'config': ['/etc/gateway.conf', '../gateway.conf', '../equipments.conf'],
+    'logfile': '../gateway.log'
 }
 
 
