@@ -365,7 +365,7 @@ class Communicator:
             else:
                 # Store receive date
                 # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
-                message['_DATE_'] = packet.received
+                message['_DATE_'] = int(packet.received)
                 if equipment.publish_rssi:
                     # Store RSSI
                     # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
