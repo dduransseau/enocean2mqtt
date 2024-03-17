@@ -488,6 +488,7 @@ class Message:
                     'description': "Command identifier",
                     'value': self.command_item.description,
                     'raw_value': self.command_item.value,
+                    'shortcut': "CMD"
                 })
             else:
                 output.append(source.parse(bitarray, status))

@@ -32,6 +32,16 @@ def parse_args():
     return args
 
 
+def config_parse_value(v):
+    if v.isdigit():
+        return int(v)
+    elif v.lower() in ("true", "yes"):
+        return True
+    elif v.lower() in ("false", "no"):
+        return False
+    return v
+
+
 def load_config_file(config_files):
     """load sensor and general configuration from given config files"""
     # extract sensor configuration
@@ -53,7 +63,7 @@ def load_config_file(config_files):
             if section == 'CONFIG':
                 # general configuration is part of CONFIG section
                 for key in config_parser[section]:
-                    global_config[key] = config_parser[section][key]
+                    global_config[key] = config_parse_value(config_parser[section][key])
             else:
                 mqtt_prefix = global_config['mqtt_prefix'] \
                     if 'mqtt_prefix' in global_config else "enocean/"

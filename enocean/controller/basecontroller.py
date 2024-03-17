@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 import logging
-import datetime
+import time
 
 import threading
 import queue
@@ -69,7 +69,7 @@ class BaseController(threading.Thread):
 
             # If message is OK, add it to receive queue or send to the callback method
             if status == PARSE_RESULT.OK and packet:
-                packet.received = datetime.datetime.now()
+                packet.received = time.time()
 
                 if isinstance(packet, UTETeachInPacket) and self.teach_in:
                     response_packet = packet.create_response_packet(self.base_id)

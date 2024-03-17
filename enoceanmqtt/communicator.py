@@ -167,7 +167,6 @@ class Communicator:
         else:
             self.logger.warning(f"not supported command: {command} for learn")
 
-
     #=============================================================================================
     # MQTT TO ENOCEAN
     #=============================================================================================
@@ -326,8 +325,8 @@ class Communicator:
         #     del mqtt_json['_DATE_']
 
         # Publish auxiliary data
-        if aux_data:
-            self.mqtt.publish(equipment.name, json.dumps(aux_data), retain=retain)
+        # if aux_data:
+        #     self.mqtt.publish(equipment.name, json.dumps(aux_data), retain=retain)
 
         # Determine MQTT topic
         topic = equipment.topic
@@ -343,7 +342,7 @@ class Communicator:
         # if sensor.publish_json:
         self.mqtt.publish(topic, value, retain=retain)
         # else:
-        if equipment.publish_raw:
+        if equipment.publish_flat:
             for prop_name, value in mqtt_json.items():
                 if prop_name in ("json", "data", "description"):
                     continue
@@ -357,29 +356,28 @@ class Communicator:
         # equipment = self.equipments.get(sender_id)
         self.logger.debug(f"Found equipment: {equipment}")
         if not packet.learn or equipment.log_learn:
-            # Store receive date
-            # Use underscore so that it is unique and doesn't
-            # match a potential future EnOcean EEP field.
-            # mqtt_json['_DATE_'] = packet.received.isoformat()
+
             # Handling received data packet
             self.logger.debug(f"handle data packet {packet}, {equipment.address}")
-            properties = self._handle_data_packet(packet, equipment)
-            if not properties:
+            message = self._handle_data_packet(packet, equipment)
+            if not message:
                 self.logger.warning(f"message not interpretable: {equipment.name}")
             else:
+                # Store receive date
+                # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
+                message['_DATE_'] = packet.received
                 if equipment.publish_rssi:
                     # Store RSSI
-                    # Use underscore so that it is unique and doesn't
-                    # match a potential future EnOcean EEP field.
+                    # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
                     try:
-                        properties['_RSSI_'] = packet.dBm
+                        message['_RSSI_'] = packet.dBm
                     except AttributeError:
                         self.logger.warning(f"Unable to set RSSI value in packet {packet}")
-                self._publish_mqtt(equipment, properties)
+                self.logger.debug(f"Publish message {message}")
+                self._publish_mqtt(equipment, message)
         else:
             # learn request received
             self.logger.info("learn request not emitted to mqtt")
-
 
     def _handle_data_packet(self, packet, equipment):
         # data packet received
@@ -401,16 +399,16 @@ class Communicator:
             self.logger.debug(f"found properties in message: {properties}")
             # loop through all EEP properties
             for prop in properties:
-                if equipment.publish_raw:
-                    message_payload[prop['shortcut']] = prop['raw_value']
+                if equipment.publish_raw or self.conf.get("publish_raw"):
+                    message_payload[prop['shortcut'].replace("/", "")] = prop['raw_value']
                 else:
-                    message_payload[prop['description']] = prop['value']
+                    message_payload[prop['description'].replace("/", "")] = prop['value']
         return message_payload
-
 
     #=============================================================================================
     # LOW LEVEL FUNCTIONS
     #=============================================================================================
+
     def _reply_packet(self, in_packet, equipment):
         '''send enocean message as a reply to an incoming message'''
         # prepare addresses
