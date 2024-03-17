@@ -1,0 +1,15 @@
+[pilote_lab]
+address         = 0x0590FFFF
+rorg            = 0xD2
+func            = 0x01
+type            = 0x0C
+## Allow to force equipment message to be send as raw (shortcut : raw_value)
+# publish_raw = true # Default false
+## Publish message as flat: shortcut = topic value = raw_value (in addition to json)
+# publish_flat    = true # Default false
+## Publish message with retain flag
+# persistent    = true # Default false
+## Ignore device (disable publis device message)
+# ignore    = true # Default false
+## Publish message RSSI (key = _RSSI_)
+# publish_rssi    = false # Default true
