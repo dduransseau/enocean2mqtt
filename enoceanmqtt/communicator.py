@@ -22,12 +22,16 @@ class Communicator:
 
     TEACH_IN_TOPIC = "gateway/teach-in"
 
+    TIMESTAMP_MESSAGE_KEY = "_timestamp"
+    RSSI_MESSAGE_KEY = "_rssi"
+
     logger = logging.getLogger('enocean.mqtt.communicator')
 
     def __init__(self, config, sensors):
         self.conf = config
+        self.publish_timestamp = self.conf.get("publish_timestamp", True)
         # self.sensors = sensors
-        self.logger.info(f"Init communicator with sensors: {sensors}")
+        self.logger.info(f"Init communicator with sensors: {sensors}, publish timestamp: {self.publish_timestamp}")
         if topic_prefix := self.conf.get("mqtt_prefix"):
             if not topic_prefix.endswith("/"):
                 topic_prefix = f"{topic_prefix}/"
@@ -72,7 +76,7 @@ class Communicator:
         self.mqtt.loop_start()
 
         # setup enocean communication
-        self.enocean = SerialController(self.conf['enocean_port'], teach_in=False)
+        self.enocean = SerialController(self.conf['enocean_port'], teach_in=False, timestamp=self.publish_timestamp)
         self.enocean.start()
         # sender will be automatically determined
         self.controller_address = None
@@ -291,36 +295,6 @@ class Communicator:
         channel_id = equipment.channel
         channel_id = channel_id.split('/') if channel_id not in (None, '') else []
 
-        # Handling Auxiliary data RSSI
-        aux_data = {}
-        # Publish RSSI ?
-        # if equipment.publish_rssi:
-        #     # Publish using JSON format ?
-        #     if equipment.publish_json:
-        #         # Keep _RSSI_ out of groups
-        #         if channel_id:
-        #             aux_data.update({"_RSSI_": mqtt_json['_RSSI_']})
-        #     else:
-        #         self.mqtt.publish(equipment.topic + "/_RSSI_", mqtt_json['_RSSI_'], retain=retain)
-        # # Delete RSSI if already handled
-        # if channel_id or not equipment.publish_json or not equipment.publish_rssi:
-        #     del mqtt_json['_RSSI_']
-
-        # Handling Auxiliary data _DATE_
-        # if str(sensor.publish_date) in ("True", "true", "1"):
-        #     # Publish _DATE_ both at device and group levels
-        #     if channel_id:
-        #         if sensor.publish_json:
-        #             aux_data.update({"_DATE_": mqtt_json['_DATE_']})
-        #         else:
-        #             self.mqtt.publish(sensor.topic+"/_DATE_", mqtt_json['_DATE_'], retain=retain)
-        # else:
-        #     del mqtt_json['_DATE_']
-
-        # Publish auxiliary data
-        # if aux_data:
-        #     self.mqtt.publish(equipment.name, json.dumps(aux_data), retain=retain)
-
         # Determine MQTT topic
         topic = equipment.topic
         for cur_id in channel_id:
@@ -358,12 +332,13 @@ class Communicator:
             else:
                 # Store receive date
                 # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
-                message['_DATE_'] = int(packet.received)
+                if self.publish_timestamp:
+                    message[self.TIMESTAMP_MESSAGE_KEY] = int(packet.received)
                 if equipment.publish_rssi:
                     # Store RSSI
                     # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
                     try:
-                        message['_RSSI_'] = packet.dBm
+                        message[self.RSSI_MESSAGE_KEY] = packet.dBm
                     except AttributeError:
                         self.logger.warning(f"Unable to set RSSI value in packet {packet}")
                 self.logger.debug(f"Publish message {message}")

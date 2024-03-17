@@ -6,5 +6,7 @@ enocean_port    = COM1
 mqtt_host       = localhost
 mqtt_port       = 1883
 mqtt_prefix     = enocean/
-# Allow to force equipments message to be send as raw (shortcut : raw_value)
+## Force equipments message to be send as raw (shortcut : raw_value)
 # publish_raw = true
+## Enable/Disable timestamp into messages (default: True)
+# publish_timestamp = False

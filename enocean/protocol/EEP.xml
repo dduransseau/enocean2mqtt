@@ -878,7 +878,7 @@
    </profile>
    <profile type="0x0c" description="VOC sensorNG">
     <data>
-     <value description="VOC concentration" shortcut="CONC" offset="0" size="16" unit="ug/m3">
+     <value description="concentration" shortcut="CONC" offset="0" size="16" unit="ug/m3">
       <range>
        <min>0</min>
        <max>65535</max>
@@ -888,7 +888,7 @@
        <max>65535.000000</max>
       </scale>
      </value>
-     <enum description="VOCID" shortcut="VOCID" offset="16" size="8">
+     <enum description="VOC" shortcut="VOCID" offset="16" size="8">
       <item description="VOCT (total)" value="0" />
       <item description="Formaldehyde" value="1" />
       <item description="Benzene" value="2" />

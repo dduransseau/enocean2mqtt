@@ -15,7 +15,7 @@ class BaseController(threading.Thread):
     '''
     logger = logging.getLogger('enocean.controller.BaseController')
 
-    def __init__(self, callback=None, teach_in=True):
+    def __init__(self, callback=None, teach_in=True, timestamp=True):
         super(BaseController, self).__init__()
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
@@ -31,6 +31,7 @@ class BaseController(threading.Thread):
         # Should new messages be learned automatically? Defaults to True.
         # TODO: Not sure if we should use CO_WR_LEARNMODE??
         self.teach_in = teach_in
+        self.frame_timestamp = timestamp
         self.app_version = None
         self.api_version = None
         self._chip_id = None
@@ -69,7 +70,8 @@ class BaseController(threading.Thread):
 
             # If message is OK, add it to receive queue or send to the callback method
             if status == PARSE_RESULT.OK and packet:
-                packet.received = time.time()
+                if self.frame_timestamp:
+                    packet.received = time.time()
 
                 if isinstance(packet, UTETeachInPacket) and self.teach_in:
                     response_packet = packet.create_response_packet(self.base_id)
