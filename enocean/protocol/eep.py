@@ -492,7 +492,6 @@ class Message:
                 })
             else:
                 output.append(source.parse(bitarray, status))
-        self.logger.debug(f"get_values {output}")
         return output
 
     def set_values(self, packet, values):
