@@ -30,6 +30,8 @@ class Communicator:
     def __init__(self, config, sensors):
         self.conf = config
         self.publish_timestamp = self.conf.get("publish_timestamp", True)
+        self.publish_raw = self.conf.get("publish_raw")
+        self.use_key_shortcut = self.conf.get("use_key_shortcut")
         # self.sensors = sensors
         self.logger.info(f"Init communicator with sensors: {sensors}, publish timestamp: {self.publish_timestamp}")
         if topic_prefix := self.conf.get("mqtt_prefix"):
@@ -358,17 +360,18 @@ class Communicator:
             command = equipment.get_command_id(packet)
             if command:
                 logging.debug('retrieved command id from packet: %s', hex(command))
-
             # Retrieve properties from EEP
-            self.logger.info(f"handle packet for {equipment.name}: {equipment.eep_code} direction={equipment.direction} command={command}")
+            self.logger.info(f"handle packet from {equipment.name}: {equipment.eep_code} direction={equipment.direction} command={command}")
             message = equipment.get_message_form(command=command, direction=equipment.direction)
             properties = packet.parse_message(message)
-            self.logger.debug(f"found properties in message: {properties}")
+            # self.logger.debug(f"found properties in message: {properties}")
             # loop through all EEP properties
             for prop in properties:
                 # Remove / from key name to avoid sub topic issue
-                if equipment.publish_raw or self.conf.get("publish_raw"):
+                if equipment.publish_raw or self.publish_raw:
                     message_payload[prop['shortcut'].replace("/", "")] = prop['raw_value']
+                elif equipment.use_key_shortcut or self.use_key_shortcut:
+                    message_payload[prop['shortcut'].replace("/", "")] = prop['value']
                 else:
                     message_payload[prop['description'].replace("/", "")] = prop['value']
         return message_payload

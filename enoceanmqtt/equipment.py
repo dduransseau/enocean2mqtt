@@ -24,6 +24,7 @@ class Equipment(EnoceanEquipment):
         self.publish_raw = self.get_config_boolean(kwargs, "publish_raw", default=False)
         self.publish_flat = self.get_config_boolean(kwargs, "publish_flat", default=False)
         self.publish_rssi = self.get_config_boolean(kwargs, "publish_rssi", default=True)
+        self.use_key_shortcut = self.get_config_boolean(kwargs, "use_key_shortcut", default=False)
         self.retain = self.get_config_boolean(kwargs, "persistent", default=False)
         self.log_learn = self.get_config_boolean(kwargs, "log_learn", default=True)
         self.ignore = self.get_config_boolean(kwargs, "ignore", default=False)
