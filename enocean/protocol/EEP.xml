@@ -878,7 +878,7 @@
    </profile>
    <profile type="0x0c" description="VOC sensorNG">
     <data>
-     <value description="VOC" shortcut="CONC" offset="0" size="16" unit="ug/m3">
+     <value description="VOC concentration" shortcut="CONC" offset="0" size="16" unit="ug/m3">
       <range>
        <min>0</min>
        <max>65535</max>
@@ -3439,7 +3439,7 @@
   </profiles>
   <profiles func="0x01" description="Electronic switches and dimmers with Energy Measurement and Local Control">
    <profile type="0x05" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -3463,7 +3463,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -3493,7 +3493,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -3520,7 +3520,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -3568,7 +3568,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -3578,7 +3578,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -3609,11 +3609,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -3647,7 +3647,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -3661,15 +3661,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -3688,7 +3688,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -3701,12 +3701,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -3719,7 +3719,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -3749,7 +3749,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -3759,7 +3759,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -3790,7 +3790,7 @@
     </data>
    </profile>
    <profile type="0x10" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -3814,7 +3814,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -3844,7 +3844,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -3871,7 +3871,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -3919,7 +3919,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -3929,7 +3929,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -3960,11 +3960,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -3998,7 +3998,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -4012,15 +4012,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -4039,7 +4039,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -4052,12 +4052,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -4070,7 +4070,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4100,7 +4100,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4110,7 +4110,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4321,7 +4321,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -4351,7 +4351,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -4378,7 +4378,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -4426,7 +4426,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4436,7 +4436,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -4467,11 +4467,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -4505,7 +4505,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -4519,15 +4519,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -4546,7 +4546,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -4559,12 +4559,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -4577,7 +4577,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4607,7 +4607,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4617,7 +4617,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4648,7 +4648,7 @@
     </data>
    </profile>
    <profile type="0x06" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -4672,7 +4672,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -4702,7 +4702,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -4729,7 +4729,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -4777,7 +4777,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4787,7 +4787,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -4818,11 +4818,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -4856,7 +4856,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -4870,15 +4870,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -4897,7 +4897,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -4910,12 +4910,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -4928,7 +4928,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4958,7 +4958,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4968,7 +4968,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -4999,7 +4999,7 @@
     </data>
    </profile>
    <profile type="0x11" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -5023,7 +5023,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -5053,7 +5053,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -5080,7 +5080,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -5128,7 +5128,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5138,7 +5138,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -5169,11 +5169,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -5207,7 +5207,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -5221,15 +5221,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -5248,7 +5248,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -5261,12 +5261,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -5279,7 +5279,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5309,7 +5309,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5319,7 +5319,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5350,7 +5350,7 @@
     </data>
    </profile>
    <profile type="0x02" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -5374,7 +5374,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -5404,7 +5404,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -5431,7 +5431,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -5479,7 +5479,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5489,7 +5489,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -5520,11 +5520,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -5558,7 +5558,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -5572,15 +5572,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -5599,7 +5599,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -5612,12 +5612,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -5630,7 +5630,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5660,7 +5660,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5670,7 +5670,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5805,11 +5805,11 @@
       <rangeitem description="Measurement delta LSB {value}" start="0" end="15" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
       <rangeitem description="Not used" start="5" end="7" />
      </enum>
      <enum description="Measurement delta MSB" shortcut="MD_MSB" offset="24" size="8">
@@ -5843,11 +5843,11 @@
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
       <rangeitem description="Not used" start="5" end="7" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -5965,11 +5965,11 @@
       <rangeitem description="Measurement delta LSB {value}" start="0" end="15" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
       <rangeitem description="Not used" start="5" end="7" />
      </enum>
      <enum description="Measurement delta MSB" shortcut="MD_MSB" offset="24" size="8">
@@ -6003,11 +6003,11 @@
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
       <rangeitem description="Not used" start="5" end="7" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6099,7 +6099,7 @@
     </data>
    </profile>
    <profile type="0x07" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -6123,7 +6123,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -6153,7 +6153,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -6180,7 +6180,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -6228,7 +6228,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6238,7 +6238,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -6269,11 +6269,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -6307,7 +6307,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -6321,15 +6321,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -6348,7 +6348,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -6361,12 +6361,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -6379,7 +6379,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6409,7 +6409,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6419,7 +6419,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6517,7 +6517,7 @@
     </data>
    </profile>
    <profile type="0x03" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -6541,7 +6541,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -6571,7 +6571,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -6598,7 +6598,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -6646,7 +6646,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6656,7 +6656,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -6687,11 +6687,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -6725,7 +6725,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -6739,15 +6739,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -6766,7 +6766,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -6779,12 +6779,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -6797,7 +6797,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6827,7 +6827,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6837,7 +6837,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -6868,7 +6868,7 @@
     </data>
    </profile>
    <profile type="0x08" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -6892,7 +6892,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -6922,7 +6922,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -6949,7 +6949,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -6997,7 +6997,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7007,7 +7007,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -7038,11 +7038,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -7076,7 +7076,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -7090,15 +7090,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -7117,7 +7117,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -7130,12 +7130,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -7148,7 +7148,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7178,7 +7178,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7188,7 +7188,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7326,11 +7326,11 @@
       <rangeitem description="Measurement delta LSB {value}" start="0" end="15" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
       <rangeitem description="Not used" start="5" end="7" />
      </enum>
      <enum description="Measurement delta MSB" shortcut="MD_MSB" offset="24" size="8">
@@ -7364,11 +7364,11 @@
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
       <rangeitem description="Not used" start="5" end="7" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7491,7 +7491,7 @@
     </data>
    </profile>
    <profile type="0x04" description="Electronic switch with Local Control">
-    <command description="command indentifier" shortcut="CMD" offset="4" size="4">
+    <command description="Command identifier" shortcut="CMD" offset="4" size="4">
      <item description="Actuator Set Output" value="1" />
      <item description="Actuator Set Local" value="2" />
      <item description="Actuator Status Query" value="3" />
@@ -7515,7 +7515,7 @@
       <item description="Power Failure Detection not detected/not supported/disabled" value="0" />
       <item description="Power Failure Detection Detected" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over current switch off" shortcut="OC" offset="8" size="1">
@@ -7545,7 +7545,7 @@
      </enum>
     </data>
     <data command="1" bits="3">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Dim value" shortcut="DV" offset="8" size="3">
@@ -7572,7 +7572,7 @@
       <item description="Disable taught-in devices (with different EEP)" value="0" />
       <item description="Enable taught-in devices (with different EEP)" value="1" />
      </enum>
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Over shut down" shortcut="OC" offset="8" size="1">
@@ -7620,7 +7620,7 @@
      </enum>
     </data>
     <data command="3" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7630,7 +7630,7 @@
      </enum>
     </data>
     <data command="5" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Report measurement" shortcut="RM" offset="8" size="1">
@@ -7661,11 +7661,11 @@
       </scale>
      </value>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <value description="Measurement delta to be reported (MSB)" shortcut="MDMSB" offset="24" size="8" unit="">
       <range>
@@ -7699,7 +7699,7 @@
      </value>
     </data>
     <data command="6" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Query" shortcut="QU" offset="10" size="1">
@@ -7713,15 +7713,15 @@
      </enum>
     </data>
     <data command="7" bits="6">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
       <rangeitem description="Output channel {value} (to load)" start="0" end="29" />
@@ -7740,7 +7740,7 @@
      </value>
     </data>
     <data command="8" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -7753,12 +7753,12 @@
      </enum>
     </data>
     <data command="9" bits="1">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
     </data>
     <data command="10" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="PilotWireMode" shortcut="PM" offset="13" size="3">
@@ -7771,7 +7771,7 @@
      </enum>
     </data>
     <data command="11" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7801,7 +7801,7 @@
      </enum>
     </data>
     <data command="12" bits="2">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7811,7 +7811,7 @@
      </enum>
     </data>
     <data command="13" bits="7">
-     <enum description="Command indentifier" shortcut="CMD" offset="4" size="4">
+     <enum description="Command identifier" shortcut="CMD" offset="4" size="4">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
@@ -7946,11 +7946,11 @@
       <rangeitem description="Measurement delta LSB {value}" start="0" end="15" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="21" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
       <rangeitem description="Not used" start="5" end="7" />
      </enum>
      <enum description="Measurement delta MSB" shortcut="MD_MSB" offset="24" size="8">
@@ -7984,11 +7984,11 @@
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Unit" shortcut="UN" offset="8" size="3">
-      <item description="Energy [Ws]" value="0" />
-      <item description="Energy [Wh]" value="1" />
-      <item description="Energy [KWh]" value="2" />
-      <item description="Power [W]" value="3" />
-      <item description="Power [KW]" value="4" />
+      <item description="Ws" type="Energy" value="0" />
+      <item description="Wh" type="Energy" value="1" />
+      <item description="KWh" type="Energy" value="2" />
+      <item description="W" type="Power" value="3" />
+      <item description="KW" type="Power" value="4" />
       <rangeitem description="Not used" start="5" end="7" />
      </enum>
      <enum description="I/O channel" shortcut="IO" offset="11" size="5">
