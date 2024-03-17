@@ -11,6 +11,16 @@ class BaseDataElt:
 
     logger = logging.getLogger('enocean.protocol.eep.data')
     " Base class inherit from every value data telegram"
+
+    @staticmethod
+    def parse_number_value(v):
+        if v.startswith("0x"):
+            return int(v, 16)
+        elif "." in v:
+            return float(v)
+        else:
+            return int(v)
+
     def __init__(self, elt):
         self.description = elt.get("description", "")
         self.shortcut = elt.get("shortcut")
@@ -101,12 +111,12 @@ class DataValue(BaseDataElt):
         super().__init__(elt)
         if r := elt.find("range"):
             self.is_range = True
-            self.range_min = float(r.find("min").text)
-            self.range_max = float(r.find("max").text)
+            self.range_min = self.parse_number_value(r.find("min").text)
+            self.range_max = self.parse_number_value(r.find("max").text)
         if s := elt.find("scale"):
             self.scale = True
-            self.scale_min = float(s.find("min").text)
-            self.scale_max = float(s.find("max").text)
+            self.scale_min = self.parse_number_value(s.find("min").text)
+            self.scale_max = self.parse_number_value(s.find("max").text)
         try:
             self.multiplier = (self.scale_max - self.scale_min) / (self.range_max - self.range_min)
         except Exception as e:
@@ -152,7 +162,7 @@ class DataEnumItem(BaseDataElt):
 
     def __init__(self, elt):
         super().__init__(elt)
-        self.value = int(elt.get("value"))
+        self.value = self.parse_number_value(elt.get("value"))
 
     def __str__(self):
         return f"Enum Item {self.description}"
@@ -178,17 +188,17 @@ class DataEnumRangeItem(BaseDataElt):
         scale = elt.find("scale")
         self.multiplier = 1
         if range and scale:
-            self.range_min = float(range.find("min").text)
-            self.range_max = float(range.find("max").text)
-            self.scale_min = float(scale.find("min").text)
-            self.scale_max = float(scale.find("max").text)
+            self.range_min = self.parse_number_value(range.find("min").text)
+            self.range_max = self.parse_number_value(range.find("max").text)
+            self.scale_min = self.parse_number_value(scale.find("min").text)
+            self.scale_max = self.parse_number_value(scale.find("max").text)
             try:
                 self.multiplier = (self.scale_max - self.scale_min) / (self.range_max - self.range_min)
             except Exception as e:
                 self.logger.debug(f"Unable to set multiplier")
         else:
-            self.start = int(elt.get("start"))
-            self.end = int(elt.get("end"))
+            self.start = self.parse_number_value(elt.get("start"))
+            self.end = self.parse_number_value(elt.get("end"))
 
     @property
     def limit(self):
@@ -370,7 +380,7 @@ class Profile:
         self.rorg = rorg
         self.func = func
         self.type = elt.get("type")
-        self.description = elt.get("description")
+        self.description = elt.get("description", "")
         if len(elt.findall("command")) > 1:
             raise ValueError("More then 1 command for profile")
         c = elt.find("command")
@@ -509,6 +519,7 @@ class EepLibrary:
             eep_path = Path(__file__).parent.joinpath('EEP.xml')
             self.logger.info(f"load EEP xml file: {eep_path}")
             self.telegrams = self.__load_xml(eep_path)
+            # self.logger.debug(f"List supported telegrams: {self.telegrams}")
             self.logger.debug("EEP loaded")
         except Exception as e:
             # Impossible to test with the current structure?
@@ -541,26 +552,12 @@ class EEP:
     telegrams = EepLibrary().telegrams
 
     @classmethod
-    def find_profile(cls, eep_rorg, rorg_func, rorg_type, direction=None, command=None):
-        ''' Find profile and data description, matching RORG, FUNC and TYPE
-
-        return: ProfileData
-        '''
-        try:
-            profile = cls.telegrams[eep_rorg][rorg_func][rorg_type]
-            return profile.get(direction=direction, command=command)
-        except Exception as e:
-            cls.logger.warning('Cannot find rorg %s func %s type %s in EEP!', hex(eep_rorg), hex(rorg_func),
-                                hex(rorg_type))
-            return None
-
-    @classmethod
     def get_eep(cls, eep_rorg, rorg_func, rorg_type):
         try:
             return cls.telegrams[eep_rorg][rorg_func][rorg_type]
         except Exception as e:
-            cls.logger.warning('Cannot find rorg %s func %s type %s in EEP!', hex(eep_rorg), hex(rorg_func),
-                                hex(rorg_type))
+            cls.logger.warning(f'Cannot find rorg {eep_rorg} func {rorg_func} type {rorg_type} in EEP')
+            raise NotImplementedError(f'EEP {eep_rorg} func {rorg_func} type {rorg_type} is not supported')
 
     @classmethod
     def load_library(cls):

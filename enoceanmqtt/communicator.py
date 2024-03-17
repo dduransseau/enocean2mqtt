@@ -83,14 +83,17 @@ class Communicator:
     def get_config_boolean(self, key):
         return True if self.conf.get(key, False) in ("true", "True", "1", 1, True) else False
 
-    @staticmethod
-    def setup_devices_list(topic_prefix, sensors):
+    @classmethod
+    def setup_devices_list(cls, topic_prefix, sensors):
         equipments_list = dict()
         for s in sensors:
-            address = s.get("address")
-            s["topic_prefix"] = topic_prefix
-            equipment = Equipment(**s)
-            equipments_list[address] = equipment
+            try:
+                address = s.get("address")
+                s["topic_prefix"] = topic_prefix
+                equipment = Equipment(**s)
+                equipments_list[address] = equipment
+            except NotImplementedError as e:
+                cls.logger.warning(f"Unable to setup device {address} omit")
         return equipments_list
 
     #=============================================================================================
