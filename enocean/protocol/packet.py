@@ -33,7 +33,7 @@ class Packet(object):
             self.data = data
 
         if not isinstance(optional, list) or optional is None:
-            self.logger.warning(f'Replacing Packet.optional with default value, for packet type {self.packet_type}')
+            self.logger.debug(f'Replacing Packet.optional with default value, for packet type {self.packet_type}')
             self.optional = []
         else:
             self.optional = optional

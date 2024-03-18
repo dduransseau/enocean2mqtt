@@ -4,7 +4,7 @@ import time
 
 import threading
 import queue
-from enocean.protocol.packet import Packet, UTETeachInPacket
+from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket
 from enocean.protocol.constants import PACKET, PARSE_RESULT, RETURN_CODE, COMMON_COMMAND
 
 
@@ -24,6 +24,7 @@ class BaseController(threading.Thread):
         # Setup packet queues
         self.transmit = queue.Queue()
         self.receive = queue.Queue()
+        self.command_queue = list()
         # Set the callback method
         self.__callback = callback
         # Internal variable for the Base ID of the module.
@@ -77,69 +78,106 @@ class BaseController(threading.Thread):
                     response_packet = packet.create_response_packet(self.base_id)
                     self.logger.info('Sending response to UTE teach-in.')
                     self.send(response_packet)
-
+                elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
+                    self.parse_common_command_response(packet)
                 if self.__callback is None:
+                    # Add received packet into receive queue
                     self.receive.put(packet)
                 else:
                     self.__callback(packet)
-                self.logger.debug(packet)
+                # self.logger.debug(packet)
 
     @property
     def base_id(self):
         ''' Fetches Base ID from the transmitter, if required. Otherwise returns the currently set Base ID. '''
         # If base id is already set, return it.
-        if self._base_id is not None:
+        if self._base_id:
             return self._base_id
 
         # Send COMMON_COMMAND 0x08, CO_RD_IDBASE request to the module
         self.send(Packet(PACKET.COMMON_COMMAND, data=[COMMON_COMMAND.CO_RD_IDBASE]))
+        self.command_queue.append(COMMON_COMMAND.CO_RD_IDBASE)
         # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
         # Unfortunately, all other messages received during this time are ignored.
         for i in range(0, 5):
-            try:
-                packet = self.receive.get(block=True, timeout=0.1)
-                # We're only interested in responses to the request in question.
-                if packet.packet_type == PACKET.RESPONSE and packet.response == RETURN_CODE.OK and len(packet.response_data) == 4:  # noqa: E501
-                    self.logger.debug(f"Get base info response {packet} | {packet.response_data}")
-                    # Base ID is set in the response data.
-                    self._base_id = packet.response_data
-                    # Put packet back to the Queue, so the user can also react to it if required...
-                    # self.receive.put(packet)
-                    return self._base_id
-                # Put other packets back to the Queue.
-                self.receive.put(packet)
-            except queue.Empty:
-                continue
+            if self._base_id:
+                return self._base_id
+            time.sleep(0.1)
+            # try:
+            #     packet = self.receive.get(block=True, timeout=0.1)
+            #     # We're only interested in responses to the request in question.
+            #     if packet.packet_type == PACKET.RESPONSE and packet.response == RETURN_CODE.OK and len(packet.response_data) == 4:  # noqa: E501
+            #         self.logger.debug(f"Get base info response {packet} | {packet.response_data}")
+            #         # Base ID is set in the response data.
+            #         self._base_id = packet.response_data
+            #         # Put packet back to the Queue, so the user can also react to it if required...
+            #         # self.receive.put(packet)
+            #         return self._base_id
+            #     # Put other packets back to the Queue.
+            #     self.receive.put(packet)
+            # except queue.Empty:
+            #     continue
         # Return the current Base ID (might be None).
         return self._base_id
 
     @property
     def controller_info_details(self):
+        if self._chip_id:
+            return dict(app_version=self.app_version, api_version=self.api_version,
+                        app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
         # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
         self.send(Packet(PACKET.COMMON_COMMAND, data=[COMMON_COMMAND.CO_RD_VERSION]))
+        self.command_queue.append(COMMON_COMMAND.CO_RD_VERSION)
         # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
         # Unfortunately, all other messages received during this time are ignored.
         for i in range(0, 5):
-            try:
-                packet = self.receive.get(block=True, timeout=0.1)
-                # We're only interested in responses to the request in question.
-                if packet.packet_type == PACKET.RESPONSE and packet.response == RETURN_CODE.OK:  # noqa: E501
-                    self.logger.debug(f"Get gateway info response {packet} | {packet.response_data}")
-                    self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
-                    self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
-                    self._chip_id = int.from_bytes(packet.response_data[8:12])
-                    self._chip_version = int.from_bytes(packet.response_data[12:16])
-                    self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
-                    return dict(app_version=self.app_version, api_version=self.api_version, app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
-                # Put other packets back to the Queue.
-                self.receive.put(packet)
-            except queue.Empty:
-                continue
+            if self._chip_id:
+                return dict(app_version=self.app_version, api_version=self.api_version,
+                            app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
+            time.sleep(0.1)
+        # for i in range(0, 5):
+        #     try:
+        #         packet = self.receive.get(block=True, timeout=0.1)
+        #         # We're only interested in responses to the request in question.
+        #         if packet.packet_type == PACKET.RESPONSE and packet.response == RETURN_CODE.OK:  # noqa: E501
+        #             self.logger.debug(f"Get gateway info response {packet} | {packet.response_data}")
+        #             self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
+        #             self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
+        #             self._chip_id = int.from_bytes(packet.response_data[8:12])
+        #             self._chip_version = int.from_bytes(packet.response_data[12:16])
+        #             self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
+        #             return dict(app_version=self.app_version, api_version=self.api_version, app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
+        #         # Put other packets back to the Queue.
+        #         self.receive.put(packet)
+        #     except queue.Empty:
+        #         continue
         return True
 
     @base_id.setter
     def base_id(self, base_id):
         ''' Sets the Base ID manually, only for testing purposes. '''
         self._base_id = base_id
+
+    def init_adapter(self):
+        for code in (COMMON_COMMAND.CO_RD_IDBASE, COMMON_COMMAND.CO_RD_VERSION):
+            self.send(Packet(PACKET.COMMON_COMMAND, data=[code]))
+            self.command_queue.append(code)
+        for i in range(10):
+            if self._base_id and self._chip_id:
+                return True
+            time.sleep(0.1)
+
+    def parse_common_command_response(self, packet):
+        command_id = self.command_queue.pop(0)
+        self.logger.info(f"Get packet response for command {command_id}")
+        if command_id == COMMON_COMMAND.CO_RD_VERSION:
+            self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
+            self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
+            self._chip_id = int.from_bytes(packet.response_data[8:12])
+            self._chip_version = int.from_bytes(packet.response_data[12:16])
+            self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
+        elif command_id == COMMON_COMMAND.CO_RD_IDBASE:
+            # Base ID is set in the response data.
+            self._base_id = packet.response_data

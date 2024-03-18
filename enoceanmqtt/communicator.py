@@ -22,6 +22,7 @@ class Communicator:
 
     TEACH_IN_TOPIC = "gateway/teach-in"
 
+    # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
     TIMESTAMP_MESSAGE_KEY = "_timestamp"
     RSSI_MESSAGE_KEY = "_rssi"
 
@@ -41,6 +42,8 @@ class Communicator:
             topic_prefix = ""
         self.topic_prefix = topic_prefix
         self.equipments = self.setup_devices_list(topic_prefix, sensors)
+        # Define set() of detected address received by the gateway
+        self.detected_equipments = set()
 
         # check for mandatory configuration
         if 'mqtt_host' not in self.conf or 'enocean_port' not in self.conf:
@@ -103,6 +106,20 @@ class Communicator:
             except NotImplementedError as e:
                 cls.logger.warning(f"Unable to setup device {address} omit")
         return equipments_list
+
+
+    def get_equipment_by_topic(self, topic):
+        for equipment in self.equipments.values():
+            if f"{equipment.topic}/" in topic:
+                return equipment
+
+    def get_equipment(self, id):
+        """ Try to get the equipement based on id (can be address or name)"""
+        if equipment := self.equipments.get(id):
+            return equipment
+        for equipment in self.equipments.values():
+            if id == equipment.name:
+                return equipment
 
     #=============================================================================================
     # MQTT CLIENT
@@ -181,48 +198,6 @@ class Communicator:
     # MQTT TO ENOCEAN
     #=============================================================================================
 
-    def get_equipment_by_topic(self, topic):
-        for equipment in self.equipments.values():
-            if f"{equipment.topic}/" in topic:
-                return equipment
-
-    def get_equipment(self, id):
-        """ Try to get the equipement based on id (can be address or name)"""
-        if equipment := self.equipments.get(id):
-            return equipment
-        for equipment in self.equipments.values():
-            if id == equipment.name:
-                return equipment
-
-    def _mqtt_message_normal(self, msg):
-        '''Handle received PUBLISH message from the MQTT server as a normal payload.'''
-        found_topic = False
-        if equipment := self.get_equipment_by_topic(msg.topic):
-            self.logger.debug(f"received message on {equipment.topic}")
-            # get message topic
-            prop = msg.topic[len(f"{equipment.topic}/req/"):]
-            # do we face a send request?
-            if prop == "send":
-                found_topic = True
-                # Clear sent data, if requested by the send message
-                # MQTT payload is binary data, thus we need to decode it
-                clear = False
-                if msg.payload.decode('UTF-8') == "clear":
-                    clear = True
-                self._send_message(equipment, clear)
-            else:
-                found_topic = True
-                # parse message content
-                value = None
-                try:
-                    value = int(msg.payload)
-                except ValueError:
-                    self.logger.warning("cannot parse int value for %s: %s", msg.topic, msg.payload)
-                    # Prevent storing undefined value, as it will trigger exception in EnOcean library
-                    return
-                equipment.data[prop] = value
-        return found_topic
-
     def _mqtt_message_json(self, mqtt_topic, mqtt_json_payload):
         '''Handle received PUBLISH message from the MQTT server as a JSON payload.'''
         equipment = self.get_equipment_by_topic(mqtt_topic)
@@ -256,11 +231,11 @@ class Communicator:
                 self.logger.debug(f"{equipment.name}: req={message_params}")
                 equipment.data.update(message_params)
                 # Finally, send the message
-                self._send_message(equipment)
+                self._send_message_to_esp(equipment)
         except AttributeError:
             self.logger.warning(f"unable to handle message topic={mqtt_topic} payload={mqtt_json_payload}")
 
-    def _send_message(self, sensor):
+    def _send_message_to_esp(self, sensor):
         '''Send received MQTT message to EnOcean.'''
         # self.logger.debug(f"trigger message to: {sensor.name}")
         self.logger.debug(f"Message {sensor.data} to send to {sensor.address}")
@@ -279,7 +254,7 @@ class Communicator:
             # Retrieve command id from MQTT message
             command = sensor.data[command_shortcut]
             self.logger.debug(f'retrieved command id from MQTT message: {hex(command)}')
-        self._send_packet(sensor, command=command)
+        self._send_packet_to_esp(sensor, command=command)
         self.logger.debug('Clearing data buffer.')
         sensor.data = {}
 
@@ -307,38 +282,28 @@ class Communicator:
         # Publish packet data to MQTT
         value = json.dumps(mqtt_json)
         self.logger.debug(f"{topic}: Sent MQTT: {value}")
-
-        # if sensor.publish_json:
         self.mqtt.publish(topic, value, retain=retain)
-        # else:
         if equipment.publish_flat:
             for prop_name, value in mqtt_json.items():
-                if prop_name in ("json", "data", "description"):
-                    continue
+                prop_name = prop_name.replace("/", "") # Avoid sub topic if property has / ex: "I/O"
                 self.mqtt.publish(f"{topic}/{prop_name}", value, retain=retain)
 
-    def _read_packet(self, packet, equipment):
+    def _read_esp_packet(self, packet, equipment):
         '''interpret packet, read properties and publish to MQTT'''
-        # loop through all configured devices
-        # sender_id = enocean.utils.combine_hex(packet.sender)
-        # self.logger.debug(f"Received packet from {sender_id}")
-        # equipment = self.equipments.get(sender_id)
         self.logger.debug(f"Found equipment: {equipment}")
         if not packet.learn or equipment.log_learn:
 
             # Handling received data packet
             self.logger.debug(f"handle data packet {packet}, {equipment.address}")
-            message = self._handle_data_packet(packet, equipment)
+            message = self._handle_esp_data_packet(packet, equipment)
             if not message:
                 self.logger.warning(f"message not interpretable: {equipment.name}")
             else:
                 # Store receive date
-                # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
                 if self.publish_timestamp:
                     message[self.TIMESTAMP_MESSAGE_KEY] = int(packet.received)
                 if equipment.publish_rssi:
                     # Store RSSI
-                    # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
                     try:
                         message[self.RSSI_MESSAGE_KEY] = packet.dBm
                     except AttributeError:
@@ -349,7 +314,7 @@ class Communicator:
             # learn request received
             self.logger.info("learn request not emitted to mqtt")
 
-    def _handle_data_packet(self, packet, equipment):
+    def _handle_esp_data_packet(self, packet, equipment):
         # data packet received
         message_payload = dict()
         if packet.packet_type == PACKET.RADIO and packet.rorg == equipment.rorg:
@@ -358,22 +323,31 @@ class Communicator:
             # Retrieve command from the received packet and pass it to parse_eep()
             self.logger.debug(f"try to get command for packet: {packet}")
             command = equipment.get_command_id(packet)
-            if command:
-                logging.debug('retrieved command id from packet: %s', hex(command))
+            # if command:
+            #     self.logger.debug('retrieved command id from packet: %s', hex(command))
             # Retrieve properties from EEP
             self.logger.info(f"handle packet from {equipment.name}: {equipment.eep_code} direction={equipment.direction} command={command}")
             message = equipment.get_message_form(command=command, direction=equipment.direction)
             properties = packet.parse_message(message)
             # self.logger.debug(f"found properties in message: {properties}")
+
+            if equipment.publish_raw or self.publish_raw:
+                # Message format must be published as raw (<shortcut>: <raw_value>)
+                property_key, value_key = ('shortcut', 'raw_value')
+            elif equipment.use_key_shortcut or self.use_key_shortcut:
+                # Message format must be published with field shortcut (<shortcut>: <value>)
+                property_key, value_key = ('shortcut', 'value')
+            else:
+                # Message format must be published with field description (<description>: <value>) /!\ Might be verbose
+                property_key, value_key = ('description', 'value')
             # loop through all EEP properties
             for prop in properties:
                 # Remove / from key name to avoid sub topic issue
-                if equipment.publish_raw or self.publish_raw:
-                    message_payload[prop['shortcut'].replace("/", "")] = prop['raw_value']
-                elif equipment.use_key_shortcut or self.use_key_shortcut:
-                    message_payload[prop['shortcut'].replace("/", "")] = prop['value']
-                else:
-                    message_payload[prop['description'].replace("/", "")] = prop['value']
+                key = prop[property_key]
+                val = prop[value_key]
+                message_payload[key] = val
+                if unit := prop.get("unit"):
+                    message_payload[f"{key}|unit"] = unit
         return message_payload
 
     #=============================================================================================
@@ -385,11 +359,11 @@ class Communicator:
         # prepare addresses
         # destination = in_packet.sender
 
-        self._send_packet(equipment, command=None, negate_direction=True,
-                          learn_data=in_packet.data if in_packet.learn else None)
+        self._send_packet_to_esp(equipment, command=None, negate_direction=True,
+                                 learn_data=in_packet.data if in_packet.learn else None)
 
-    def _send_packet(self, equipment, command=None,
-                     negate_direction=False, learn_data=None):
+    def _send_packet_to_esp(self, equipment, command=None,
+                            negate_direction=False, learn_data=None):
         '''triggers sending of an enocean packet'''
         # determine direction indicator
         self.logger.info(f"send packet to device {equipment.name} {equipment.address}")
@@ -436,26 +410,31 @@ class Communicator:
             else:
                 # what to do if we have no data to send yet?
                 self.logger.warning('sending only default data as answer to %s', equipment.name)
-
-        # send it
         self.enocean.send(packet)
 
     def _process_radio_packet(self, packet):
         # first, look whether we have this sensor configured
         sender_address = enocean.utils.combine_hex(packet.sender)
-        self.logger.debug(f"process radio for address {sender_address}")
-        equipment = self.equipments.get(sender_address)
+        formatted_address = enocean.utils.to_hex_string(sender_address)
+        self.logger.debug(f"process radio for address {formatted_address}")
+        if formatted_address not in self.detected_equipments:
+            self.detected_equipments.add(formatted_address)
+            self.logger.info(f"Detected new equipment with address {formatted_address}")
+            # TODO: remove this and handle it trough a signal
+            # self.mqtt.publish(f"{self.topic_prefix}gateway/detected_equipments", json.dumps(list(self.detected_equipments)))
+
+        equipment = self.get_equipment(sender_address)
 
         # log packet, if not disabled
         if self.log_packets:
             self.logger.info(f"received: {packet}")
 
-        # skip ignored sensors
-        if equipment and equipment.ignore:
-            return
-        # abort loop if sensor not found
-        elif not equipment:
+        # skip unknown sensor
+        if not equipment:
             self.logger.info(f"unknown sensor: {enocean.utils.to_hex_string(packet.sender)}")
+            return
+        elif equipment.ignore:
+            # skip ignored sensors
             return
 
         # Handling EnOcean library decision to set learn to False by default.
@@ -469,7 +448,7 @@ class Communicator:
             packet.learn = False
 
         # interpret packet, read properties and publish to MQTT
-        self._read_packet(packet, equipment)
+        self._read_esp_packet(packet, equipment)
 
         # check for necessary reply
         if equipment.answer:
@@ -485,8 +464,10 @@ class Communicator:
         while self.enocean.is_alive():
             # Request transmitter ID, if needed
             if self.controller_address is None:
-                self.controller_address = self.enocean.base_id
-                self.logger.info(f"Set base id {enocean.utils.to_hex_string(self.controller_address)}")
+                self.enocean.init_adapter()
+                self.controller_address = self.enocean._base_id
+                self.logger.info(f"Base id {enocean.utils.to_hex_string(self.controller_address)}")
+                # self.logger.info(f"Chip id {self.enocean._chip_id}")
                 self.controller_info = self.enocean.controller_info_details
                 self.logger.info(f"Controller info: {self.controller_info}")
 
@@ -506,7 +487,7 @@ class Communicator:
                     response_code = RETURN_CODE(packet.data[0])
                     self.logger.info(f"got response packet: {response_code.name}")
                 else:
-                    logging.info("got non-RF packet: %s", packet)
+                    self.logger.info("got non-RF packet: %s", packet)
                     continue
             except queue.Empty:
                 continue
