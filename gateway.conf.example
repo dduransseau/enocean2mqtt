@@ -6,9 +6,15 @@ enocean_port    = COM1
 mqtt_host       = localhost
 mqtt_port       = 1883
 mqtt_prefix     = enocean/
+## Set MQTT publisg QoS (default: 0)
+# mqtt_qos = 1
+## Publish gateway internal details
+# publish_internal = False
 ## Force equipments message to be send as raw (shortcut : raw_value)
 # publish_raw = true
 ## Enable/Disable timestamp into messages (default: True)
 # publish_timestamp = False
 ## Force to decode field value but emit message with field shortcut in place of description (default: False)
 # use_key_shortcut = True
+## Publish enocean response status (default: false)
+# publish_response_status = True

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# Author: Roman Morawek <roman.morawek@embyt.com>, Damien Duransseau <damien@duransseau.net>
+# Author: Damien Duransseau <damien@duransseau.net> based on Roman Morawek <roman.morawek@embyt.com>
 """this is the main entry point, which sets up the Communicator class"""
 import logging
 import sys
-import traceback
 import copy
 import argparse
 from pathlib import Path
@@ -125,10 +124,8 @@ def main():
     com = Communicator(conf, sensors)
     try:
         com.run()
-
-    # catch all possible exceptions
-    except:     # pylint: disable=broad-except,bare-except
-        logging.error(traceback.format_exc())
+    except Exception as e:
+        logging.exception(e)
 
 
 # check for execution

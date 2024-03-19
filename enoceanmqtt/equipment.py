@@ -34,7 +34,7 @@ class Equipment(EnoceanEquipment):
         self.direction = kwargs.get("direction")
         self.sender = kwargs.get("sender")
         self.default_data = kwargs.get("default_data")
-        self.data = dict()
+        # self.data = dict()
         # Allow to specify a topic different from name to allow blank
         if topic := kwargs.get("topic"):
             self.topic = f"{topic_prefix}{topic}"

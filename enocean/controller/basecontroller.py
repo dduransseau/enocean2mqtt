@@ -80,6 +80,7 @@ class BaseController(threading.Thread):
                     self.send(response_packet)
                 elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                     self.parse_common_command_response(packet)
+                    continue # Bypass packet emit to avoid to log internal command
                 if self.__callback is None:
                     # Add received packet into receive queue
                     self.receive.put(packet)
@@ -168,6 +169,7 @@ class BaseController(threading.Thread):
             if self._base_id and self._chip_id:
                 return True
             time.sleep(0.1)
+        raise TimeoutError("Unable get adapter information in time")
 
     def parse_common_command_response(self, packet):
         command_id = self.command_queue.pop(0)
