@@ -27,8 +27,8 @@ class Equipment(object):
 
     def __str__(self) -> str:
         if self.name:
-            return f"Device {self.name} address {self.address} eep {self.eep_code}"
-        return f"Device {self.address} eep {self.eep_code}"
+            return f"equipment {self.address} name {self.name} eep {self.eep_code}"
+        return f"equipment {self.address} eep {self.eep_code}"
 
     def get_command_id(self, packet):
         '''interpret packet to retrieve command id from VLD packets'''
@@ -39,3 +39,7 @@ class Equipment(object):
 
     def get_message_form(self, **kwargs):
         return self.profile.get_message_form(**kwargs)
+
+    def get_packet_fields(self, packet, direction=1):
+        command_id = self.get_command_id(packet)
+        return self.profile.get_message_form(command=command_id, direction=direction)

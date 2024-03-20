@@ -39,10 +39,7 @@ class Equipment(EnoceanEquipment):
         if topic := kwargs.get("topic"):
             self.topic = f"{topic_prefix}{topic}"
         else:
-            # Split equipment name by : to allow multi sensors equipment to be aggregated
-            equipment_topic_path = "/".join(name.split(":"))
-            self.topic = f"{topic_prefix}{equipment_topic_path}"
-        # self.logger.debug(f"Received kwargs {kwargs}")
+            self.topic = f"{topic_prefix}{name}"
 
     @staticmethod
     def get_config_boolean(c, key, default=False):
@@ -60,14 +57,12 @@ class Equipment(EnoceanEquipment):
             type=self.type,
             description=self.description,
             address=enocean.utils.to_hex_string(self.address),
-            direction=self.direction,
             topic=self.topic,
             config=dict(
                 publish_rssi=self.publish_rssi,
                 retain=self.retain,
                 ignore=self.ignore,
                 command=self.command,
-                sender=self.sender,
-                answer=self.answer
+                sender=self.sender
             )
         )

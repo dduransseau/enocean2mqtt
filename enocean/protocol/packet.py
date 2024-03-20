@@ -167,19 +167,19 @@ class Packet(object):
 
     @staticmethod
     def validate_address(address):
-        if not isinstance(address, list) or len(address) != 4:
-            raise ValueError('Address must a list containing 4 (numeric) values.')
+        if isinstance(address, list) and len(address) == 4:
+            for i in address:
+                if 0 > i > 255:
+                    return False
 
     @staticmethod
     def create_message(packet_type, equipment, direction=None, command=None,
-               destination=None, sender=None, learn=False, **kwargs):
+                       destination=None, sender=None, learn=False, **kwargs):
         Packet.logger.debug(f'Create packet for equipment profile {equipment.profile}')
         if packet_type != PACKET.RADIO:
-            # At least for now, only support PACKET.RADIO.
             raise ValueError('Packet type not supported by this function.')
 
         if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD]: # , RORG.MSC
-            # At least for now, only support these RORGS.
             raise ValueError('RORG not supported by this function.')
 
         if destination is None:
