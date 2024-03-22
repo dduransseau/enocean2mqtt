@@ -916,7 +916,7 @@
    </profile>
    <profile type="0x0c" description="VOC sensorNG">
     <data>
-     <value description="concentration" shortcut="CONC" offset="0" size="16" unit="ug/m3">
+     <value description="concentration" shortcut="CONC" offset="0" size="16">
       <range>
        <min>0</min>
        <max>65535</max>
@@ -967,7 +967,7 @@
       <item description="NOx" value="254" />
       <item description="Ozone" value="255" />
      </enum>
-     <enum shortcut="Unit" description="Unit" offset="29" size="1">
+     <enum shortcut="UN" description="Unit" offset="29" size="1">
       <item description="ppb" value="0" />
       <item description="ug/m3" value="1" />
      </enum>
@@ -9640,6 +9640,106 @@
    </profile>
   </profiles>
   <profiles func="0x60" description="Special applications">
+   <profile type="0x03" description="Modes and exemptions">
+    <data>
+     <enum description="Thermal Mode " shortcut="9901" offset="1" size="3">
+      <item description="Comfort" value="0" />
+      <item description="Eco" value="1" />
+      <item description="Night" value="2" />
+      <item description="Maintenance" value="3" />
+      <item description="Defrost" value="4" />
+      <rangeitem description="Reserved" start="5" end="7" />
+     </enum>
+     <enum description="Applied Thermal Mode" shortcut="9992" offset="4" size="1">
+      <item description="Auto" value="0" />
+      <item description="Override" value="1" />
+     </enum>
+     <enum description="Ventilation Mode" shortcut="9903" offset="5" size="2">
+      <item description="Comfort" value="0" />
+      <item description="Eco" value="1" />
+      <item description="Night" value="2" />
+      <item description="Maintenance" value="3" />
+     </enum>
+     <enum description="Applied ventilation Mode" shortcut="9904" offset="7" size="1">
+      <item description="Auto" value="0" />
+      <item description="Override" value="1" />
+     </enum>
+     <value description="Heating Exemption Setpoint" shortcut="9905" offset="8" size="8" unit="°C">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>10</min>
+       <max>35.5</max>
+      </scale>
+     </value>
+     <enum description="Delta T Cooling Exemption Setpoint above heating setpoint" shortcut="9906" offset="16" size="8">
+      <rangeitem description="Reserved" start="0" end="19" />
+      <rangeitem description="°C" start="20" end="250" />
+      <rangeitem description="Reserved" start="251" end="255" />
+     </enum>
+     <enum description="Heating and Cooling Exemption" shortcut="9907" offset="27" size="1">
+      <item description="No exemption" value="0" />
+      <item description="Exemption under way / Override from BMS" value="1" />
+     </enum>
+     <enum description="Heating and Cooling Exemption duration" shortcut="9908" offset="28" size="4">
+      <item description="No exemption" value="0" />
+      <item description="Never end" value="1" />
+      <item description="End on event (Change Mode)" value="2" />
+      <item description="15 minutes" value="3" />
+      <item description="30 minutes" value="4" />
+      <item description="1 hour" value="5" />
+      <item description="2 hours" value="6" />
+      <item description="6 hours" value="7" />
+      <item description="12 hours" value="8" />
+      <item description="24 hours" value="9" />
+      <rangeitem description="Reserved" start="10" end="15" />
+     </enum>
+     <enum description="Free Cooling delta T above cooling comfort setpoint exemption (apply to all modes)" shortcut="9909" offset="32" size="8">
+      <rangeitem description="Temperature">
+       <range>
+        <min>0</min>
+        <max>200</max>
+       </range>
+       <scale>
+        <min>-15</min>
+        <max>5</max>
+       </scale>
+      </rangeitem>
+      <rangeitem description="°C" start="201" end="255" />
+     </enum>
+     <enum description="Ventilation Exemption" shortcut="9910" offset="40" size="1">
+      <item description="No exemption" value="0" />
+      <item description="Exemption under way (only from probe)" value="1" />
+     </enum>
+     <enum description="Free Cooling status" shortcut="9911" offset="41" size="1">
+      <item description="Not active" value="0" />
+      <item description="Under way" value="1" />
+     </enum>
+     <enum description="Free Cooling Regulation type" shortcut="9912" offset="42" size="1">
+      <item description="On constant Air Flow" value="0" />
+      <item description="On temperature" value="1" />
+     </enum>
+     <enum description="Free Cooling Temperature Exemption" shortcut="9913" offset="43" size="1">
+      <item description="No exemption" value="0" />
+      <item description="Exemption under way / Override from BMS" value="1" />
+     </enum>
+     <enum description="Free Cooling Temperature Exemption duration" shortcut="9914" offset="44" size="4">
+      <item description="No exemption" value="0" />
+      <item description="Never end" value="1" />
+      <item description="End on event (Change Mode)" value="2" />
+      <item description="15 minutes" value="3" />
+      <item description="30 minutes" value="4" />
+      <item description="1 hour" value="5" />
+      <item description="2 hours" value="6" />
+      <item description="6 hours" value="7" />
+      <item description="12 hours" value="8" />
+      <item description="24 hours" value="9" />
+      <rangeitem description="Reserved" start="10" end="15" />
+     </enum>
+    </data>
+   </profile>
    <profile type="0x01" description="IAQ setpoints">
     <data>
      <value description="CO2 threshold in ppm" shortcut="CO2T" offset="0" size="8" unit="ppm">
@@ -9748,7 +9848,7 @@
       <item description="NOx" value="254" />
       <item description="Ozone" value="255" />
      </enum>
-     <enum description="Mode" shortcut="MDE" offset="64" size="2">
+     <enum description="Mode" shortcut="MODE" offset="64" size="2">
       <item description="Comfort" value="0" />
       <item description="Eco" value="1" />
       <item description="Night" value="2" />
@@ -9867,106 +9967,6 @@
       <item description="Out of range positive" value="1002" />
       <rangeitem description="Reserved" start="1003" end="1022" />
       <item description="Not measured" value="1023" />
-     </enum>
-    </data>
-   </profile>
-   <profile type="0x03" description="Modes and exemptions">
-    <data>
-     <enum description="Thermal Mode " shortcut="9901" offset="1" size="3">
-      <item description="Comfort" value="0" />
-      <item description="Eco" value="1" />
-      <item description="Night" value="2" />
-      <item description="Maintenance" value="3" />
-      <item description="Defrost" value="4" />
-      <rangeitem description="Reserved" start="5" end="7" />
-     </enum>
-     <enum description="Applied Thermal Mode" shortcut="9992" offset="4" size="1">
-      <item description="Auto" value="0" />
-      <item description="Override" value="1" />
-     </enum>
-     <enum description="Ventilation Mode" shortcut="9903" offset="5" size="2">
-      <item description="Comfort" value="0" />
-      <item description="Eco" value="1" />
-      <item description="Night" value="2" />
-      <item description="Maintenance" value="3" />
-     </enum>
-     <enum description="Applied ventilation Mode" shortcut="9904" offset="7" size="1">
-      <item description="Auto" value="0" />
-      <item description="Override" value="1" />
-     </enum>
-     <value description="Heating Exemption Setpoint" shortcut="9905" offset="8" size="8" unit="°C">
-      <range>
-       <min>0</min>
-       <max>255</max>
-      </range>
-      <scale>
-       <min>10</min>
-       <max>35.5</max>
-      </scale>
-     </value>
-     <enum description="Delta T Cooling Exemption Setpoint above heating setpoint" shortcut="9906" offset="16" size="8">
-      <rangeitem description="Reserved" start="0" end="19" />
-      <rangeitem description="°C" start="20" end="250" />
-      <rangeitem description="Reserved" start="251" end="255" />
-     </enum>
-     <enum description="Heating and Cooling Exemption" shortcut="9907" offset="27" size="1">
-      <item description="No exemption" value="0" />
-      <item description="Exemption under way / Override from BMS" value="1" />
-     </enum>
-     <enum description="Heating and Cooling Exemption duration" shortcut="9908" offset="28" size="4">
-      <item description="No exemption" value="0" />
-      <item description="Never end" value="1" />
-      <item description="End on event (Change Mode)" value="2" />
-      <item description="15 minutes" value="3" />
-      <item description="30 minutes" value="4" />
-      <item description="1 hour" value="5" />
-      <item description="2 hours" value="6" />
-      <item description="6 hours" value="7" />
-      <item description="12 hours" value="8" />
-      <item description="24 hours" value="9" />
-      <rangeitem description="Reserved" start="10" end="15" />
-     </enum>
-     <enum description="Free Cooling delta T above cooling comfort setpoint exemption (apply to all modes)" shortcut="9909" offset="32" size="8">
-      <rangeitem description="Temperature">
-       <range>
-        <min>0</min>
-        <max>200</max>
-       </range>
-       <scale>
-        <min>-15</min>
-        <max>5</max>
-       </scale>
-      </rangeitem>
-      <rangeitem description="°C" start="201" end="255" />
-     </enum>
-     <enum description="Ventilation Exemption" shortcut="9910" offset="40" size="1">
-      <item description="No exemption" value="0" />
-      <item description="Exemption under way (only from probe)" value="1" />
-     </enum>
-     <enum description="Free Cooling status" shortcut="9911" offset="41" size="1">
-      <item description="Not active" value="0" />
-      <item description="Under way" value="1" />
-     </enum>
-     <enum description="Free Cooling Regulation type" shortcut="9912" offset="42" size="1">
-      <item description="On constant Air Flow" value="0" />
-      <item description="On temperature" value="1" />
-     </enum>
-     <enum description="Free Cooling Temperature Exemption" shortcut="9913" offset="43" size="1">
-      <item description="No exemption" value="0" />
-      <item description="Exemption under way / Override from BMS" value="1" />
-     </enum>
-     <enum description="Free Cooling Temperature Exemption duration" shortcut="9914" offset="44" size="4">
-      <item description="No exemption" value="0" />
-      <item description="Never end" value="1" />
-      <item description="End on event (Change Mode)" value="2" />
-      <item description="15 minutes" value="3" />
-      <item description="30 minutes" value="4" />
-      <item description="1 hour" value="5" />
-      <item description="2 hours" value="6" />
-      <item description="6 hours" value="7" />
-      <item description="12 hours" value="8" />
-      <item description="24 hours" value="9" />
-      <rangeitem description="Reserved" start="10" end="15" />
      </enum>
     </data>
    </profile>

@@ -26,7 +26,7 @@ class Equipment(EnoceanEquipment):
         self.publish_rssi = self.get_config_boolean(kwargs, "publish_rssi", default=True)
         self.use_key_shortcut = self.get_config_boolean(kwargs, "use_key_shortcut", default=False)
         self.retain = self.get_config_boolean(kwargs, "persistent", default=False)
-        self.log_learn = self.get_config_boolean(kwargs, "log_learn", default=True)
+        self.log_learn = self.get_config_boolean(kwargs, "log_learn", default=False)
         self.ignore = self.get_config_boolean(kwargs, "ignore", default=False)
         self.answer = kwargs.get("answer")
         self.command = kwargs.get("command", "CMD")
