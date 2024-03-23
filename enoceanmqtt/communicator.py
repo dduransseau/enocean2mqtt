@@ -416,7 +416,7 @@ class Communicator:
         equipment = self.get_equipment(sender_address)
         if not equipment:
             # skip unknown sensor
-            self.logger.info(f"unknown sensor: {formatted_address}")
+            self.logger.info(f"unknown sender id {formatted_address}, telegram disregarded")
             return
         elif equipment.ignore:
             # skip ignored sensors
@@ -426,8 +426,8 @@ class Communicator:
         # Handling EnOcean library decision to set learn to False by default.
         # Only 1BS and 4BS are correctly handled by the EnOcean library.
         # -> VLD EnOcean devices use UTE as learn mechanism
-        if equipment.rorg == RORG.VLD and packet.rorg == RORG.UTE:
-            packet.learn = True
+        if equipment.rorg == RORG.VLD and packet.rorg != RORG.UTE:
+            packet.learn = False
         # -> RPS EnOcean devices only send normal data telegrams.
         # Hence, learn can always be set to false
         elif equipment.rorg == RORG.RPS:
