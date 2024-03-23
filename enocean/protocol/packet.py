@@ -270,7 +270,7 @@ class RadioPacket(Packet):
     destination = [0xFF, 0xFF, 0xFF, 0xFF]
     dBm = 0
     sender = [0xFF, 0xFF, 0xFF, 0xFF]
-    learn = True
+    learn = None
     contains_eep = False
 
     def __str__(self):
@@ -306,13 +306,11 @@ class RadioPacket(Packet):
         self.sender = self.data[-5:-1]
         # Default to learn == True, as some devices don't have a learn button
         self.learn = True
-
         self.rorg = self.data[0]
-
         # parse learn bit and FUNC/TYPE, if applicable
         if self.rorg == RORG.BS1:
             self.learn = not self._bit_data[DB0.BIT_3]
-        if self.rorg == RORG.BS4:
+        elif self.rorg == RORG.BS4:
             self.learn = not self._bit_data[DB0.BIT_3]
             if self.learn:
                 self.contains_eep = self._bit_data[DB0.BIT_7]
@@ -322,6 +320,8 @@ class RadioPacket(Packet):
                     self.rorg_type = from_bitarray(self._bit_data[DB3.BIT_1:DB2.BIT_2])
                     self.rorg_manufacturer = from_bitarray(self._bit_data[DB2.BIT_2:DB0.BIT_7])
                     self.logger.debug('learn received, EEP detected, RORG: 0x%02X, FUNC: 0x%02X, TYPE: 0x%02X, Manufacturer: 0x%02X' % (self.rorg, self.rorg_func, self.rorg_type, self.rorg_manufacturer))  # noqa: E501
+        elif self.rorg == RORG.VLD or self.rorg == RORG.RPS:
+            self.learn = False
 
         return super(RadioPacket, self).parse()
 

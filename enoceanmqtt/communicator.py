@@ -412,7 +412,7 @@ class Communicator:
             # self.mqtt_publish(f"{self.topic_prefix}gateway/detected_equipments", list(self.detected_equipments))
         # log packet, if not disabled
         # if self.log_packets:
-        self.logger.info(f"received: {packet}")
+        self.logger.debug(f"received: {packet}")
         equipment = self.get_equipment(sender_address)
         if not equipment:
             # skip unknown sensor
@@ -426,12 +426,12 @@ class Communicator:
         # Handling EnOcean library decision to set learn to False by default.
         # Only 1BS and 4BS are correctly handled by the EnOcean library.
         # -> VLD EnOcean devices use UTE as learn mechanism
-        if equipment.rorg == RORG.VLD and packet.rorg != RORG.UTE:
-            packet.learn = False
-        # -> RPS EnOcean devices only send normal data telegrams.
-        # Hence, learn can always be set to false
-        elif equipment.rorg == RORG.RPS:
-            packet.learn = False
+        # if equipment.rorg == RORG.VLD and packet.rorg != RORG.UTE:
+        #     packet.learn = False
+        # # -> RPS EnOcean devices only send normal data telegrams.
+        # # Hence, learn can always be set to false
+        # elif equipment.rorg == RORG.RPS:
+        #     packet.learn = False
         # interpret packet, read properties and publish to MQTT
         self._parse_esp_packet(packet, equipment)
 
