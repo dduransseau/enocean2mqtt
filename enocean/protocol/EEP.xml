@@ -1440,6 +1440,44 @@
    </profile>
   </profiles>
   <profiles func="0x12" description="Automated Meter Reading (AMR)">
+   <profile type="0x10" description="Current meter 16 channels">
+    <data>
+     <value shortcut="MR" description="Current value in mA or cumulative value in A.h" offset="0" size="24" unit="">
+      <range>
+       <min>0</min>
+       <max>16777215</max>
+      </range>
+      <scale>
+       <min>0.000000</min>
+       <max>16777215</max>
+      </scale>
+     </value>
+     <value shortcut="CH" description="Channel no" offset="24" size="4" unit="">
+      <range>
+       <min>0</min>
+       <max>15</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>15</max>
+      </scale>
+     </value>
+     <enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
+      <item description="Teach-In" value="0" />
+      <item description="Data" value="1" />
+     </enum>
+     <enum shortcut="DT" description="Current value or cumulative value" offset="29" size="1">
+      <item description="Cumulative value A.h" value="0" />
+      <item description="Current value mA" value="1" />
+     </enum>
+     <enum shortcut="DIV" description="Divisor for value" offset="30" size="2">
+      <item description="x/1" value="0" />
+      <item description="x/10" value="1" />
+      <item description="x/100" value="2" />
+      <item description="x/1000" value="3" />
+     </enum>
+    </data>
+   </profile>
    <profile type="0x01" description="Electricity">
     <data>
      <value shortcut="MR" description="current value in W or cumulative value in kWh" offset="0" size="24" unit="">
@@ -1509,146 +1547,7 @@
     </data>
    </profile>
   </profiles>
-  <profiles func="0x12" description="Atomated Meter Reading (AMR)">
-   <profile type="0x10" description="Current meter 16 channels">
-    <data>
-     <value shortcut="MR" description="Current value in mA or cumulative value in A.h" offset="0" size="24" unit="">
-      <range>
-       <min>0</min>
-       <max>16777215</max>
-      </range>
-      <scale>
-       <min>0.000000</min>
-       <max>16777215</max>
-      </scale>
-     </value>
-     <value shortcut="CH" description="Channel no" offset="24" size="4" unit="">
-      <range>
-       <min>0</min>
-       <max>15</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>15</max>
-      </scale>
-     </value>
-     <enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">
-      <item description="Teach-In" value="0" />
-      <item description="Data" value="1" />
-     </enum>
-     <enum shortcut="DT" description="Current value or cumulative value" offset="29" size="1">
-      <item description="Cumulative value A.h" value="0" />
-      <item description="Current value mA" value="1" />
-     </enum>
-     <enum shortcut="DIV" description="Divisor for value" offset="30" size="2">
-      <item description="x/1" value="0" />
-      <item description="x/10" value="1" />
-      <item description="x/100" value="2" />
-      <item description="x/1000" value="3" />
-     </enum>
-    </data>
-   </profile>
-  </profiles>
   <profiles func="0x13" description="Environmental Applications">
-   <profile type="0x02" description="Sun Intensity">
-    <data>
-     <value description="Sun - West" shortcut="SNW" offset="0" size="8" unit="klx">
-      <range>
-       <min>0</min>
-       <max>255</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>150</max>
-      </scale>
-     </value>
-     <value description="Sun - South" shortcut="SNS" offset="8" size="8" unit="klx">
-      <range>
-       <min>0</min>
-       <max>255</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>150</max>
-      </scale>
-     </value>
-     <value description="Sun - East" shortcut="SNE" offset="16" size="8" unit="klx">
-      <range>
-       <min>0</min>
-       <max>255</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>150</max>
-      </scale>
-     </value>
-     <enum description="Identifier" shortcut="ID" offset="24" size="4">
-      <rangeitem description="Identifier {value}" start="0" end="15" />
-     </enum>
-     <enum description="Hemisphere" shortcut="HEM" offset="29" size="1">
-      <item description="North" value="0" />
-      <item description="South" value="1" />
-     </enum>
-    </data>
-   </profile>
-   <profile type="0x04" description="Time and Day Exchange">
-    <data>
-     <enum description="Weekday" shortcut="WDY" offset="0" size="3">
-      <item description="Monday" value="1" />
-      <item description="Tuesday" value="2" />
-      <item description="Wednesday" value="3" />
-      <item description="Thursday" value="4" />
-      <item description="Friday" value="5" />
-      <item description="Saturday" value="6" />
-      <item description="Sunday" value="7" />
-     </enum>
-     <value description="Hour" shortcut="HR" offset="3" size="5" unit="">
-      <range>
-       <min>0</min>
-       <max>23</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>23</max>
-      </scale>
-     </value>
-     <value description="Minute" shortcut="MIN" offset="10" size="6" unit="">
-      <range>
-       <min>0</min>
-       <max>59</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>59</max>
-      </scale>
-     </value>
-     <value description="Second" shortcut="SEC" offset="18" size="6" unit="">
-      <range>
-       <min>0</min>
-       <max>59</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>59</max>
-      </scale>
-     </value>
-     <enum description="Identifier" shortcut="ID" offset="24" size="4">
-      <rangeitem description="Identifier {value}" start="0" end="15" />
-     </enum>
-     <enum description="Time Format" shortcut="TMF" offset="29" size="1">
-      <item description="24 Hours" value="0" />
-      <item description="12 Hours" value="1" />
-     </enum>
-     <enum description="AM/PM" shortcut="AMPM" offset="30" size="1">
-      <item description="AM" value="0" />
-      <item description="PM" value="1" />
-     </enum>
-     <enum description="Source" shortcut="SRC" offset="31" size="1">
-      <item description="Real Time Clock" value="0" />
-      <item description="GPS or equivalent (e.g. DCF77, WWV)" value="1" />
-     </enum>
-    </data>
-   </profile>
    <profile type="0x03" description="Date Exchange">
     <data>
      <value description="Day" shortcut="DY" offset="3" size="5" unit="">
@@ -1762,6 +1661,40 @@
      <enum description="Identifier" shortcut="ID" offset="24" size="4">
       <rangeitem description="Identifier {value}" start="0" end="15" />
      </enum>
+    </data>
+   </profile>
+   <profile type="0x11" description="Sound Level">
+    <data>
+     <value shortcut="DBAA" description="Average Sound Level" offset="0" size="10" unit="dBA">
+      <range>
+       <min>0</min>
+       <max>1023</max>
+      </range>
+      <scale>
+       <min>17.700000</min>
+       <max>120.000000</max>
+      </scale>
+     </value>
+     <value shortcut="DBAP" description="Peak Sound Level" offset="10" size="10" unit="dBA">
+      <range>
+       <min>0</min>
+       <max>1023</max>
+      </range>
+      <scale>
+       <min>17.700000</min>
+       <max>120.000000</max>
+      </scale>
+     </value>
+     <value shortcut="SL" description="Source Localization" offset="20" size="8" unit="degree">
+      <range>
+       <min>0</min>
+       <max>180</max>
+      </range>
+      <scale>
+       <min>-90.000000</min>
+       <max>90.000000</max>
+      </scale>
+     </value>
     </data>
    </profile>
    <profile type="0x01" description="Weather Station">
@@ -2021,38 +1954,103 @@
      </enum>
     </data>
    </profile>
-   <profile type="0x11" description="Sound Level">
+   <profile type="0x02" description="Sun Intensity">
     <data>
-     <value shortcut="DBAA" description="Average Sound Level" offset="0" size="10" unit="dBA">
+     <value description="Sun - West" shortcut="SNW" offset="0" size="8" unit="klx">
       <range>
        <min>0</min>
-       <max>1023</max>
+       <max>255</max>
       </range>
       <scale>
-       <min>17.700000</min>
-       <max>120.000000</max>
+       <min>0</min>
+       <max>150</max>
       </scale>
      </value>
-     <value shortcut="DBAP" description="Peak Sound Level" offset="10" size="10" unit="dBA">
+     <value description="Sun - South" shortcut="SNS" offset="8" size="8" unit="klx">
       <range>
        <min>0</min>
-       <max>1023</max>
+       <max>255</max>
       </range>
       <scale>
-       <min>17.700000</min>
-       <max>120.000000</max>
+       <min>0</min>
+       <max>150</max>
       </scale>
      </value>
-     <value shortcut="SL" description="Source Localization" offset="20" size="8" unit="degree">
+     <value description="Sun - East" shortcut="SNE" offset="16" size="8" unit="klx">
       <range>
        <min>0</min>
-       <max>180</max>
+       <max>255</max>
       </range>
       <scale>
-       <min>-90.000000</min>
-       <max>90.000000</max>
+       <min>0</min>
+       <max>150</max>
       </scale>
      </value>
+     <enum description="Identifier" shortcut="ID" offset="24" size="4">
+      <rangeitem description="Identifier {value}" start="0" end="15" />
+     </enum>
+     <enum description="Hemisphere" shortcut="HEM" offset="29" size="1">
+      <item description="North" value="0" />
+      <item description="South" value="1" />
+     </enum>
+    </data>
+   </profile>
+   <profile type="0x04" description="Time and Day Exchange">
+    <data>
+     <enum description="Weekday" shortcut="WDY" offset="0" size="3">
+      <item description="Monday" value="1" />
+      <item description="Tuesday" value="2" />
+      <item description="Wednesday" value="3" />
+      <item description="Thursday" value="4" />
+      <item description="Friday" value="5" />
+      <item description="Saturday" value="6" />
+      <item description="Sunday" value="7" />
+     </enum>
+     <value description="Hour" shortcut="HR" offset="3" size="5" unit="">
+      <range>
+       <min>0</min>
+       <max>23</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>23</max>
+      </scale>
+     </value>
+     <value description="Minute" shortcut="MIN" offset="10" size="6" unit="">
+      <range>
+       <min>0</min>
+       <max>59</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>59</max>
+      </scale>
+     </value>
+     <value description="Second" shortcut="SEC" offset="18" size="6" unit="">
+      <range>
+       <min>0</min>
+       <max>59</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>59</max>
+      </scale>
+     </value>
+     <enum description="Identifier" shortcut="ID" offset="24" size="4">
+      <rangeitem description="Identifier {value}" start="0" end="15" />
+     </enum>
+     <enum description="Time Format" shortcut="TMF" offset="29" size="1">
+      <item description="24 Hours" value="0" />
+      <item description="12 Hours" value="1" />
+     </enum>
+     <enum description="AM/PM" shortcut="AMPM" offset="30" size="1">
+      <item description="AM" value="0" />
+      <item description="PM" value="1" />
+     </enum>
+     <enum description="Source" shortcut="SRC" offset="31" size="1">
+      <item description="Real Time Clock" value="0" />
+      <item description="GPS or equivalent (e.g. DCF77, WWV)" value="1" />
+     </enum>
     </data>
    </profile>
   </profiles>
@@ -2081,24 +2079,6 @@
      </enum>
     </data>
    </profile>
-   <profile type="0x01" description="Single Input Contact (Window/Door), Supply voltage monitor">
-    <data>
-     <value description="Supply voltage / super cap. (linear); 251 - 255 reserved for error code" shortcut="SVC" offset="0" size="8" unit="V">
-      <range>
-       <min>0</min>
-       <max>250</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>5.0</max>
-      </scale>
-     </value>
-     <enum description="Contact" shortcut="CT" offset="31" size="1">
-      <item description="open" value="1" />
-      <item description="closed" value="0" />
-     </enum>
-    </data>
-   </profile>
    <profile type="0x09" description="Window/Door-Sensor with States Open/Closed/Tilt, Supply voltage monitor">
     <data>
      <value description="Supply voltage / super cap. (linear)" shortcut="SVC" offset="0" size="8" unit="V">
@@ -2116,6 +2096,24 @@
       <item description="Tilt" value="1" />
       <item description="Reserved" value="2" />
       <item description="Open" value="3" />
+     </enum>
+    </data>
+   </profile>
+   <profile type="0x01" description="Single Input Contact (Window/Door), Supply voltage monitor">
+    <data>
+     <value description="Supply voltage / super cap. (linear); 251 - 255 reserved for error code" shortcut="SVC" offset="0" size="8" unit="V">
+      <range>
+       <min>0</min>
+       <max>250</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>5.0</max>
+      </scale>
+     </value>
+     <enum description="Contact" shortcut="CT" offset="31" size="1">
+      <item description="open" value="1" />
+      <item description="closed" value="0" />
      </enum>
     </data>
    </profile>
@@ -2537,6 +2535,32 @@
    </profile>
   </profiles>
   <profiles func="0x30" description="Digital Input">
+   <profile type="0x04" description="3 Digital Inputs, 1 Digital Input 8 bits">
+    <data>
+     <value shortcut="DV0" description="Digital Value 1 byte" offset="16" size="8" unit="">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>255</max>
+      </scale>
+     </value>
+     <enum shortcut="DI2" description="Digital Input 2" offset="29" size="1">
+      <item description="Low" value="0" />
+      <item description="High" value="1" />
+     </enum>
+     <enum shortcut="DI1" description="Digital Input 1" offset="30" size="1">
+      <item description="Low" value="0" />
+      <item description="High" value="1" />
+     </enum>
+     <enum shortcut="DI0" description="Digital Input 0" offset="31" size="1">
+      <item description="Low" value="0" />
+      <item description="High" value="1" />
+     </enum>
+    </data>
+   </profile>
    <profile type="0x01" description="Single Input Contact, Battery Monitor">
     <data>
      <enum shortcut="SVC" description="Supply voltage (linear)" offset="8" size="8">
@@ -2582,32 +2606,6 @@
       <item description="High" value="1" />
      </enum>
      <enum shortcut="DI0" description="Digital Input 0" offset="23" size="1">
-      <item description="Low" value="0" />
-      <item description="High" value="1" />
-     </enum>
-    </data>
-   </profile>
-   <profile type="0x04" description="3 Digital Inputs, 1 Digital Input 8 bits">
-    <data>
-     <value shortcut="DV0" description="Digital Value 1 byte" offset="16" size="8" unit="">
-      <range>
-       <min>0</min>
-       <max>255</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>255</max>
-      </scale>
-     </value>
-     <enum shortcut="DI2" description="Digital Input 2" offset="29" size="1">
-      <item description="Low" value="0" />
-      <item description="High" value="1" />
-     </enum>
-     <enum shortcut="DI1" description="Digital Input 1" offset="30" size="1">
-      <item description="Low" value="0" />
-      <item description="High" value="1" />
-     </enum>
-     <enum shortcut="DI0" description="Digital Input 0" offset="31" size="1">
       <item description="Low" value="0" />
       <item description="High" value="1" />
      </enum>
@@ -8624,6 +8622,38 @@
    </profile>
   </profiles>
   <profiles func="0x40" description="LED Controller Status">
+   <profile type="0x00">
+    <data>
+     <enum description="Driving LED enabled" shortcut="OUTEN" offset="0" size="1">
+      <item description="Disabled" value="0" />
+      <item description="Enabled" value="1" />
+     </enum>
+     <enum description="Controller is in the DR mode. It had received a                 DR command from DR controller, and it is executing it." shortcut="DRA" offset="1" size="1">
+      <item description="False" value="0" />
+      <item description="True" value="1" />
+     </enum>
+     <enum description="Daylight harvesting feature is turned on.                 Readings from photo sensor are influencing the dimming level." shortcut="DHAR" offset="2" size="1">
+      <item description="False" value="0" />
+      <item description="True" value="1" />
+     </enum>
+     <enum description="Room which controller is in charge of                 is considered occupied." shortcut="OCC" offset="3" size="2">
+      <item description="Not occupied" value="0" />
+      <item description="Occupied" value="1" />
+      <item description="Unknown" value="2" />
+     </enum>
+     <enum description="Reason for sending this status message" shortcut="SREAS" offset="5" size="1">
+      <item description="Other" value="0" />
+      <item description="Heartbeat" value="1" />
+     </enum>
+     <enum description="Message Id; 0x00" shortcut="MI" offset="6" size="2">
+      <item description="LED Status monocolor" value="0" />
+     </enum>
+     <enum description="Current dim level for the monocolor LED" shortcut="DLVL" offset="8" size="8">
+      <rangeitem description="Current Dim Level" start="0" end="200" />
+      <item description="If not used" value="0xFF" />
+     </enum>
+    </data>
+   </profile>
    <profile type="0x01">
     <data>
      <enum description="Driving LED enabled" shortcut="OUTEN" offset="0" size="1">
@@ -8664,254 +8694,8 @@
      </enum>
     </data>
    </profile>
-   <profile type="0x00">
-    <data>
-     <enum description="Driving LED enabled" shortcut="OUTEN" offset="0" size="1">
-      <item description="Disabled" value="0" />
-      <item description="Enabled" value="1" />
-     </enum>
-     <enum description="Controller is in the DR mode. It had received a                 DR command from DR controller, and it is executing it." shortcut="DRA" offset="1" size="1">
-      <item description="False" value="0" />
-      <item description="True" value="1" />
-     </enum>
-     <enum description="Daylight harvesting feature is turned on.                 Readings from photo sensor are influencing the dimming level." shortcut="DHAR" offset="2" size="1">
-      <item description="False" value="0" />
-      <item description="True" value="1" />
-     </enum>
-     <enum description="Room which controller is in charge of                 is considered occupied." shortcut="OCC" offset="3" size="2">
-      <item description="Not occupied" value="0" />
-      <item description="Occupied" value="1" />
-      <item description="Unknown" value="2" />
-     </enum>
-     <enum description="Reason for sending this status message" shortcut="SREAS" offset="5" size="1">
-      <item description="Other" value="0" />
-      <item description="Heartbeat" value="1" />
-     </enum>
-     <enum description="Message Id; 0x00" shortcut="MI" offset="6" size="2">
-      <item description="LED Status monocolor" value="0" />
-     </enum>
-     <enum description="Current dim level for the monocolor LED" shortcut="DLVL" offset="8" size="8">
-      <rangeitem description="Current Dim Level" start="0" end="200" />
-      <item description="If not used" value="0xFF" />
-     </enum>
-    </data>
-   </profile>
   </profiles>
   <profiles func="0x50" description="Heat Recovery Ventilation">
-   <profile type="0x01" description="Type 0x01 (single room ventilation unit with pre-heater)">
-    <command description="Message Type" shortcut="MT" offset="0" size="3">
-     <item description="Ventilation Remote Transmission Request Message" value="0" />
-     <item description="Ventilation control" value="1" />
-     <item description="Ventilation basic status" value="2" />
-     <item description="Ventilation extended status" value="3" />
-    </command>
-    <data command="0" bits="1">
-     <enum description="Message Type" shortcut="MT" offset="0" size="3">
-      <rangeitem description="Message Type {value}" start="0" end="3" />
-      <rangeitem description="Reserved {value}" start="4" end="7" />
-     </enum>
-     <enum description="Requested Message Type" shortcut="RMT" offset="5" size="3">
-      <item description="Ventilation basic status" value="0" />
-      <item description="Ventilation extended status" value="1" />
-     </enum>
-    </data>
-    <data command="1" bits="6">
-     <enum description="Message Type" shortcut="MT" offset="0" size="3">
-      <rangeitem description="Message Type {value}" start="0" end="3" />
-      <rangeitem description="Reserved {value}" start="4" end="7" />
-     </enum>
-     <enum description="Direct Operation Mode Control" shortcut="DOMC" offset="4" size="4">
-      <item description="Off" value="0" />
-      <item description="Level 1" value="1" />
-      <item description="Level 2" value="2" />
-      <item description="Level 3" value="3" />
-      <item description="Level 4" value="4" />
-      <rangeitem description="Reserved" start="5" end="10" />
-      <item description="Automatic" value="11" />
-      <item description="Automatic on demand" value="12" />
-      <item description="Supply air only" value="13" />
-      <item description="Exhaust air only" value="14" />
-      <item description="No action (keep current ventilation mode/level)" value="15" />
-     </enum>
-     <enum description="Operation Mode Control" shortcut="OMC" offset="8" size="2">
-      <item description="No action" value="0" />
-      <item description="Select next operation mode (edge-trigger)" value="1" />
-      <item description="Select previous operation mode (edge-trigger)" value="2" />
-      <item description="Reserved" value="3" />
-     </enum>
-     <enum description="Timer Operation Mode Control" shortcut="TOMC" offset="16" size="1">
-      <item description="No action" value="0" />
-      <item description="Start timer operation mode (edge-trigger)" value="1" />
-     </enum>
-     <enum description="CO2 Threshold" shortcut="COT" offset="17" size="7">
-      <rangeitem description="{value} %" start="0" end="100" />
-      <rangeitem description="Reserved" start="101" end="126" />
-      <item description="Default (use threshold configured in device)" value="127" />
-     </enum>
-     <enum description="Humidity Threshold" shortcut="HT" offset="25" size="7">
-      <rangeitem description="{value} %" start="0" end="100" />
-      <rangeitem description="Reserved" start="101" end="126" />
-      <item description="Default (use threshold configured in device)" value="127" />
-     </enum>
-     <enum description="Air Quality Threshold" shortcut="AQT" offset="33" size="7">
-      <rangeitem description="{value} %" start="0" end="100" />
-      <rangeitem description="Reserved" start="101" end="126" />
-      <item description="Default (use threshold configured in device)" value="127" />
-     </enum>
-    </data>
-    <data command="2" bits="14">
-     <enum description="Message Type" shortcut="MT" offset="0" size="3">
-      <rangeitem description="Message Type {value}" start="0" end="3" />
-      <rangeitem description="Reserved {value}" start="4" end="7" />
-     </enum>
-     <enum description="Operation Mode Status" shortcut="OMS" offset="4" size="4">
-      <item description="Off" value="0" />
-      <item description="Level 1" value="1" />
-      <item description="Level 2" value="2" />
-      <item description="Level 3" value="3" />
-      <item description="Level 4" value="4" />
-      <rangeitem description="Reserved" start="5" end="10" />
-      <item description="Automatic" value="11" />
-      <item description="Automatic on demand" value="12" />
-      <item description="Supply air only" value="13" />
-      <item description="Exhaust air only" value="14" />
-      <item description="Reserved" value="15" />
-     </enum>
-     <enum description="Supply Air Flap Position" shortcut="SFP" offset="14" size="1">
-      <item description="Supply air flap closed" value="0" />
-      <item description="Supply air flap opened" value="1" />
-     </enum>
-     <enum description="Exhaust Air Flap Position" shortcut="EFP" offset="15" size="1">
-      <item description="Exhaust air flap closed" value="0" />
-      <item description="Exhaust air flap opened" value="1" />
-     </enum>
-     <enum description="Defrost Mode Status" shortcut="DMS" offset="16" size="1">
-      <item description="Defrost mode inactive" value="0" />
-      <item description="Defrost mode active" value="1" />
-     </enum>
-     <enum description="Cooling Protection Status" shortcut="CPS" offset="17" size="1">
-      <item description="Cooling protection mode inactive" value="0" />
-      <item description="Cooling protection mode active" value="1" />
-     </enum>
-     <enum description="Outdoor Air Heater Status" shortcut="OHS" offset="18" size="1">
-      <item description="Inactive" value="0" />
-      <item description="Active" value="1" />
-     </enum>
-     <enum description="Drain Heater Status" shortcut="DHS" offset="20" size="1">
-      <item description="Inactive" value="0" />
-      <item description="Active" value="1" />
-     </enum>
-     <enum description="Timer Operation Mode Status" shortcut="TOMS" offset="21" size="1">
-      <item description="timer operation mode inactive" value="0" />
-      <item description="timer operation mode active" value="1" />
-     </enum>
-     <enum description="Filter Maintenance Status" shortcut="FMS" offset="22" size="1">
-      <item description="Maintenance not required" value="0" />
-      <item description="Maintenance required" value="1" />
-     </enum>
-     <enum description="Air Quality Sensor 1" shortcut="AQS1" offset="25" size="7">
-      <rangeitem description="{value} %" start="0" end="100" />
-      <rangeitem description="Reserved" start="101" end="126" />
-      <item description="Not available" value="127" />
-     </enum>
-     <enum description="Master/Slave Configuration Status" shortcut="MSS" offset="32" size="1">
-      <item description="Master" value="0" />
-      <item description="Slave" value="1" />
-     </enum>
-     <value description="Outdoor Air Temperature" shortcut="OUTT" offset="40" size="7" unit="°C">
-      <range>
-       <min>0</min>
-       <max>127</max>
-      </range>
-      <scale>
-       <min>-64.0</min>
-       <max>63.0</max>
-      </scale>
-     </value>
-     <value description="Supply Air Temperature" shortcut="SPLYT" offset="47" size="7" unit="°C">
-      <range>
-       <min>0</min>
-       <max>127</max>
-      </range>
-      <scale>
-       <min>-64.0</min>
-       <max>63.0</max>
-      </scale>
-     </value>
-     <value description="Supply Air Fan Air Flow Rate" shortcut="SPLYFF" offset="68" size="10" unit="m3/h">
-      <range>
-       <min>0</min>
-       <max>1023</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>1023</max>
-      </scale>
-     </value>
-     <value description="Exhaust Air Fan Air Flow Rate" shortcut="EXHFF" offset="78" size="10" unit="m3/h">
-      <range>
-       <min>0</min>
-       <max>1023</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>1023</max>
-      </scale>
-     </value>
-     <value description="Supply Fan Speed" shortcut="SPLYFS" offset="88" size="12" unit="1/min">
-      <range>
-       <min>0</min>
-       <max>4095</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>4095</max>
-      </scale>
-     </value>
-     <value description="Exhaust Fan Speed" shortcut="EXHFS" offset="100" size="12" unit="1/min">
-      <range>
-       <min>0</min>
-       <max>4095</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>4095</max>
-      </scale>
-     </value>
-    </data>
-    <data command="3" bits="14">
-     <enum description="Message Type" shortcut="MT" offset="0" size="3">
-      <rangeitem description="Message Type {value}" start="0" end="3" />
-      <rangeitem description="Reserved {value}" start="4" end="7" />
-     </enum>
-     <value description="Software Version Info" shortcut="SVI" offset="4" size="12" unit="">
-      <range>
-       <min>0</min>
-       <max>4095</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>4095</max>
-      </scale>
-     </value>
-     <value description="Operation Hours Counter" shortcut="OHC" offset="16" size="16" unit="">
-      <range>
-       <min>0</min>
-       <max>65535</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>196605</max>
-      </scale>
-     </value>
-     <enum description="Info Message 0...15 Status" shortcut="IMS" offset="64" size="16">
-      <rangeitem description="{value}" start="0" end="32768" />
-     </enum>
-     <enum description="Fault 0...31 Status" shortcut="FS" offset="80" size="32">
-      <rangeitem description="{value}" start="0" end="2147483648" />
-     </enum>
-    </data>
-   </profile>
    <profile type="0x00" description="Type 0x00 (single room ventilation unit)">
     <command description="Message Type" shortcut="MT" offset="0" size="3">
      <item description="Ventilation Remote Transmission Request Message" value="0" />
@@ -9638,108 +9422,222 @@
      </enum>
     </data>
    </profile>
-  </profiles>
-  <profiles func="0x60" description="Special applications">
-   <profile type="0x03" description="Modes and exemptions">
-    <data>
-     <enum description="Thermal Mode " shortcut="9901" offset="1" size="3">
-      <item description="Comfort" value="0" />
-      <item description="Eco" value="1" />
-      <item description="Night" value="2" />
-      <item description="Maintenance" value="3" />
-      <item description="Defrost" value="4" />
-      <rangeitem description="Reserved" start="5" end="7" />
+   <profile type="0x01" description="Type 0x01 (single room ventilation unit with pre-heater)">
+    <command description="Message Type" shortcut="MT" offset="0" size="3">
+     <item description="Ventilation Remote Transmission Request Message" value="0" />
+     <item description="Ventilation control" value="1" />
+     <item description="Ventilation basic status" value="2" />
+     <item description="Ventilation extended status" value="3" />
+    </command>
+    <data command="0" bits="1">
+     <enum description="Message Type" shortcut="MT" offset="0" size="3">
+      <rangeitem description="Message Type {value}" start="0" end="3" />
+      <rangeitem description="Reserved {value}" start="4" end="7" />
      </enum>
-     <enum description="Applied Thermal Mode" shortcut="9992" offset="4" size="1">
-      <item description="Auto" value="0" />
-      <item description="Override" value="1" />
+     <enum description="Requested Message Type" shortcut="RMT" offset="5" size="3">
+      <item description="Ventilation basic status" value="0" />
+      <item description="Ventilation extended status" value="1" />
      </enum>
-     <enum description="Ventilation Mode" shortcut="9903" offset="5" size="2">
-      <item description="Comfort" value="0" />
-      <item description="Eco" value="1" />
-      <item description="Night" value="2" />
-      <item description="Maintenance" value="3" />
+    </data>
+    <data command="1" bits="6">
+     <enum description="Message Type" shortcut="MT" offset="0" size="3">
+      <rangeitem description="Message Type {value}" start="0" end="3" />
+      <rangeitem description="Reserved {value}" start="4" end="7" />
      </enum>
-     <enum description="Applied ventilation Mode" shortcut="9904" offset="7" size="1">
-      <item description="Auto" value="0" />
-      <item description="Override" value="1" />
+     <enum description="Direct Operation Mode Control" shortcut="DOMC" offset="4" size="4">
+      <item description="Off" value="0" />
+      <item description="Level 1" value="1" />
+      <item description="Level 2" value="2" />
+      <item description="Level 3" value="3" />
+      <item description="Level 4" value="4" />
+      <rangeitem description="Reserved" start="5" end="10" />
+      <item description="Automatic" value="11" />
+      <item description="Automatic on demand" value="12" />
+      <item description="Supply air only" value="13" />
+      <item description="Exhaust air only" value="14" />
+      <item description="No action (keep current ventilation mode/level)" value="15" />
      </enum>
-     <value description="Heating Exemption Setpoint" shortcut="9905" offset="8" size="8" unit="°C">
+     <enum description="Operation Mode Control" shortcut="OMC" offset="8" size="2">
+      <item description="No action" value="0" />
+      <item description="Select next operation mode (edge-trigger)" value="1" />
+      <item description="Select previous operation mode (edge-trigger)" value="2" />
+      <item description="Reserved" value="3" />
+     </enum>
+     <enum description="Timer Operation Mode Control" shortcut="TOMC" offset="16" size="1">
+      <item description="No action" value="0" />
+      <item description="Start timer operation mode (edge-trigger)" value="1" />
+     </enum>
+     <enum description="CO2 Threshold" shortcut="COT" offset="17" size="7">
+      <rangeitem description="{value} %" start="0" end="100" />
+      <rangeitem description="Reserved" start="101" end="126" />
+      <item description="Default (use threshold configured in device)" value="127" />
+     </enum>
+     <enum description="Humidity Threshold" shortcut="HT" offset="25" size="7">
+      <rangeitem description="{value} %" start="0" end="100" />
+      <rangeitem description="Reserved" start="101" end="126" />
+      <item description="Default (use threshold configured in device)" value="127" />
+     </enum>
+     <enum description="Air Quality Threshold" shortcut="AQT" offset="33" size="7">
+      <rangeitem description="{value} %" start="0" end="100" />
+      <rangeitem description="Reserved" start="101" end="126" />
+      <item description="Default (use threshold configured in device)" value="127" />
+     </enum>
+    </data>
+    <data command="2" bits="14">
+     <enum description="Message Type" shortcut="MT" offset="0" size="3">
+      <rangeitem description="Message Type {value}" start="0" end="3" />
+      <rangeitem description="Reserved {value}" start="4" end="7" />
+     </enum>
+     <enum description="Operation Mode Status" shortcut="OMS" offset="4" size="4">
+      <item description="Off" value="0" />
+      <item description="Level 1" value="1" />
+      <item description="Level 2" value="2" />
+      <item description="Level 3" value="3" />
+      <item description="Level 4" value="4" />
+      <rangeitem description="Reserved" start="5" end="10" />
+      <item description="Automatic" value="11" />
+      <item description="Automatic on demand" value="12" />
+      <item description="Supply air only" value="13" />
+      <item description="Exhaust air only" value="14" />
+      <item description="Reserved" value="15" />
+     </enum>
+     <enum description="Supply Air Flap Position" shortcut="SFP" offset="14" size="1">
+      <item description="Supply air flap closed" value="0" />
+      <item description="Supply air flap opened" value="1" />
+     </enum>
+     <enum description="Exhaust Air Flap Position" shortcut="EFP" offset="15" size="1">
+      <item description="Exhaust air flap closed" value="0" />
+      <item description="Exhaust air flap opened" value="1" />
+     </enum>
+     <enum description="Defrost Mode Status" shortcut="DMS" offset="16" size="1">
+      <item description="Defrost mode inactive" value="0" />
+      <item description="Defrost mode active" value="1" />
+     </enum>
+     <enum description="Cooling Protection Status" shortcut="CPS" offset="17" size="1">
+      <item description="Cooling protection mode inactive" value="0" />
+      <item description="Cooling protection mode active" value="1" />
+     </enum>
+     <enum description="Outdoor Air Heater Status" shortcut="OHS" offset="18" size="1">
+      <item description="Inactive" value="0" />
+      <item description="Active" value="1" />
+     </enum>
+     <enum description="Drain Heater Status" shortcut="DHS" offset="20" size="1">
+      <item description="Inactive" value="0" />
+      <item description="Active" value="1" />
+     </enum>
+     <enum description="Timer Operation Mode Status" shortcut="TOMS" offset="21" size="1">
+      <item description="timer operation mode inactive" value="0" />
+      <item description="timer operation mode active" value="1" />
+     </enum>
+     <enum description="Filter Maintenance Status" shortcut="FMS" offset="22" size="1">
+      <item description="Maintenance not required" value="0" />
+      <item description="Maintenance required" value="1" />
+     </enum>
+     <enum description="Air Quality Sensor 1" shortcut="AQS1" offset="25" size="7">
+      <rangeitem description="{value} %" start="0" end="100" />
+      <rangeitem description="Reserved" start="101" end="126" />
+      <item description="Not available" value="127" />
+     </enum>
+     <enum description="Master/Slave Configuration Status" shortcut="MSS" offset="32" size="1">
+      <item description="Master" value="0" />
+      <item description="Slave" value="1" />
+     </enum>
+     <value description="Outdoor Air Temperature" shortcut="OUTT" offset="40" size="7" unit="°C">
       <range>
        <min>0</min>
-       <max>255</max>
+       <max>127</max>
       </range>
       <scale>
-       <min>10</min>
-       <max>35.5</max>
+       <min>-64.0</min>
+       <max>63.0</max>
       </scale>
      </value>
-     <enum description="Delta T Cooling Exemption Setpoint above heating setpoint" shortcut="9906" offset="16" size="8">
-      <rangeitem description="Reserved" start="0" end="19" />
-      <rangeitem description="°C" start="20" end="250" />
-      <rangeitem description="Reserved" start="251" end="255" />
+     <value description="Supply Air Temperature" shortcut="SPLYT" offset="47" size="7" unit="°C">
+      <range>
+       <min>0</min>
+       <max>127</max>
+      </range>
+      <scale>
+       <min>-64.0</min>
+       <max>63.0</max>
+      </scale>
+     </value>
+     <value description="Supply Air Fan Air Flow Rate" shortcut="SPLYFF" offset="68" size="10" unit="m3/h">
+      <range>
+       <min>0</min>
+       <max>1023</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>1023</max>
+      </scale>
+     </value>
+     <value description="Exhaust Air Fan Air Flow Rate" shortcut="EXHFF" offset="78" size="10" unit="m3/h">
+      <range>
+       <min>0</min>
+       <max>1023</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>1023</max>
+      </scale>
+     </value>
+     <value description="Supply Fan Speed" shortcut="SPLYFS" offset="88" size="12" unit="1/min">
+      <range>
+       <min>0</min>
+       <max>4095</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>4095</max>
+      </scale>
+     </value>
+     <value description="Exhaust Fan Speed" shortcut="EXHFS" offset="100" size="12" unit="1/min">
+      <range>
+       <min>0</min>
+       <max>4095</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>4095</max>
+      </scale>
+     </value>
+    </data>
+    <data command="3" bits="14">
+     <enum description="Message Type" shortcut="MT" offset="0" size="3">
+      <rangeitem description="Message Type {value}" start="0" end="3" />
+      <rangeitem description="Reserved {value}" start="4" end="7" />
      </enum>
-     <enum description="Heating and Cooling Exemption" shortcut="9907" offset="27" size="1">
-      <item description="No exemption" value="0" />
-      <item description="Exemption under way / Override from BMS" value="1" />
+     <value description="Software Version Info" shortcut="SVI" offset="4" size="12" unit="">
+      <range>
+       <min>0</min>
+       <max>4095</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>4095</max>
+      </scale>
+     </value>
+     <value description="Operation Hours Counter" shortcut="OHC" offset="16" size="16" unit="">
+      <range>
+       <min>0</min>
+       <max>65535</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>196605</max>
+      </scale>
+     </value>
+     <enum description="Info Message 0...15 Status" shortcut="IMS" offset="64" size="16">
+      <rangeitem description="{value}" start="0" end="32768" />
      </enum>
-     <enum description="Heating and Cooling Exemption duration" shortcut="9908" offset="28" size="4">
-      <item description="No exemption" value="0" />
-      <item description="Never end" value="1" />
-      <item description="End on event (Change Mode)" value="2" />
-      <item description="15 minutes" value="3" />
-      <item description="30 minutes" value="4" />
-      <item description="1 hour" value="5" />
-      <item description="2 hours" value="6" />
-      <item description="6 hours" value="7" />
-      <item description="12 hours" value="8" />
-      <item description="24 hours" value="9" />
-      <rangeitem description="Reserved" start="10" end="15" />
-     </enum>
-     <enum description="Free Cooling delta T above cooling comfort setpoint exemption (apply to all modes)" shortcut="9909" offset="32" size="8">
-      <rangeitem description="Temperature">
-       <range>
-        <min>0</min>
-        <max>200</max>
-       </range>
-       <scale>
-        <min>-15</min>
-        <max>5</max>
-       </scale>
-      </rangeitem>
-      <rangeitem description="°C" start="201" end="255" />
-     </enum>
-     <enum description="Ventilation Exemption" shortcut="9910" offset="40" size="1">
-      <item description="No exemption" value="0" />
-      <item description="Exemption under way (only from probe)" value="1" />
-     </enum>
-     <enum description="Free Cooling status" shortcut="9911" offset="41" size="1">
-      <item description="Not active" value="0" />
-      <item description="Under way" value="1" />
-     </enum>
-     <enum description="Free Cooling Regulation type" shortcut="9912" offset="42" size="1">
-      <item description="On constant Air Flow" value="0" />
-      <item description="On temperature" value="1" />
-     </enum>
-     <enum description="Free Cooling Temperature Exemption" shortcut="9913" offset="43" size="1">
-      <item description="No exemption" value="0" />
-      <item description="Exemption under way / Override from BMS" value="1" />
-     </enum>
-     <enum description="Free Cooling Temperature Exemption duration" shortcut="9914" offset="44" size="4">
-      <item description="No exemption" value="0" />
-      <item description="Never end" value="1" />
-      <item description="End on event (Change Mode)" value="2" />
-      <item description="15 minutes" value="3" />
-      <item description="30 minutes" value="4" />
-      <item description="1 hour" value="5" />
-      <item description="2 hours" value="6" />
-      <item description="6 hours" value="7" />
-      <item description="12 hours" value="8" />
-      <item description="24 hours" value="9" />
-      <rangeitem description="Reserved" start="10" end="15" />
+     <enum description="Fault 0...31 Status" shortcut="FS" offset="80" size="32">
+      <rangeitem description="{value}" start="0" end="2147483648" />
      </enum>
     </data>
    </profile>
+  </profiles>
+  <profiles func="0x60" description="Special applications">
    <profile type="0x01" description="IAQ setpoints">
     <data>
      <value description="CO2 threshold in ppm" shortcut="CO2T" offset="0" size="8" unit="ppm">
@@ -9970,6 +9868,106 @@
      </enum>
     </data>
    </profile>
+   <profile type="0x03" description="Modes and exemptions">
+    <data>
+     <enum description="Thermal Mode " shortcut="9901" offset="1" size="3">
+      <item description="Comfort" value="0" />
+      <item description="Eco" value="1" />
+      <item description="Night" value="2" />
+      <item description="Maintenance" value="3" />
+      <item description="Defrost" value="4" />
+      <rangeitem description="Reserved" start="5" end="7" />
+     </enum>
+     <enum description="Applied Thermal Mode" shortcut="9992" offset="4" size="1">
+      <item description="Auto" value="0" />
+      <item description="Override" value="1" />
+     </enum>
+     <enum description="Ventilation Mode" shortcut="9903" offset="5" size="2">
+      <item description="Comfort" value="0" />
+      <item description="Eco" value="1" />
+      <item description="Night" value="2" />
+      <item description="Maintenance" value="3" />
+     </enum>
+     <enum description="Applied ventilation Mode" shortcut="9904" offset="7" size="1">
+      <item description="Auto" value="0" />
+      <item description="Override" value="1" />
+     </enum>
+     <value description="Heating Exemption Setpoint" shortcut="9905" offset="8" size="8" unit="°C">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>10</min>
+       <max>35.5</max>
+      </scale>
+     </value>
+     <enum description="Delta T Cooling Exemption Setpoint above heating setpoint" shortcut="9906" offset="16" size="8">
+      <rangeitem description="Reserved" start="0" end="19" />
+      <rangeitem description="°C" start="20" end="250" />
+      <rangeitem description="Reserved" start="251" end="255" />
+     </enum>
+     <enum description="Heating and Cooling Exemption" shortcut="9907" offset="27" size="1">
+      <item description="No exemption" value="0" />
+      <item description="Exemption under way / Override from BMS" value="1" />
+     </enum>
+     <enum description="Heating and Cooling Exemption duration" shortcut="9908" offset="28" size="4">
+      <item description="No exemption" value="0" />
+      <item description="Never end" value="1" />
+      <item description="End on event (Change Mode)" value="2" />
+      <item description="15 minutes" value="3" />
+      <item description="30 minutes" value="4" />
+      <item description="1 hour" value="5" />
+      <item description="2 hours" value="6" />
+      <item description="6 hours" value="7" />
+      <item description="12 hours" value="8" />
+      <item description="24 hours" value="9" />
+      <rangeitem description="Reserved" start="10" end="15" />
+     </enum>
+     <enum description="Free Cooling delta T above cooling comfort setpoint exemption (apply to all modes)" shortcut="9909" offset="32" size="8">
+      <rangeitem description="Temperature">
+       <range>
+        <min>0</min>
+        <max>200</max>
+       </range>
+       <scale>
+        <min>-15</min>
+        <max>5</max>
+       </scale>
+      </rangeitem>
+      <rangeitem description="°C" start="201" end="255" />
+     </enum>
+     <enum description="Ventilation Exemption" shortcut="9910" offset="40" size="1">
+      <item description="No exemption" value="0" />
+      <item description="Exemption under way (only from probe)" value="1" />
+     </enum>
+     <enum description="Free Cooling status" shortcut="9911" offset="41" size="1">
+      <item description="Not active" value="0" />
+      <item description="Under way" value="1" />
+     </enum>
+     <enum description="Free Cooling Regulation type" shortcut="9912" offset="42" size="1">
+      <item description="On constant Air Flow" value="0" />
+      <item description="On temperature" value="1" />
+     </enum>
+     <enum description="Free Cooling Temperature Exemption" shortcut="9913" offset="43" size="1">
+      <item description="No exemption" value="0" />
+      <item description="Exemption under way / Override from BMS" value="1" />
+     </enum>
+     <enum description="Free Cooling Temperature Exemption duration" shortcut="9914" offset="44" size="4">
+      <item description="No exemption" value="0" />
+      <item description="Never end" value="1" />
+      <item description="End on event (Change Mode)" value="2" />
+      <item description="15 minutes" value="3" />
+      <item description="30 minutes" value="4" />
+      <item description="1 hour" value="5" />
+      <item description="2 hours" value="6" />
+      <item description="6 hours" value="7" />
+      <item description="12 hours" value="8" />
+      <item description="24 hours" value="9" />
+      <rangeitem description="Reserved" start="10" end="15" />
+     </enum>
+    </data>
+   </profile>
   </profiles>
  </telegram>
  <telegram rorg="0xD5" type="1BS" description="1BS Telegram">
@@ -9996,6 +9994,45 @@
    </profile>
   </profiles>
   <profiles func="0x02" description="Rocker Switch, 2 Rocker">
+   <profile type="0x03" description="Light Control - Application Style 1">
+    <data>
+     <enum description="Rocker action" shortcut="RA" offset="0" size="8">
+      <item description="Button AO" value="48" />
+      <item description="Button AI" value="16" />
+      <item description="Button BO" value="112" />
+      <item description="Button BI" value="80" />
+     </enum>
+     <status description="T21" shortcut="T21" offset="2" size="1" />
+     <status description="NU" shortcut="NU" offset="3" size="1" />
+    </data>
+   </profile>
+   <profile type="0x04" description="Light and blind control ERP2">
+    <data>
+     <enum description="State of the energy bow " shortcut="EB" offset="0" size="1">
+      <item description="released" value="0" />
+      <item description="pressed" value="1" />
+     </enum>
+     <enum description="Button coding" shortcut="BC" offset="1" size="1">
+      <item description="button" value="0" />
+     </enum>
+     <enum description="State I of the rocker B" shortcut="RBI" offset="4" size="1">
+      <item description="not pressed" value="0" />
+      <item description="pressed" value="1" />
+     </enum>
+     <enum description="State O of the rocker B" shortcut="RBO" offset="5" size="1">
+      <item description="not pressed" value="0" />
+      <item description="pressed" value="1" />
+     </enum>
+     <enum description="State I of the rocker A" shortcut="RAI" offset="6" size="1">
+      <item description="not pressed" value="0" />
+      <item description="pressed" value="1" />
+     </enum>
+     <enum description="State O of the rocker A" shortcut="RAO" offset="7" size="1">
+      <item description="not pressed" value="0" />
+      <item description="pressed" value="1" />
+     </enum>
+    </data>
+   </profile>
    <profile type="0x01" description="Light and Blind Control - Application Style 1">
     <data>
      <enum description="Rocker 1st action" shortcut="R1" offset="0" size="3">
@@ -10048,45 +10085,6 @@
      <status description="NU" shortcut="NU" offset="3" size="1" />
     </data>
    </profile>
-   <profile type="0x03" description="Light Control - Application Style 1">
-    <data>
-     <enum description="Rocker action" shortcut="RA" offset="0" size="8">
-      <item description="Button AO" value="48" />
-      <item description="Button AI" value="16" />
-      <item description="Button BO" value="112" />
-      <item description="Button BI" value="80" />
-     </enum>
-     <status description="T21" shortcut="T21" offset="2" size="1" />
-     <status description="NU" shortcut="NU" offset="3" size="1" />
-    </data>
-   </profile>
-   <profile type="0x04" description="Light and blind control ERP2">
-    <data>
-     <enum description="State of the energy bow " shortcut="EB" offset="0" size="1">
-      <item description="released" value="0" />
-      <item description="pressed" value="1" />
-     </enum>
-     <enum description="Button coding" shortcut="BC" offset="1" size="1">
-      <item description="button" value="0" />
-     </enum>
-     <enum description="State I of the rocker B" shortcut="RBI" offset="4" size="1">
-      <item description="not pressed" value="0" />
-      <item description="pressed" value="1" />
-     </enum>
-     <enum description="State O of the rocker B" shortcut="RBO" offset="5" size="1">
-      <item description="not pressed" value="0" />
-      <item description="pressed" value="1" />
-     </enum>
-     <enum description="State I of the rocker A" shortcut="RAI" offset="6" size="1">
-      <item description="not pressed" value="0" />
-      <item description="pressed" value="1" />
-     </enum>
-     <enum description="State O of the rocker A" shortcut="RAO" offset="7" size="1">
-      <item description="not pressed" value="0" />
-      <item description="pressed" value="1" />
-     </enum>
-    </data>
-   </profile>
   </profiles>
   <profiles func="0x03" description="Rocker Switch, 4 Rocker">
    <profile type="0x01" description="Light and Blind Control - Application Style 1">
@@ -10125,16 +10123,6 @@
    </profile>
   </profiles>
   <profiles func="0x04" description="Position Switch, Home and Office Application">
-   <profile type="0x02" description="Key Card Activated Switch">
-    <data>
-     <enum description="Key Card" shortcut="KC" offset="0" size="8">
-      <item description="Taken out" value="0" />
-      <item description="Inserted" value="112" />
-     </enum>
-     <status description="T21" shortcut="T21" offset="2" size="1" />
-     <status description="NU" shortcut="NU" offset="3" size="1" />
-    </data>
-   </profile>
    <profile type="0x01" description="Key Card Activated Switch">
     <data>
      <enum description="State of the energy bow" shortcut="EBO" offset="0" size="1">
@@ -10151,17 +10139,18 @@
      </enum>
     </data>
    </profile>
-  </profiles>
-  <profiles func="0x05" description="Detectors">
-   <profile type="0x02" description="Smoke Detector">
+   <profile type="0x02" description="Key Card Activated Switch">
     <data>
-     <enum description="Status of detection and battery" shortcut="SMO" offset="0" size="8">
-      <item description="Smoke Alarm OFF" value="0" />
-      <item description="Smoke Alarm ON" value="16" />
-      <item description="Energy LOW" value="48" />
+     <enum description="Key Card" shortcut="KC" offset="0" size="8">
+      <item description="Taken out" value="0" />
+      <item description="Inserted" value="112" />
      </enum>
+     <status description="T21" shortcut="T21" offset="2" size="1" />
+     <status description="NU" shortcut="NU" offset="3" size="1" />
     </data>
    </profile>
+  </profiles>
+  <profiles func="0x05" description="Detectors">
    <profile type="0x01" description="Liquid Leakage Sensor (mechanic harvester)">
     <data>
      <enum description="Water Sensor" shortcut="WAS" offset="0" size="8">
@@ -10171,6 +10160,15 @@
      </enum>
      <status description="T21" shortcut="T21" offset="2" size="1" />
      <status description="NU" shortcut="NU" offset="3" size="1" />
+    </data>
+   </profile>
+   <profile type="0x02" description="Smoke Detector">
+    <data>
+     <enum description="Status of detection and battery" shortcut="SMO" offset="0" size="8">
+      <item description="Smoke Alarm OFF" value="0" />
+      <item description="Smoke Alarm ON" value="16" />
+      <item description="Energy LOW" value="48" />
+     </enum>
     </data>
    </profile>
   </profiles>
