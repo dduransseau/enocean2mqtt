@@ -46,10 +46,12 @@ def load_config_file(config_files):
     # extract sensor configuration
     sensors = []
     global_config = {}
+    equipments_file = None
 
     logger = logging.getLogger("enocean.mqtt.config")
+    config_parser = ConfigParser(inline_comment_prefixes=('#', ';'), interpolation=None)
     for conf_file in config_files:
-        config_parser = ConfigParser(inline_comment_prefixes=('#', ';'), interpolation=None)
+
         if not Path(conf_file).is_file():
             logger.warning("Config file %s does not exist, skipping", conf_file)
             continue
@@ -64,6 +66,10 @@ def load_config_file(config_files):
                 for key in config_parser[section]:
                     global_config[key] = config_parse_value(config_parser[section][key])
             else:
+                if not equipments_file:
+                    equipments_file = conf_file
+                elif conf_file != equipments_file:
+                    logger.warning("There is multiple files that host equipments config, only one can be reload")
                 mqtt_prefix = global_config['mqtt_prefix'] \
                     if 'mqtt_prefix' in global_config else "enocean/"
                 new_sens = {'name': mqtt_prefix + section}

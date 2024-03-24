@@ -26,6 +26,7 @@ class Communicator:
     # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
     TIMESTAMP_MESSAGE_KEY = "_timestamp"
     RSSI_MESSAGE_KEY = "_rssi"
+    CHANNEL_MESSAGE_KEY = "_channel"
 
     logger = logging.getLogger('enocean.mqtt.communicator')
 
@@ -261,20 +262,15 @@ class Communicator:
 
     def _publish_mqtt(self, equipment, mqtt_json):
         '''Publish decoded packet content to MQTT'''
-
         # Retain the to-be-published message ?
         retain = equipment.retain
-
-        # Is grouping enabled on this sensor
-        channel_id = equipment.channel
-        channel_id = channel_id.split('/') if channel_id not in (None, '') else []
-
         # Determine MQTT topic
         topic = equipment.topic
-        for cur_id in channel_id:
-            if mqtt_json.get(cur_id) not in (None, ''):
-                topic += f"/{cur_id}{mqtt_json[cur_id]}"
-                del mqtt_json[cur_id]
+
+        # Is grouping enabled on this sensor
+        if self.CHANNEL_MESSAGE_KEY in mqtt_json.keys():
+            topic += f'/{mqtt_json[self.CHANNEL_MESSAGE_KEY]}'
+            # del mqtt_json[self.CHANNEL_MESSAGE_KEY]
 
         # Publish packet data to MQTT
         self.logger.debug(f"{topic}: Sent MQTT: {mqtt_json}")
@@ -331,13 +327,18 @@ class Communicator:
                 property_key, value_key = ('description', 'value')
             # loop through all EEP properties
             for prop in properties:
-                # Remove / from key name to avoid sub topic issue
+                # Remove not supported fields # TODO: might be improve
+                if isinstance(prop["value"], str) and "not supported" in prop["value"]:
+                    continue
                 key = prop[property_key]
                 val = prop[value_key]
                 message_payload[key] = val
                 # Add unit of value fields
                 if unit := prop.get("unit"):
                     message_payload[f"{key}|unit"] = unit
+                # Set specific channel is set for this equipment and set it as internal value
+                if prop['shortcut'] == equipment.channel:
+                    message_payload[self.CHANNEL_MESSAGE_KEY] = prop["value"]
         return message_payload
 
     # =============================================================================================
