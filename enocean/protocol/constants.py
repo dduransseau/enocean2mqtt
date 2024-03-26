@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-from enum import IntEnum
+from enum import IntEnum, StrEnum, auto
 
 
 # EnOceanSerialProtocol3.pdf / 12
@@ -101,6 +101,29 @@ class PARSE_RESULT(IntEnum):
     OK = 0x00
     INCOMPLETE = 0x01
     CRC_MISMATCH = 0x03
+
+
+class DataFieldType(IntEnum):
+    STATUS = 0
+    VALUE = 1
+    ENUM = 2
+
+
+class SpecificShortcut(StrEnum):
+    UNIT = 'UN'
+    MULTIPLIER = 'SCM'
+    DIVISOR = 'DIV'
+    COMMAND = 'CMD'
+    LEARN_BIT = 'LRNB'
+
+
+class FieldSetName(StrEnum):
+    RAW_VALUE = auto()
+    VALUE = auto()
+    DESCRIPTION = auto()
+    SHORTCUT = auto()
+    TYPE = auto()
+    UNIT = auto()
 
 
 # Data byte indexing

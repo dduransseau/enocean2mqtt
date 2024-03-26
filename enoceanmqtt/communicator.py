@@ -8,7 +8,7 @@ import time
 
 from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket
-from enocean.protocol.constants import PACKET, RETURN_CODE, RORG
+from enocean.protocol.constants import PACKET, RETURN_CODE, RORG, DataFieldType, SpecificShortcut, FieldSetName
 from equipment import Equipment
 import enocean.utils
 import paho.mqtt.client as mqtt
@@ -27,6 +27,7 @@ class Communicator:
     TIMESTAMP_MESSAGE_KEY = "_timestamp"
     RSSI_MESSAGE_KEY = "_rssi"
     CHANNEL_MESSAGE_KEY = "_channel"
+    RORG_MESSAGE_KEY = "_rorg"
 
     logger = logging.getLogger('enocean.mqtt.communicator')
 
@@ -298,7 +299,7 @@ class Communicator:
                         message_fields[self.RSSI_MESSAGE_KEY] = packet.dBm
                     except AttributeError:
                         self.logger.warning(f"Unable to set RSSI value in packet {packet}")
-                message_fields["_rorg"] = packet.rorg
+                message_fields[self.RORG_MESSAGE_KEY] = packet.rorg
                 self.logger.debug(f"Publish message {message_fields}")
                 self._publish_mqtt(equipment, message_fields)
         elif packet.learn and not self.enocean.teach_in:
@@ -309,37 +310,82 @@ class Communicator:
 
     def _handle_esp_data_packet(self, packet, equipment):
         # data packet received
-        message_payload = dict()
         if packet.packet_type == PACKET.RADIO and packet.rorg == equipment.rorg:
             # radio packet of proper rorg type received; parse EEP
             self.logger.debug(f"handle radio packet for sensor {equipment}")
             fields = equipment.get_packet_fields(packet, direction=equipment.direction)
             properties = packet.parse_message(fields)
             # self.logger.debug(f"found properties in message: {properties}")
-            if equipment.publish_raw or self.publish_raw:
-                # Message format must be published as raw (<shortcut>: <raw_value>)
-                property_key, value_key = ('shortcut', 'raw_value')
-            elif equipment.use_key_shortcut or self.use_key_shortcut:
-                # Message format must be published with field shortcut (<shortcut>: <value>)
-                property_key, value_key = ('shortcut', 'value')
-            else:
-                # Message format must be published with field description (<description>: <value>) /!\ Might be verbose
-                property_key, value_key = ('description', 'value')
-            # loop through all EEP properties
-            for prop in properties:
-                # Remove not supported fields # TODO: might be improve
-                if isinstance(prop["value"], str) and "not supported" in prop["value"]:
-                    continue
-                key = prop[property_key]
-                val = prop[value_key]
-                message_payload[key] = val
-                # Add unit of value fields
-                if unit := prop.get("unit"):
+            return self.format_enocean_message(properties, equipment)
+
+    def format_enocean_message(self, parsed_message, equipment):
+        """
+        parsed_message: list of EEP dict() field
+        equipment: equipment linked that sent message
+
+        return: dict() with formatted fields and units
+        """
+        message_payload = dict()
+        value_fields = list()
+        operator_fields = list()
+        unit_fields = list()
+        # Define the key that should be used in field to compose json message
+        if equipment.publish_raw or self.publish_raw:
+            # Message format must be published as raw (<shortcut>: <raw_value>)
+            property_key, value_key = (FieldSetName.SHORTCUT, FieldSetName.RAW_VALUE)
+        elif equipment.use_key_shortcut or self.use_key_shortcut:
+            # Message format must be published with field shortcut (<shortcut>: <value>)
+            property_key, value_key = (FieldSetName.SHORTCUT, FieldSetName.VALUE)
+        else:
+            # Message format must be published with field description (<description>: <value>) /!\ Might be verbose
+            property_key, value_key = (FieldSetName.DESCRIPTION, FieldSetName.VALUE)
+        # loop through all EEP properties
+        for prop in parsed_message:
+            # Remove not supported fields # TODO: might be improve
+            if isinstance(prop[FieldSetName.VALUE], str) and "not supported" in prop[FieldSetName.VALUE]:
+                continue
+            # Manage to calculate value before send
+            if prop[FieldSetName.TYPE] == DataFieldType.VALUE:
+                value_fields.append(prop)
+            elif prop[FieldSetName.SHORTCUT] in (SpecificShortcut.MULTIPLIER, SpecificShortcut.DIVISOR):
+                operator_fields.append(prop)
+            elif prop[FieldSetName.SHORTCUT] == SpecificShortcut.UNIT:
+                unit_fields.append(prop)
+            key = prop[property_key]
+            val = prop[value_key]
+            message_payload[key] = val
+            # Add unit of value fields
+            if unit := prop.get(FieldSetName.UNIT):
+                message_payload[f"{key}|unit"] = unit
+            # Set specific channel is set for this equipment and set it as internal value
+            if prop[FieldSetName.SHORTCUT] == equipment.channel:
+                message_payload[self.CHANNEL_MESSAGE_KEY] = prop[FieldSetName.VALUE]
+
+        # Second iteration if the message contain specific multiplier and or unit for value type field.
+        # This permit to keep the same functional result for message that have a simple value calculated and those
+        if value_fields:
+            factor = None
+            unit = None
+            # If unit is present add is as a value unit field and remove global unit
+            if len(unit_fields) == 1:
+                unit = unit_fields[0][FieldSetName.VALUE]
+                del message_payload[unit_fields[0][property_key]]
+            if len(operator_fields) == 1:
+                operator = operator_fields[0]
+                if operator[FieldSetName.SHORTCUT] == SpecificShortcut.DIVISOR:
+                    factor = 1 / float(operator[FieldSetName.VALUE])
+                elif operator[FieldSetName.SHORTCUT] == SpecificShortcut.MULTIPLIER:
+                    factor = float(operator[FieldSetName.VALUE])
+                # Remove operator from message since it is already calculated
+                del message_payload[operator[property_key]]
+            for val in value_fields:
+                key = val[property_key]
+                if factor:
+                    message_payload[key] = float(val[FieldSetName.RAW_VALUE]) * factor
+                if unit:
                     message_payload[f"{key}|unit"] = unit
-                # Set specific channel is set for this equipment and set it as internal value
-                if prop['shortcut'] == equipment.channel:
-                    message_payload[self.CHANNEL_MESSAGE_KEY] = prop["value"]
         return message_payload
+
 
     # =============================================================================================
     # LOW LEVEL FUNCTIONS

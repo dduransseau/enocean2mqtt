@@ -4,9 +4,9 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 import enocean.utils
-from enocean.protocol.constants import RORG  # noqa: F401
+from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, FieldSetName  # noqa: F401
 
-
+# logging.basicConfig(level=logging.DEBUG)
 class BaseDataElt:
 
     logger = logging.getLogger('enocean.protocol.eep.data')
@@ -75,11 +75,12 @@ class DataStatus(BaseDataElt):
         ''' Get boolean value, based on the data in XML '''
         self._raw_value = self.parse_raw(status)
         return {
-            'description': self.description,
-            'shortcut': self.shortcut,
-            'unit': self.unit,
-            'value': True if self._raw_value else False,
-            'raw_value': self._raw_value
+            FieldSetName.DESCRIPTION: self.description,
+            FieldSetName.SHORTCUT: self.shortcut,
+            FieldSetName.UNIT: self.unit,
+            FieldSetName.VALUE: True if self._raw_value else False,
+            FieldSetName.RAW_VALUE: self._raw_value,
+            FieldSetName.TYPE: DataFieldType.STATUS
         }
 
     def set_value(self, data, bitarray):
@@ -130,11 +131,12 @@ class DataValue(BaseDataElt):
         self._raw_value = self.parse_raw(bitarray)
 
         return {
-            'description': self.description,
-            'shortcut': self.shortcut,
-            'unit': self.unit,
-            'value': self.process_value(self._raw_value),
-            'raw_value': self._raw_value,
+            FieldSetName.DESCRIPTION: self.description,
+            FieldSetName.SHORTCUT: self.shortcut,
+            FieldSetName.UNIT: self.unit,
+            FieldSetName.VALUE: self.process_value(self._raw_value),
+            FieldSetName.RAW_VALUE: self._raw_value,
+            FieldSetName.TYPE: DataFieldType.VALUE
         }
 
     def set_value(self, data, bitarray):
@@ -293,11 +295,12 @@ class DataEnum(BaseDataElt):
         #self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
         value = item.parse(self._raw_value)
         return {
-            'description': self.description,
-            'shortcut': self.shortcut,
-            'unit': self.unit,
-            'value': value,
-            'raw_value': self._raw_value
+            FieldSetName.DESCRIPTION: self.description,
+            FieldSetName.SHORTCUT: self.shortcut,
+            FieldSetName.UNIT: self.unit,
+            FieldSetName.VALUE: value,
+            FieldSetName.RAW_VALUE: self._raw_value,
+            FieldSetName.TYPE: DataFieldType.ENUM
         }
 
     def set_value(self, val, bitarray):
@@ -488,7 +491,8 @@ class Message:
                     'description': "Command identifier",
                     'value': self.command_item.description,
                     'raw_value': self.command_item.value,
-                    'shortcut': "CMD"
+                    'shortcut': SpecificShortcut.COMMAND,
+                    'type': DataFieldType.ENUM
                 })
             else:
                 output.append(source.parse(bitarray, status))
