@@ -105,21 +105,6 @@ class BaseController(threading.Thread):
             if self._base_id:
                 return self._base_id
             time.sleep(0.1)
-            # try:
-            #     packet = self.receive.get(block=True, timeout=0.1)
-            #     # We're only interested in responses to the request in question.
-            #     if packet.packet_type == PACKET.RESPONSE and packet.response == RETURN_CODE.OK and len(packet.response_data) == 4:  # noqa: E501
-            #         self.logger.debug(f"Get base info response {packet} | {packet.response_data}")
-            #         # Base ID is set in the response data.
-            #         self._base_id = packet.response_data
-            #         # Put packet back to the Queue, so the user can also react to it if required...
-            #         # self.receive.put(packet)
-            #         return self._base_id
-            #     # Put other packets back to the Queue.
-            #     self.receive.put(packet)
-            # except queue.Empty:
-            #     continue
-        # Return the current Base ID (might be None).
         return self._base_id
 
     @property
@@ -138,22 +123,6 @@ class BaseController(threading.Thread):
                 return dict(app_version=self.app_version, api_version=self.api_version,
                             app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
             time.sleep(0.1)
-        # for i in range(0, 5):
-        #     try:
-        #         packet = self.receive.get(block=True, timeout=0.1)
-        #         # We're only interested in responses to the request in question.
-        #         if packet.packet_type == PACKET.RESPONSE and packet.response == RETURN_CODE.OK:  # noqa: E501
-        #             self.logger.debug(f"Get gateway info response {packet} | {packet.response_data}")
-        #             self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
-        #             self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
-        #             self._chip_id = int.from_bytes(packet.response_data[8:12])
-        #             self._chip_version = int.from_bytes(packet.response_data[12:16])
-        #             self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
-        #             return dict(app_version=self.app_version, api_version=self.api_version, app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
-        #         # Put other packets back to the Queue.
-        #         self.receive.put(packet)
-        #     except queue.Empty:
-        #         continue
         return True
 
     @base_id.setter

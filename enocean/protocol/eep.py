@@ -7,19 +7,21 @@ import enocean.utils
 from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, FieldSetName  # noqa: F401
 
 # logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('enocean.protocol.eep')
+
+def parse_number_value(v):
+    if v.startswith("0x"):
+        return int(v, 16)
+    elif "." in v:
+        return float(v)
+    else:
+        return int(v)
+
+
 class BaseDataElt:
 
     logger = logging.getLogger('enocean.protocol.eep.data')
     " Base class inherit from every value data telegram"
-
-    @staticmethod
-    def parse_number_value(v):
-        if v.startswith("0x"):
-            return int(v, 16)
-        elif "." in v:
-            return float(v)
-        else:
-            return int(v)
 
     def __init__(self, elt):
         self.description = elt.get("description", "")
@@ -50,17 +52,17 @@ class BaseDataElt:
             bitarray[self.offset+digit] = (raw_value >> (size-digit-1)) & 0x01 != 0
         return bitarray
 
-    def to_dict(self):
-        d = dict(description=self.description)
-        if self.shortcut:
-            d["shortcut"] = self.shortcut
-        if self.offset:
-            d["offset"] = self.offset
-        if self.size:
-            d["size"] = self.size
-        if self.unit:
-            d["unit"] = self.unit
-        return d
+    # def to_dict(self):
+    #     d = dict(description=self.description)
+    #     if self.shortcut:
+    #         d["shortcut"] = self.shortcut
+    #     if self.offset:
+    #         d["offset"] = self.offset
+    #     if self.size:
+    #         d["size"] = self.size
+    #     if self.unit:
+    #         d["unit"] = self.unit
+    #     return d
 
 
 class DataStatus(BaseDataElt):
@@ -88,10 +90,11 @@ class DataStatus(BaseDataElt):
         bitarray[self.offset] = data
         return bitarray
 
-    def to_dict(self):
-        d = dict(description=self.description)
-        d["type"] = "status"
-        return d
+    # def to_dict(self):
+    #     d = dict(description=self.description)
+    #     d["type"] = "status"
+    #     return d
+
 
 class DataValue(BaseDataElt):
     """
@@ -106,18 +109,18 @@ class DataValue(BaseDataElt):
             </scale>
           </value>
     """
-    ROUNDING = 2
+    ROUNDING = 3
 
     def __init__(self, elt):
         super().__init__(elt)
         if r := elt.find("range"):
             self.is_range = True
-            self.range_min = self.parse_number_value(r.find("min").text)
-            self.range_max = self.parse_number_value(r.find("max").text)
+            self.range_min = parse_number_value(r.find("min").text)
+            self.range_max = parse_number_value(r.find("max").text)
         if s := elt.find("scale"):
             self.scale = True
-            self.scale_min = self.parse_number_value(s.find("min").text)
-            self.scale_max = self.parse_number_value(s.find("max").text)
+            self.scale_min = parse_number_value(s.find("min").text)
+            self.scale_max = parse_number_value(s.find("max").text)
         try:
             self.multiplier = (self.scale_max - self.scale_min) / (self.range_max - self.range_min)
         except Exception as e:
@@ -150,21 +153,22 @@ class DataValue(BaseDataElt):
     def __str__(self) -> str:
         return f"Data value for {self.description}"
 
-    def to_dict(self):
-        d = super().to_dict()
-        d["type"] = "value"
-        if self.range_min is not None and self.range_max  is not None:
-            d["range"] = dict(min=self.range_min, max=self.range_max)
-        if self.scale_min is not None and self.scale_max is not None:
-            d["scale"] = dict(min=self.scale_min, max=self.scale_max)
-        return d
+    # def to_dict(self):
+    #     d = super().to_dict()
+    #     d["type"] = "value"
+    #     if self.range_min is not None and self.range_max  is not None:
+    #         d["range"] = dict(min=self.range_min, max=self.range_max)
+    #     if self.scale_min is not None and self.scale_max is not None:
+    #         d["scale"] = dict(min=self.scale_min, max=self.scale_max)
+    #     return d
 
 
-class DataEnumItem(BaseDataElt):
+class DataEnumItem:
 
     def __init__(self, elt):
-        super().__init__(elt)
-        self.value = self.parse_number_value(elt.get("value"))
+        # super().__init__(elt)
+        self.value = parse_number_value(elt.get("value"))
+        self.description = elt.get("description", "")
 
     def __str__(self):
         return f"Enum Item {self.description}"
@@ -173,34 +177,35 @@ class DataEnumItem(BaseDataElt):
         return self.description
         # return self.description.replace(" ", "_").lower()
 
-    def to_dict(self):
-        d = super().to_dict()
-        d["type"] = "item"
-        if self.value is not None:
-            d["value"] = self.value
-        return d
+    # def to_dict(self):
+    #     d = dict()
+    #     d["type"] = "item"
+    #     if self.value is not None:
+    #         d["value"] = self.value
+    #     return d
 
 
-class DataEnumRangeItem(BaseDataElt):
+class DataEnumRangeItem:
 
     def __init__(self, elt):
-        super().__init__(elt)
+        # super().__init__(elt)
 
+        self.description = elt.get("description", "")
         range = elt.find("range")
         scale = elt.find("scale")
         self.multiplier = 1
         if range and scale:
-            self.range_min = self.parse_number_value(range.find("min").text)
-            self.range_max = self.parse_number_value(range.find("max").text)
-            self.scale_min = self.parse_number_value(scale.find("min").text)
-            self.scale_max = self.parse_number_value(scale.find("max").text)
+            self.range_min = parse_number_value(range.find("min").text)
+            self.range_max = parse_number_value(range.find("max").text)
+            self.scale_min = parse_number_value(scale.find("min").text)
+            self.scale_max = parse_number_value(scale.find("max").text)
             try:
                 self.multiplier = (self.scale_max - self.scale_min) / (self.range_max - self.range_min)
             except Exception as e:
-                self.logger.debug(f"Unable to set multiplier")
+                logger.debug(f"Unable to set multiplier")
         else:
-            self.start = self.parse_number_value(elt.get("start"))
-            self.end = self.parse_number_value(elt.get("end"))
+            self.start = parse_number_value(elt.get("start"))
+            self.end = parse_number_value(elt.get("end"))
 
     @property
     def limit(self):
@@ -219,14 +224,14 @@ class DataEnumRangeItem(BaseDataElt):
     def __str__(self):
         return f"Enum Range Item {self.description}"
 
-    def to_dict(self):
-        d = super().to_dict()
-        d["type"] = "rangeitem"
-        if self.start is not None:
-            d["start"] = self.start
-        if self.end is not None:
-            d["end"] = self.end
-        return d
+    # def to_dict(self):
+    #     d = super().to_dict()
+    #     d["type"] = "rangeitem"
+    #     if self.start is not None:
+    #         d["start"] = self.start
+    #     if self.end is not None:
+    #         d["end"] = self.end
+    #     return d
 
     def parse(self, val):
         return val * self.multiplier
@@ -315,11 +320,11 @@ class DataEnum(BaseDataElt):
         self.logger.debug(f"Set value to {value}")
         return self._set_raw(int(value), bitarray)
 
-    def to_dict(self):
-        d = super().to_dict()
-        d["type"] = "enum"
-        d["items"] = [i.to_dict() for i in self.items.values()] + [i.to_dict() for i in self.range_items]
-        return d
+    # def to_dict(self):
+    #     d = super().to_dict()
+    #     d["type"] = "enum"
+    #     d["items"] = [i.to_dict() for i in self.items.values()] + [i.to_dict() for i in self.range_items]
+    #     return d
 
     def __str__(self) -> str:
         return f"Data enum for {self.description} from {self.first} to {self.last}"
@@ -341,7 +346,7 @@ class ProfileData:
     def __init__(self, elt):
         self.command = int(elt.get("command")) if elt.get("command") else None
         self.direction = int(elt.get("direction")) if elt.get("direction") else None
-        self.bits = int(elt.get("bits")) if elt.get("bits") else None
+        self.bytes = int(elt.get("bits")) if elt.get("bits") else None
         self.items = list()
 
         for e in elt.iter():
@@ -355,16 +360,16 @@ class ProfileData:
     def __str__(self):
         return f"Profile data with {len(self.items)} items | command:{self.command} direction:{self.direction} "
 
-    def to_dict(self):
-        d = dict()
-        if self.command:
-            d["command"] = self.command
-        if self.direction:
-            d["direction"] = self.direction
-        if self.bits:
-            d["bits"] = self.bits
-        d["values"] = [i.to_dict() for i in self.items]
-        return d
+    # def to_dict(self):
+    #     d = dict()
+    #     if self.command:
+    #         d["command"] = self.command
+    #     if self.direction:
+    #         d["direction"] = self.direction
+    #     if self.bytes:
+    #         d["bits"] = self.bytes
+    #     d["values"] = [i.to_dict() for i in self.items]
+    #     return d
 
     def get(self, shortcut=None):
         """
@@ -389,11 +394,6 @@ class Profile:
         c = elt.find("command")
         if c is not None:
             self.commands = ProfileCommand(c)
-            # self.logger.debug(f"Get shortcut {self.commands.shortcut} for command")
-            # TODO: Confirm utility
-            # if len(self.commands) > len(elt.findall("data")):
-            #     Warning(f"{self.rorg}-{self.func}-{self.type} Seems to have less command than possible value")
-            #     self.logger.debug(f"commands: {len(self.commands)} data {len(elt.findall("data"))}")
         else:
             self.commands = None
         # Dict of multiple supported datas profile depending on direction or command
@@ -416,13 +416,13 @@ class Profile:
             txt += f" with {len(self.commands)} commands"
         return txt
 
-    def to_dict(self):
-        d = dict(data=list())
-        if self.commands:
-            d["commands"] = self.commands.to_dict()
-        for v in self.datas.values():
-            d["data"].append(v.to_dict())
-        return d
+    # def to_dict(self):
+    #     d = dict(data=list())
+    #     if self.commands:
+    #         d["commands"] = self.commands.to_dict()
+    #     for v in self.datas.values():
+    #         d["data"].append(v.to_dict())
+    #     return d
 
     def get_message_form(self, command=None, direction=None):
         if command and direction:
@@ -432,7 +432,6 @@ class Profile:
             self.logger.error("A command is specified but not supported by profile")
             # raise ValueError("A command is specified but not supported by profile")
         elif self.commands and not command:
-            # Do not raise Exception since it break tests, however this is an error anyway
             # raise ValueError("Command not specified but profile support multiple commands")
             self.logger.warning("Command is not specified but the profile support multiples commands")
             return self.datas.get((1, direction)) # TODO: Confirm that first command must be decoded if not specified
@@ -478,7 +477,7 @@ class Message:
 
     @property
     def data_length(self):
-        return self.telegram_data.bits
+        return self.telegram_data.bytes
 
     def get_values(self, bitarray, status):
         ''' Get keys and values from bitarray '''
@@ -513,17 +512,17 @@ class Message:
                 packet._bit_data = target.set_value(value, packet._bit_data)
 
 
-class EepLibrary:
+class EepLibraryLoader:
+    """ Class that is used to load the EEP file one time and avoid to load it each time EepLibrary is called"""
     logger = logging.getLogger('enocean.protocol.eep_library')
 
-    def __init__(self):
+    def __init__(self, filepath=None):
 
         try:
-
-            eep_path = Path(__file__).parent.joinpath('EEP.xml')
+            # TODO manage to check validity of the file
+            eep_path = filepath or Path(__file__).parent.joinpath('EEP.xml')
             self.logger.info(f"load EEP xml file: {eep_path}")
-            self.telegrams = self.__load_xml(eep_path)
-            # self.logger.debug(f"List supported telegrams: {self.telegrams}")
+            self.profiles = self.load_xml(eep_path)
             self.logger.debug("EEP loaded")
         except Exception as e:
             # Impossible to test with the current structure?
@@ -533,7 +532,7 @@ class EepLibrary:
             self.logger.exception(e)
 
     @staticmethod
-    def __load_xml(file_path):
+    def load_xml(file_path):
         tree = ElementTree.parse(file_path)
         tree_root = tree.getroot()
         return {
@@ -550,20 +549,26 @@ class EepLibrary:
             for telegram in tree_root.findall('telegram')
         }
 
-class EEP:
+
+class EepLibrary:
     logger = logging.getLogger('enocean.protocol.eep')
 
-    telegrams = EepLibrary().telegrams
+    profiles = EepLibraryLoader().profiles
+    # Backward compatibility
+    # telegrams = profiles
 
     @classmethod
     def get_eep(cls, eep_rorg, rorg_func, rorg_type):
         try:
-            return cls.telegrams[eep_rorg][rorg_func][rorg_type]
-        except Exception as e:
+            return cls.profiles[eep_rorg][rorg_func][rorg_type]
+        except KeyError:
             cls.logger.warning(f'Cannot find rorg {eep_rorg} func {rorg_func} type {rorg_type} in EEP')
             raise NotImplementedError(f'EEP {eep_rorg} func {rorg_func} type {rorg_type} is not supported')
+        except Exception as e:
+            cls.logger.exception(e)
 
     @classmethod
     def load_library(cls):
-        cls.telegrams = EepLibrary().telegrams
+        cls.profiles = EepLibraryLoader().profiles
+
 

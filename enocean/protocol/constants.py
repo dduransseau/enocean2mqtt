@@ -104,9 +104,9 @@ class PARSE_RESULT(IntEnum):
 
 
 class DataFieldType(IntEnum):
-    STATUS = 0
-    VALUE = 1
-    ENUM = 2
+    STATUS = 1
+    VALUE = 2
+    ENUM = 3
 
 
 class SpecificShortcut(StrEnum):

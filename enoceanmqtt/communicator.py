@@ -285,7 +285,6 @@ class Communicator:
         '''interpret packet, read properties and publish to MQTT'''
         if not packet.learn or equipment.log_learn:
             # Handling received data packet
-            self.logger.debug(f"handle data packet {packet}, {equipment.address}")
             message_fields = self._handle_esp_data_packet(packet, equipment)
             if not message_fields:
                 self.logger.warning(f"message not interpretable: {equipment.name}")

@@ -1,12 +1,12 @@
 # -*- encoding: utf-8 -*-
 import logging
 
-from enocean.protocol.eep import EEP
+from enocean.protocol.eep import EepLibrary
 
 
 class Equipment(object):
     ''' Representation of device/sensor as EnOcean use the term Equipement '''
-    eep = EEP()
+    eep = EepLibrary()
     logger = logging.getLogger('enocean.protocol.equipment')
 
     def __init__(self, address, rorg=None, func=None, type_=None, name=None) -> None:

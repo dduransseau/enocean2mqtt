@@ -69,10 +69,8 @@ class Packet(object):
 
     @_bit_data.setter
     def _bit_data(self, value):
-        # The same as getting the data, first and last 5 bits are ommitted, as they are defined...
-        # Packet.logger.debug(f"_bit_data byte value {value} in {self.data}")
+        # The same as getting the data, first and last 5 bits are ommitted, as they are defined...)
         for byte in range(len(self.data) - 6):
-            # Packet.logger.debug(f"_bit_data byte {byte} limit_start {byte * 8} limite_end {(byte + 1) * 8}")
             self.data[byte+1] = from_bitarray(value[byte*8:(byte+1)*8])
 
     # # COMMENTED OUT, AS NOTHING TOUCHES _bit_optional FOR NOW.
@@ -202,8 +200,6 @@ class Packet(object):
         packet = Packet(packet_type, data=[], optional=[])
         packet.rorg = equipment.rorg
         packet.data = [packet.rorg]
-
-        # Packet.logger.debug(f"Packet with message: {equipment.profile.get_message_form(command=command, direction=direction)}")
         packet.message = equipment.profile.get_message_form(command=command, direction=direction)
 
         # Initialize data depending on the profile.
@@ -319,7 +315,7 @@ class RadioPacket(Packet):
                     self.rorg_func = from_bitarray(self._bit_data[DB3.BIT_7:DB3.BIT_1])
                     self.rorg_type = from_bitarray(self._bit_data[DB3.BIT_1:DB2.BIT_2])
                     self.rorg_manufacturer = from_bitarray(self._bit_data[DB2.BIT_2:DB0.BIT_7])
-                    self.logger.debug('learn received, EEP detected, RORG: 0x%02X, FUNC: 0x%02X, TYPE: 0x%02X, Manufacturer: 0x%02X' % (self.rorg, self.rorg_func, self.rorg_type, self.rorg_manufacturer))  # noqa: E501
+                    self.logger.info('learn received, EEP detected, RORG: 0x%02X, FUNC: 0x%02X, TYPE: 0x%02X, Manufacturer: 0x%02X' % (self.rorg, self.rorg_func, self.rorg_type, self.rorg_manufacturer))  # noqa: E501
         elif self.rorg == RORG.VLD or self.rorg == RORG.RPS:
             self.learn = False
 
@@ -371,7 +367,7 @@ class UTETeachInPacket(RadioPacket):
         self.rorg_of_eep = self.data[7]
         if self.teach_in:
             self.learn = True
-        self.logger.debug(f"Received UTE teach in packet from {self.sender} manu:{self.rorg_manufacturer}")
+        self.logger.info(f"Received UTE teach in packet from {self.sender} manu:{self.rorg_manufacturer}")
         # return self.parsed
 
     def create_response_packet(self, sender_id, response=TEACHIN_ACCEPTED):
