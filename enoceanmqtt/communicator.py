@@ -31,22 +31,25 @@ class Communicator:
 
     logger = logging.getLogger('enocean.mqtt.communicator')
 
-    def __init__(self, config, sensors):
-        self.conf = config
+    def __init__(self, config):
+        self.conf_manager = config
+        self.conf = self.conf_manager.global_config
         self.publish_timestamp = self.conf.get("publish_timestamp", True)
         self.publish_raw = self.get_config_boolean("publish_raw")
         self.publish_internal = self.get_config_boolean("publish_internal")
         self.publish_response_status = self.get_config_boolean("publish_response_status")
         self.use_key_shortcut = self.conf.get("use_key_shortcut")
-        # self.sensors = sensors
-        self.logger.info(f"Init communicator with sensors: {sensors}, publish timestamp: {self.publish_timestamp}")
         if topic_prefix := self.conf.get("mqtt_prefix"):
             if not topic_prefix.endswith("/"):
                 topic_prefix = f"{topic_prefix}/"
         else:
             topic_prefix = ""
         self.topic_prefix = topic_prefix
-        self.equipments = self.setup_devices_list(topic_prefix, sensors)
+        self.logger.info(
+            f"Init communicator with sensors: {self.conf_manager.sensors}, publish timestamp: {self.publish_timestamp}")
+        self.equipments = dict()
+        # Set self.equipments based on sensors present in config_manager
+        self.setup_devices_list()
         # Define set() of detected address received by the gateway
         self.detected_equipments = set()
 
@@ -96,18 +99,19 @@ class Communicator:
     def get_config_boolean(self, key):
         return True if self.conf.get(key, False) in ("true", "True", "1", 1, True) else False
 
-    @classmethod
-    def setup_devices_list(cls, topic_prefix, sensors):
+    def setup_devices_list(self, force=False):
         equipments_list = dict()
-        for s in sensors:
+        if force:
+            self.conf_manager.load_config_file(omit_global=True)
+        for s in self.conf_manager.sensors:
             address = s.get("address")
             try:
-                s["topic_prefix"] = topic_prefix
+                s["topic_prefix"] = self.topic_prefix
                 equipment = Equipment(**s)
                 equipments_list[address] = equipment
             except NotImplementedError:
-                cls.logger.warning(f"Unable to setup device {address}")
-        return equipments_list
+                self.logger.warning(f"Unable to setup device {address}")
+        self.equipments = equipments_list
 
     def get_equipment_by_topic(self, topic):
         for equipment in self.equipments.values():
@@ -122,6 +126,14 @@ class Communicator:
             if id == equipment.name:
                 return equipment
         self.logger.warning(f"Unable to find equipment with key {id}")
+
+    @property
+    def equipments_definition_list(self):
+        equipments_definition_list = list()
+        # listen to enocean send requests
+        for equipment in self.equipments.values():
+            equipments_definition_list.append(equipment.definition)
+        return equipments_definition_list
 
     # =============================================================================================
     # MQTT CLIENT
@@ -140,15 +152,14 @@ class Communicator:
             self.logger.debug(f"subscribe to root req topic: {self.topic_prefix}req")
             mqtt_client.subscribe(f"{self.topic_prefix}req")
             mqtt_client.subscribe(f"{self.topic_prefix}learn")
+            mqtt_client.subscribe(f"{self.topic_prefix}reload")
             if self.publish_internal:
                 self.mqtt_publish(f"{self.topic_prefix}{self.GATEWAY_STATUS_TOPIC}", "ONLINE", retain=True)
-                equipments_definition_list = list()
                 # listen to enocean send requests
                 for equipment in self.equipments.values():
                     # logging.debug("MQTT subscribing: %s", cur_sensor['name']+'/req/#')
                     mqtt_client.subscribe(equipment.topic+'/req')
-                    equipments_definition_list.append(equipment.definition)
-                self.mqtt_publish(f"{self.topic_prefix}{self.GATEWAY_EQUIPMENTS_TOPIC}", equipments_definition_list, retain=True)
+                self.mqtt_publish(f"{self.topic_prefix}{self.GATEWAY_EQUIPMENTS_TOPIC}", self.equipments_definition_list, retain=True)
                 self._publish_gateway_adapter_details()
         else:
             self.logger.error(f"error connecting to MQTT broker: {reason_code}")
@@ -184,6 +195,11 @@ class Communicator:
         self.logger.info("received MQTT message: %s", msg.topic)
         if msg.topic == f"{self.topic_prefix}learn":
             self.handle_learn_activation_request(msg)
+        elif msg.topic == f"{self.topic_prefix}reload":
+            self.logger.info("Reload equipments list")
+            self.setup_devices_list(force=True)
+            self.mqtt_publish(f"{self.topic_prefix}{self.GATEWAY_EQUIPMENTS_TOPIC}", self.equipments_definition_list, retain=True)
+            self.logger.debug(f"New equipments list {self.equipments}")
         else:
             # Get how to handle MQTT message
             try:

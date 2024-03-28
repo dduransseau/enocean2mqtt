@@ -9,6 +9,10 @@ from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, Fi
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('enocean.protocol.eep')
 
+
+class EEPLibraryInitError(Exception):
+    """ Error to init the EEP library is EEP.xml present ?"""
+
 def parse_number_value(v):
     if v.startswith("0x"):
         return int(v, 16)
@@ -425,9 +429,9 @@ class Profile:
     #     return d
 
     def get_message_form(self, command=None, direction=None):
-        if command and direction:
-            # TODO: Confirm this limitation
-            self.logger.warning("Command and Direction are specified but only one at a time should be use")
+        # if command and direction:
+        #     # TODO: Confirm this limitation
+        #     self.logger.warning("Command and Direction are specified but only one at a time should be use")
         if command and not self.commands:
             self.logger.error("A command is specified but not supported by profile")
             # raise ValueError("A command is specified but not supported by profile")
@@ -530,6 +534,7 @@ class EepLibraryLoader:
             # there should be no possibility of ever reaching this...
             self.logger.warning('Cannot load protocol file!')
             self.logger.exception(e)
+            raise EEPLibraryInitError("Unable to load EEP profile")
 
     @staticmethod
     def load_xml(file_path):

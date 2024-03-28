@@ -51,6 +51,7 @@ class BaseController(threading.Thread):
         return None
 
     def send(self, packet):
+        # TODO: Evaluate this and raise Exception if relevant
         if not isinstance(packet, Packet):
             self.logger.error('Object to send must be an instance of Packet')
             return False

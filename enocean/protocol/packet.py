@@ -27,9 +27,7 @@ class Packet(object):
         if data is None or not isinstance(data, list):
             self.logger.warning(f'Replacing Packet.data with default value, for packet type {self.packet_type}')
             self.data = []
-            # self.data = [self._rorg]
         else:
-            # TODO: Maybe check that RORG is correctly set at beginning of data ?
             self.data = data
 
         if not isinstance(optional, list) or optional is None:
@@ -39,7 +37,6 @@ class Packet(object):
             self.optional = optional
 
         self.status = status
-        # self.parsed = dict()
         self.repeater_count = 0
         self._profile = None
         self.message = None
