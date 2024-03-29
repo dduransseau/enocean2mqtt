@@ -378,7 +378,8 @@ class Communicator:
 
         # Second iteration if the message contain specific multiplier and or unit for value type field.
         # This permit to keep the same functional result for message that have a simple value calculated and those
-        if value_fields:
+        # Might imply some side effect for equipment that send different UNIT with same EEP (ex: FWZ12)
+        if value_fields and not equipment.channel:
             factor = None
             unit = None
             # If unit is present add is as a value unit field and remove global unit

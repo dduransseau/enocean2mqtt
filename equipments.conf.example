@@ -6,10 +6,14 @@ type            = 0x0C
 ## Allow to force equipment message to be send as raw (shortcut : raw_value)
 # publish_raw = true # Default false
 ## Publish message as flat: shortcut = topic value = raw_value (in addition to json)
-# publish_flat    = true # Default false
+# publish_flat    = true (Default: false)
 ## Publish message with retain flag
-# persistent    = true # Default false
+# persistent    = true (Default: false)
 ## Ignore device (disable publis device message)
-# ignore    = true # Default false
+# ignore    = true (Default: false)
 ## Publish message RSSI (key = _RSSI_)
 # publish_rssi    = false # Default true
+## Use field shortcut in place of description for value key (Default: false)
+# use_key_shortcut = true
+## Define a channel shortcut to group message under this subtopic
+# channel = IO

@@ -99,7 +99,7 @@ def parse_args():
 def setup_logging(log_filename='', log_level=logging.INFO):
     """initialize python logging infrastructure"""
     # create formatter
-    log_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s') # %(asctime)s - %(name)s - %(levelname)s - %(message)s
+    log_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
 
     # set root logger to lowest log level
     logging.getLogger().setLevel(log_level)
@@ -125,9 +125,7 @@ def main():
     config_manager= ConfigManager(conf)
     # setup logger
     setup_logging(config_manager.logging_file, config_manager.logging_level)
-    # # load config file
-    # sensors, global_config = load_config_file(conf['config'])
-    # conf.update(global_config)
+    # load config file
     config_manager.load_config_file()
 
     # start working
