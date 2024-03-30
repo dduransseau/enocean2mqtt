@@ -3,7 +3,7 @@ import logging
 
 from enocean.utils import combine_hex, to_hex_string, to_bitarray, from_bitarray, address_to_bytes_list
 from enocean.protocol import crc8
-from enocean.protocol.constants import PACKET, RORG, PARSE_RESULT, DB0, DB2, DB3, DB4, DB6
+from enocean.protocol.constants import PacketTyoe, RORG, ParseResult, DB0, DB2, DB3, DB4, DB6
 
 
 class Packet(object):
@@ -104,7 +104,7 @@ class Packet(object):
         # If the buffer doesn't contain 0x55 (start char)
         # the message isn't needed -> ignore
         if 0x55 not in buf:
-            return PARSE_RESULT.INCOMPLETE, [], None
+            return ParseResult.INCOMPLETE, [], None
 
         # Valid buffer starts from 0x55
         # Convert to list, as index -method isn't defined for bytearray
@@ -114,7 +114,7 @@ class Packet(object):
             opt_len = buf[3]
         except IndexError:
             # If the fields don't exist, message is incomplete
-            return PARSE_RESULT.INCOMPLETE, buf, None
+            return ParseResult.INCOMPLETE, buf, None
 
         DATA_END = 6 + data_len  # header + checksum + data
         OPT_DATA_END = DATA_END + opt_len # header + header_checksum + data + opt_dat
@@ -123,7 +123,7 @@ class Packet(object):
         MSG_LEN = OPT_DATA_END + 1
         if len(buf) < MSG_LEN:
             # If buffer isn't long enough, the message is incomplete
-            return PARSE_RESULT.INCOMPLETE, buf, None
+            return ParseResult.INCOMPLETE, buf, None
 
         msg = buf[0:MSG_LEN]
         buf = buf[MSG_LEN:]
@@ -137,28 +137,28 @@ class Packet(object):
             # Fail if doesn't match message
             Packet.logger.error('Header CRC error!')
             # Return CRC_MISMATCH
-            return PARSE_RESULT.CRC_MISMATCH, buf, None
+            return ParseResult.CRC_MISMATCH, buf, None
         if msg[OPT_DATA_END] != crc8.calc(msg[6:OPT_DATA_END]):
             # Fail if doesn't match message
             Packet.logger.error('Data CRC error!')
             # Return CRC_MISMATCH
-            return PARSE_RESULT.CRC_MISMATCH, buf, None
+            return ParseResult.CRC_MISMATCH, buf, None
 
         # If we got this far, everything went ok (?)
-        if packet_type == PACKET.RADIO:
+        if packet_type == PacketTyoe.RADIO:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:
                 packet = UTETeachInPacket(packet_type, data, opt_data)
             else:
                 packet = RadioPacket(packet_type, data, opt_data)
-        elif packet_type == PACKET.RESPONSE:
+        elif packet_type == PacketTyoe.RESPONSE:
             packet = ResponsePacket(packet_type, data, opt_data)
-        elif packet_type == PACKET.EVENT:
+        elif packet_type == PacketTyoe.EVENT:
             packet = EventPacket(packet_type, data, opt_data)
         else:
             packet = Packet(packet_type, data, opt_data)
 
-        return PARSE_RESULT.OK, buf, packet
+        return ParseResult.OK, buf, packet
 
     @staticmethod
     def validate_address(address):
@@ -171,7 +171,7 @@ class Packet(object):
     def create_message(packet_type, equipment, direction=None, command=None,
                        destination=None, sender=None, learn=False, **kwargs):
         Packet.logger.debug(f'Create packet for equipment profile {equipment.profile}')
-        if packet_type != PACKET.RADIO:
+        if packet_type != PacketTyoe.RADIO:
             raise ValueError('Packet type not supported by this function.')
 
         if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD]: # , RORG.MSC
@@ -274,7 +274,7 @@ class RadioPacket(Packet):
     def create_message(equipment, direction=None, command=None,
                               destination=None, sender=None, learn=False, **kwargs):
         Packet.logger.debug(f"Create message RadioPacket for rorg {equipment.rorg}")
-        return Packet.create_message(PACKET.RADIO, equipment,
+        return Packet.create_message(PacketTyoe.RADIO, equipment,
                                      direction, command, destination, sender, learn, **kwargs)
 
     @property
@@ -381,7 +381,7 @@ class UTETeachInPacket(RadioPacket):
         # Always use 0x03 to indicate sending, attach sender ID, dBm, and security level
         optional = [0x03] + self.sender + [0xFF, 0x00]
 
-        return RadioPacket(PACKET.RADIO, data=data, optional=optional)
+        return RadioPacket(PacketTyoe.RADIO, data=data, optional=optional)
 
 
 class ResponsePacket(Packet):

@@ -3,7 +3,7 @@ from enum import IntEnum, StrEnum, auto
 
 
 # EnOceanSerialProtocol3.pdf / 12
-class PACKET(IntEnum):
+class PacketTyoe(IntEnum):
     RESERVED = 0x00
     # RADIO == RADIO_ERP1
     # Kept for backwards compatibility reasons, for example custom packet
@@ -24,7 +24,7 @@ class PACKET(IntEnum):
 
 
 # EnOceanSerialProtocol3.pdf / 18
-class RETURN_CODE(IntEnum):
+class ReturnCode(IntEnum):
     OK = 0x00
     ERROR = 0x01
     NOT_SUPPORTED = 0x02
@@ -36,7 +36,7 @@ class RETURN_CODE(IntEnum):
 
 
 # EnOceanSerialProtocol3.pdf / 20
-class EVENT_CODE(IntEnum):
+class EventCode(IntEnum):
     SA_RECLAIM_NOT_SUCCESFUL = 0x01
     SA_CONFIRM_LEARN = 0x02
     SA_LEARN_ACK = 0x03
@@ -48,7 +48,7 @@ class EVENT_CODE(IntEnum):
     CO_LRN_MODE_DISABLED = 0x09
 
 
-class COMMON_COMMAND(IntEnum):
+class CommandCode(IntEnum):
     CO_WR_SLEEP = 0x01
     CO_WR_RESET = 0x02
     CO_RD_VERSION = 0x03
@@ -97,7 +97,7 @@ class RORG(IntEnum):
 
 
 # Results for message parsing
-class PARSE_RESULT(IntEnum):
+class ParseResult(IntEnum):
     OK = 0x00
     INCOMPLETE = 0x01
     CRC_MISMATCH = 0x03

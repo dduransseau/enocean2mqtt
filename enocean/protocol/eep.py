@@ -10,9 +10,6 @@ from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, Fi
 logger = logging.getLogger('enocean.protocol.eep')
 
 
-class EEPLibraryInitError(Exception):
-    """ Error to init the EEP library is EEP.xml present ?"""
-
 def parse_number_value(v):
     if v.startswith("0x"):
         return int(v, 16)
@@ -20,6 +17,10 @@ def parse_number_value(v):
         return float(v)
     else:
         return int(v)
+
+
+class EEPLibraryInitError(Exception):
+    """ Error to init the EEP library is EEP.xml present ?"""
 
 
 class BaseDataElt:
@@ -301,6 +302,7 @@ class ProfileCommand(DataEnum):
 class ProfileData:
     """"""
     logger = logging.getLogger('enocean.protocol.eep.profile')
+
     def __init__(self, elt):
         self.command = int(elt.get("command")) if elt.get("command") else None
         self.direction = int(elt.get("direction")) if elt.get("direction") else None
@@ -312,19 +314,19 @@ class ProfileData:
 
         for e in elt.iter():
             if e.tag == "status":
-                self.items.append(DataStatus(e))
+                d = DataStatus(e)
             elif e.tag == "value":
                 d = DataValue(e)
-                self.items.append(d)
-                self._data_value.add((d))
+                self._data_value.add(d)
             elif e.tag == "enum":
                 d = DataEnum(e)
-                self.items.append(d)
-                if d.shortcut in (SpecificShortcut.MULTIPLIER, SpecificShortcut.DIVISOR):
-                    self._operator_fields.append(d)
-                elif d.shortcut == SpecificShortcut.UNIT:
-                    self._unit_fields.append(d)
-
+            else:
+                continue
+            self.items.append(d)
+            if d.shortcut in (SpecificShortcut.MULTIPLIER, SpecificShortcut.DIVISOR):
+                self._operator_fields.append(d)
+            elif d.shortcut == SpecificShortcut.UNIT:
+                self._unit_fields.append(d)
 
     def __str__(self):
         return f"Profile data with {len(self.items)} items | command:{self.command} direction:{self.direction} "
@@ -349,7 +351,7 @@ class ProfileData:
         # if len(self._unit_fields) > 1:
         #     self.logger.debug("There is multiple units for this EEP omit metric mapping")
         # Manage to operate EEP where only one operator and/or unit is specified
-        # Unable to map specific operator or unit for speific field in multiple metrics contexte
+        # Unable to map specific operator or unit for speific field in multiple metrics context
         if self.has_value and (len(self._operator_fields) == 1 or len(self._unit_fields) == 1):
             return True
         return False
@@ -404,7 +406,7 @@ class Profile:
 
     def get_message_form(self, command=None, direction=None):
         # if command and direction:
-        #     # TODO: Confirm this limitation
+        #     # Must confirm this limitation
         #     self.logger.warning("Command and Direction are specified but only one at a time should be use")
         if command and not self.commands:
             self.logger.error("A command is specified but not supported by profile")
@@ -430,7 +432,7 @@ class Message:
         self.command_item = command
         self.command_shortcut = command_shortcut
         if command and not command_shortcut: # Set command shortcut to default value if set
-            self.command_shortcut = "CMD"
+            self.command_shortcut = SpecificShortcut.COMMAND
         self.direction = direction
 
     def __str__(self):
@@ -448,6 +450,7 @@ class Message:
         ''' Get keys and values from bitarray '''
         output = []
         bypass_list = []
+        # Calculate the values that have unit or operator (multiplier or divisor) in the message
         if calculate_global and self.profile_data.has_global_operation:
             self.logger.debug("Profile data has global operation to perform")
             factor = 1
