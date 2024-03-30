@@ -375,31 +375,6 @@ class Communicator:
             # Set specific channel is set for this equipment and set it as internal value
             if prop[FieldSetName.SHORTCUT] == equipment.channel:
                 message_payload[self.CHANNEL_MESSAGE_KEY] = prop[FieldSetName.VALUE]
-
-        # Second iteration if the message contain specific multiplier and or unit for value type field.
-        # This permit to keep the same functional result for message that have a simple value calculated and those
-        # Might imply some side effect for equipment that send different UNIT with same EEP (ex: FWZ12)
-        if value_fields and not equipment.channel:
-            factor = None
-            unit = None
-            # If unit is present add is as a value unit field and remove global unit
-            if len(unit_fields) == 1:
-                unit = unit_fields[0][FieldSetName.VALUE]
-                del message_payload[unit_fields[0][property_key]]
-            if len(operator_fields) == 1:
-                operator = operator_fields[0]
-                if operator[FieldSetName.SHORTCUT] == SpecificShortcut.DIVISOR:
-                    factor = 1 / float(operator[FieldSetName.VALUE])
-                elif operator[FieldSetName.SHORTCUT] == SpecificShortcut.MULTIPLIER:
-                    factor = float(operator[FieldSetName.VALUE])
-                # Remove operator from message since it is already calculated
-                del message_payload[operator[property_key]]
-            for val in value_fields:
-                key = val[property_key]
-                if factor:
-                    message_payload[key] = float(val[FieldSetName.RAW_VALUE]) * factor
-                if unit:
-                    message_payload[f"{key}|unit"] = unit
         return message_payload
 
 

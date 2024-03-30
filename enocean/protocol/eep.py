@@ -306,14 +306,25 @@ class ProfileData:
         self.direction = int(elt.get("direction")) if elt.get("direction") else None
         self.bytes = int(elt.get("bits")) if elt.get("bits") else None
         self.items = list()
+        self._data_value = set()
+        self._operator_fields = list()
+        self._unit_fields = list()
 
         for e in elt.iter():
             if e.tag == "status":
                 self.items.append(DataStatus(e))
             elif e.tag == "value":
-                self.items.append(DataValue(e))
+                d = DataValue(e)
+                self.items.append(d)
+                self._data_value.add((d))
             elif e.tag == "enum":
-                self.items.append(DataEnum(e))
+                d = DataEnum(e)
+                self.items.append(d)
+                if d.shortcut in (SpecificShortcut.MULTIPLIER, SpecificShortcut.DIVISOR):
+                    self._operator_fields.append(d)
+                elif d.shortcut == SpecificShortcut.UNIT:
+                    self._unit_fields.append(d)
+
 
     def __str__(self):
         return f"Profile data with {len(self.items)} items | command:{self.command} direction:{self.direction} "
@@ -326,6 +337,34 @@ class ProfileData:
         for item in self.items:
             if item.shortcut == shortcut:
                 return item
+
+    @property
+    def has_value(self):
+        return True if len(self._data_value) else False
+
+    @property
+    def has_global_operation(self):
+        # if len(self._operator_fields) > 1:
+        #     self.logger.debug("There is multiple operator for this EEP by omit calculation")
+        # if len(self._unit_fields) > 1:
+        #     self.logger.debug("There is multiple units for this EEP omit metric mapping")
+        # Manage to operate EEP where only one operator and/or unit is specified
+        # Unable to map specific operator or unit for speific field in multiple metrics contexte
+        if self.has_value and (len(self._operator_fields) == 1 or len(self._unit_fields) == 1):
+            return True
+        return False
+
+    @property
+    def unit(self):
+        return self._unit_fields[0] if self._unit_fields else None
+
+    @property
+    def factor(self):
+        return self._operator_fields[0] if self._operator_fields else None
+
+    @property
+    def values(self):
+        return self._data_value if self._data_value else None
 
 
 class Profile:
@@ -379,27 +418,15 @@ class Profile:
         else:
             command_item = None
             command_shortcut = None
-        telegram_data = self.datas.get((command, direction))
-        return Message(telegram_data, command=command_item, command_shortcut=command_shortcut, direction=direction)
-
-    # def get_item_shortcut(self, shortcut):
-    #     if self.commands and self.commands.shortcut == shortcut:
-    #         return self.commands
-    #     for data_elt in self.datas.values():
-    #         if data_elt.shortcut == shortcut:
-    #             return data_elt
-    #
-    # def map_item_value(self, shortcut, value):
-    #     if item := self.get_item_shortcut(shortcut):
-    #         if val := item.get(val=value):
-    #             return val
+        profile_data = self.datas.get((command, direction))
+        return Message(profile_data, command=command_item, command_shortcut=command_shortcut, direction=direction)
 
 
 class Message:
     logger = logging.getLogger('enocean.protocol.eep.message')
 
-    def __init__(self, telegram_data, command=None, command_shortcut=None, direction=None):
-        self.telegram_data = telegram_data
+    def __init__(self, profile_data, command=None, command_shortcut=None, direction=None):
+        self.profile_data = profile_data
         self.command_item = command
         self.command_shortcut = command_shortcut
         if command and not command_shortcut: # Set command shortcut to default value if set
@@ -407,22 +434,51 @@ class Message:
         self.direction = direction
 
     def __str__(self):
-        return f"Message {self.telegram_data} with command {self.command_item}"
+        return f"Message {self.profile_data} with command {self.command_item}"
 
     @property
     def items(self):
-        return self.telegram_data.items
+        return self.profile_data.items
 
     @property
     def data_length(self):
-        return self.telegram_data.bytes
+        return self.profile_data.bytes
 
-    def get_values(self, bitarray, status):
+    def get_values(self, bitarray, status, calculate_global=True):
         ''' Get keys and values from bitarray '''
-        # self.logger.debug(f"Parse bitarray {bitarray} {hex(int("".join(map(str, map(int, bitarray))), 2))[2:]}")
         output = []
+        bypass_list = []
+        if calculate_global and self.profile_data.has_global_operation:
+            self.logger.debug("Profile data has global operation to perform")
+            factor = 1
+            unit = None
+            operator_item = self.profile_data.factor
+            unit_item = self.profile_data.unit
+            values_item = self.profile_data.values
+            if operator_item:
+                bypass_list.append(operator_item)
+                operator = operator_item.parse(bitarray, status)
+                if operator[FieldSetName.SHORTCUT] == SpecificShortcut.DIVISOR:
+                    factor = 1 / float(operator[FieldSetName.VALUE])
+                elif operator[FieldSetName.SHORTCUT] == SpecificShortcut.MULTIPLIER:
+                    factor = float(operator[FieldSetName.VALUE])
+                self.logger.debug(f"Defined factor for profile data is {factor}")
+            if unit_item:
+                u = unit_item.parse(bitarray, status)
+                unit = u.get("value", "")
+                self.logger.debug(f"Defined unit for profile data is {unit}")
+            for v_i in values_item:
+                bypass_list.append(v_i)
+                v_i.unit = unit
+                v = v_i.parse(bitarray, status)
+                v[FieldSetName.VALUE] = v[FieldSetName.VALUE] * factor
+                output.append(v)
+
         for source in self.items:
             # Manage to get the command related value as define in profile
+            if source in bypass_list:
+                self.logger.debug(f"Bypass {source} this it has already been handled")
+                continue
             if source.shortcut == "CMD":
                 output.append({
                     'description': "Command identifier",
@@ -439,11 +495,11 @@ class Message:
         ''' Update data based on data contained in properties
         profile: Profile packet._bit_data, packet._bit_status
         '''
-        self.logger.debug(f"Set value for properties={values} to {self.telegram_data}")
+        self.logger.debug(f"Set value for properties={values} to {self.profile_data}")
         # self.logger.debug(f"Profile with selected command {self.profile.command_item} {self.profile.command_data}")
 
         for shortcut, value in values.items():
-            target = self.telegram_data.get(shortcut)
+            target = self.profile_data.get(shortcut)
             if isinstance(target, DataStatus):
                 packet._bit_status = target.set_value(value, packet._bit_data)
             else:
