@@ -5,7 +5,7 @@ import time
 import threading
 import queue
 from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket
-from enocean.protocol.constants import PacketTyoe, ParseResult, ReturnCode, CommandCode
+from enocean.protocol.constants import PacketType, ParseResult, ReturnCode, CommandCode
 
 
 class BaseController(threading.Thread):
@@ -97,7 +97,7 @@ class BaseController(threading.Thread):
             return self._base_id
 
         # Send COMMON_COMMAND 0x08, CO_RD_IDBASE request to the module
-        self.send(Packet(PacketTyoe.COMMON_COMMAND, data=[CommandCode.CO_RD_IDBASE]))
+        self.send(Packet(PacketType.COMMON_COMMAND, data=[CommandCode.CO_RD_IDBASE]))
         self.command_queue.append(CommandCode.CO_RD_IDBASE)
         # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
@@ -114,7 +114,7 @@ class BaseController(threading.Thread):
             return dict(app_version=self.app_version, api_version=self.api_version,
                         app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
         # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
-        self.send(Packet(PacketTyoe.COMMON_COMMAND, data=[CommandCode.CO_RD_VERSION]))
+        self.send(Packet(PacketType.COMMON_COMMAND, data=[CommandCode.CO_RD_VERSION]))
         self.command_queue.append(CommandCode.CO_RD_VERSION)
         # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
@@ -133,7 +133,7 @@ class BaseController(threading.Thread):
 
     def init_adapter(self):
         for code in (CommandCode.CO_RD_IDBASE, CommandCode.CO_RD_VERSION):
-            self.send(Packet(PacketTyoe.COMMON_COMMAND, data=[code]))
+            self.send(Packet(PacketType.COMMON_COMMAND, data=[code]))
             self.command_queue.append(code)
         for i in range(10):
             if self._base_id and self._chip_id:

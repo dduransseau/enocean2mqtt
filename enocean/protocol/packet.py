@@ -3,7 +3,7 @@ import logging
 
 from enocean.utils import combine_hex, to_hex_string, to_bitarray, from_bitarray, address_to_bytes_list
 from enocean.protocol import crc8
-from enocean.protocol.constants import PacketTyoe, RORG, ParseResult, DB0, DB2, DB3, DB4, DB6
+from enocean.protocol.constants import PacketType, RORG, ParseResult, DB0, DB2, DB3, DB4, DB6
 
 
 class Packet(object):
@@ -145,15 +145,15 @@ class Packet(object):
             return ParseResult.CRC_MISMATCH, buf, None
 
         # If we got this far, everything went ok (?)
-        if packet_type == PacketTyoe.RADIO:
+        if packet_type == PacketType.RADIO:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:
                 packet = UTETeachInPacket(packet_type, data, opt_data)
             else:
                 packet = RadioPacket(packet_type, data, opt_data)
-        elif packet_type == PacketTyoe.RESPONSE:
+        elif packet_type == PacketType.RESPONSE:
             packet = ResponsePacket(packet_type, data, opt_data)
-        elif packet_type == PacketTyoe.EVENT:
+        elif packet_type == PacketType.EVENT:
             packet = EventPacket(packet_type, data, opt_data)
         else:
             packet = Packet(packet_type, data, opt_data)
@@ -171,11 +171,11 @@ class Packet(object):
     def create_message(packet_type, equipment, direction=None, command=None,
                        destination=None, sender=None, learn=False, **kwargs):
         Packet.logger.debug(f'Create packet for equipment profile {equipment.profile}')
-        if packet_type != PacketTyoe.RADIO:
-            raise ValueError('Packet type not supported by this function.')
+        if packet_type != PacketType.RADIO:
+            raise NotImplementedError('Packet type not supported by this function.')
 
         if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD]: # , RORG.MSC
-            raise ValueError('RORG not supported by this function.')
+            raise NotImplementedError('RORG not supported by this function.')
 
         if destination is None:
             if equipment.address:
@@ -274,7 +274,7 @@ class RadioPacket(Packet):
     def create_message(equipment, direction=None, command=None,
                               destination=None, sender=None, learn=False, **kwargs):
         Packet.logger.debug(f"Create message RadioPacket for rorg {equipment.rorg}")
-        return Packet.create_message(PacketTyoe.RADIO, equipment,
+        return Packet.create_message(PacketType.RADIO, equipment,
                                      direction, command, destination, sender, learn, **kwargs)
 
     @property
@@ -381,7 +381,7 @@ class UTETeachInPacket(RadioPacket):
         # Always use 0x03 to indicate sending, attach sender ID, dBm, and security level
         optional = [0x03] + self.sender + [0xFF, 0x00]
 
-        return RadioPacket(PacketTyoe.RADIO, data=data, optional=optional)
+        return RadioPacket(PacketType.RADIO, data=data, optional=optional)
 
 
 class ResponsePacket(Packet):

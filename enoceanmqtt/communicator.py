@@ -8,7 +8,7 @@ import time
 
 from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket
-from enocean.protocol.constants import PacketTyoe, ReturnCode, RORG, DataFieldType, SpecificShortcut, FieldSetName
+from enocean.protocol.constants import PacketType, ReturnCode, RORG, DataFieldType, SpecificShortcut, FieldSetName
 from equipment import Equipment
 import enocean.utils
 import paho.mqtt.client as mqtt
@@ -325,7 +325,7 @@ class Communicator:
 
     def _handle_esp_data_packet(self, packet, equipment):
         # data packet received
-        if packet.packet_type == PacketTyoe.RADIO and packet.rorg == equipment.rorg:
+        if packet.packet_type == PacketType.RADIO and packet.rorg == equipment.rorg:
             # radio packet of proper rorg type received; parse EEP
             self.logger.debug(f"handle radio packet for sensor {equipment}")
             fields = equipment.get_packet_fields(packet, direction=equipment.direction)
@@ -511,9 +511,9 @@ class Communicator:
                     packet = self.enocean.receive.get(block=True)
 
                 # check packet type
-                if packet.packet_type == PacketTyoe.RADIO:
+                if packet.packet_type == PacketType.RADIO:
                     self._process_radio_packet(packet)
-                elif packet.packet_type == PacketTyoe.RESPONSE:
+                elif packet.packet_type == PacketType.RESPONSE:
                     response_code = ReturnCode(packet.data[0])
                     self.logger.info(f"got esp response packet: {response_code.name}")
                     if self.publish_response_status:

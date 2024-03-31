@@ -3,7 +3,7 @@ from enum import IntEnum, StrEnum, auto
 
 
 # EnOceanSerialProtocol3.pdf / 12
-class PacketTyoe(IntEnum):
+class PacketType(IntEnum):
     RESERVED = 0x00
     # RADIO == RADIO_ERP1
     # Kept for backwards compatibility reasons, for example custom packet
@@ -37,7 +37,7 @@ class ReturnCode(IntEnum):
 
 # EnOceanSerialProtocol3.pdf / 20
 class EventCode(IntEnum):
-    SA_RECLAIM_NOT_SUCCESFUL = 0x01
+    SA_RECLAIM_NOT_SUCCESSFUL = 0x01
     SA_CONFIRM_LEARN = 0x02
     SA_LEARN_ACK = 0x03
     CO_READY = 0x04
