@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-from enum import IntEnum, StrEnum, auto
+from enum import Enum, IntEnum, StrEnum, auto
 
 
 # EnOceanSerialProtocol3.pdf / 12
@@ -115,6 +115,16 @@ class SpecificShortcut(StrEnum):
     DIVISOR = 'DIV'
     COMMAND = 'CMD'
     LEARN_BIT = 'LRNB'
+    HUMIDITY_AVAILABILITY = "HSN"
+    TEMPERATURE_AVAILABILITY = "TSN"
+    HUMIDITY = "HUM"
+    TEMPERATURE = "TMP"
+
+
+AVAILABILITY_MAPPING = {
+    SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
+    SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE
+}
 
 
 class FieldSetName(StrEnum):

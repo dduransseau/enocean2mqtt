@@ -40,7 +40,7 @@ class SerialController(BaseController):
             try:
                 self.parse()
             except Exception as e:
-                self.logger.error(f'Exception occured while parsing: {e}')
+                self.logger.error(f'Exception occurred while parsing: {e}')
             time.sleep(0)
 
         self.__ser.close()

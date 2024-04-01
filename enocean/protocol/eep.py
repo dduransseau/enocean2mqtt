@@ -4,7 +4,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from enocean.utils import to_eep_hex_code, from_hex_string
-from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, FieldSetName  # noqa: F401
+from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, FieldSetName, AVAILABILITY_MAPPING  # noqa: F401
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('enocean.protocol.eep')
@@ -308,9 +308,11 @@ class ProfileData:
         self.direction = int(elt.get("direction")) if elt.get("direction") else None
         self.bytes = int(elt.get("bits")) if elt.get("bits") else None
         self.items = list()
+        # Specific items list for global message operations
         self._data_value = set()
         self._operator_fields = list()
         self._unit_fields = list()
+        self._availability_fields = list()
 
         for e in elt.iter():
             if e.tag == "status":
@@ -327,6 +329,8 @@ class ProfileData:
                 self._operator_fields.append(d)
             elif d.shortcut == SpecificShortcut.UNIT:
                 self._unit_fields.append(d)
+            elif d.shortcut in (SpecificShortcut.TEMPERATURE_AVAILABILITY, SpecificShortcut.HUMIDITY_AVAILABILITY):
+                self._availability_fields.append(d)
 
     def __str__(self):
         return f"Profile data with {len(self.items)} items | command:{self.command} direction:{self.direction} "
@@ -367,6 +371,10 @@ class ProfileData:
     @property
     def values(self):
         return self._data_value if self._data_value else None
+
+    @property
+    def availability_fields(self):
+        return self._availability_fields if self._availability_fields else None
 
 
 class Profile:
@@ -446,12 +454,12 @@ class Message:
     def data_length(self):
         return self.profile_data.bytes
 
-    def get_values(self, bitarray, status, calculate_global=True):
+    def get_values(self, bitarray, status, global_process=True):
         ''' Get keys and values from bitarray '''
         output = []
         bypass_list = []
         # Calculate the values that have unit or operator (multiplier or divisor) in the message
-        if calculate_global and self.profile_data.has_global_operation:
+        if global_process and self.profile_data.has_global_operation:
             self.logger.debug("Profile data has global operation to perform")
             factor = 1
             unit = None
@@ -476,6 +484,23 @@ class Message:
                 v = v_i.parse(bitarray, status)
                 v[FieldSetName.VALUE] = v[FieldSetName.VALUE] * factor
                 output.append(v)
+        # Remove fields for device that have unavailable sensor
+        if global_process and self.profile_data.availability_fields:
+            try:
+                self.logger.debug("Profile data has fields availability flags")
+                for flag in self.profile_data.availability_fields:
+                    availability_flag = flag.parse(bitarray, status)
+                    self.logger.debug(f"Field availability flags to process {availability_flag}")
+                    if metric_shortcut := AVAILABILITY_MAPPING.get(availability_flag[FieldSetName.SHORTCUT]):
+                        if availability_flag[FieldSetName.VALUE] == 'not available':
+                            metric_field = [v for v in self.profile_data.values if v.shortcut == metric_shortcut]
+                            self.logger.debug(f"Found value field to disable: {metric_field}")
+                            bypass_list.append(metric_field[0])
+                            bypass_list.append(flag)
+            except IndexError:
+                self.logger.warning(f"There is an error in unavailability field")
+            except Exception:
+                pass
 
         for source in self.items:
             # Manage to get the command related value as define in profile
