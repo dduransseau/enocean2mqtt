@@ -24,15 +24,15 @@ class Packet(object):
 
         self.received = None
 
-        if data is None or not isinstance(data, list):
+        if data is None:
             self.logger.warning(f'Replacing Packet.data with default value, for packet type {self.packet_type}')
-            self.data = []
+            self.data = bytearray()
         else:
             self.data = data
 
-        if not isinstance(optional, list) or optional is None:
+        if optional is None:
             self.logger.debug(f'Replacing Packet.optional with default value, for packet type {self.packet_type}')
-            self.optional = []
+            self.optional = bytearray()
         else:
             self.optional = optional
 
@@ -103,42 +103,51 @@ class Packet(object):
         '''
         # If the buffer doesn't contain 0x55 (start char)
         # the message isn't needed -> ignore
-        if 0x55 not in buf:
-            return ParseResult.INCOMPLETE, [], None
+        if b"\x55" not in buf:
+            return ParseResult.INCOMPLETE, buf, None
 
         # Valid buffer starts from 0x55
         # Convert to list, as index -method isn't defined for bytearray
-        buf = [ord(x) if not isinstance(x, int) else x for x in buf[list(buf).index(0x55):]]
+        # buf = [ord(x) if not isinstance(x, int) else x for x in buf[list(buf).index(0x55):]]
+        frame, buf = buf.split(b"\x55", 1)
+        # try:
+        #     frame, buf = buf.split(b"\x55", 1)
+        # except ValueError:
+        #     frame = None
+            # print(f"Buffer: {self._buffer.hex()}")
+        if frame:
+            print(f"Received frame: {frame.hex()}")
+        # buf, frame = buf.split(b'\x55', 1)
         try:
-            data_len = (buf[1] << 8) | buf[2]
-            opt_len = buf[3]
+            data_len = (frame[0] << 8) | frame[1]
+            opt_len = frame[2]
         except IndexError:
             # If the fields don't exist, message is incomplete
             return ParseResult.INCOMPLETE, buf, None
-
-        DATA_END = 6 + data_len  # header + checksum + data
+        DATA_START = 5
+        DATA_END = DATA_START + data_len  # header + checksum + data
         OPT_DATA_END = DATA_END + opt_len # header + header_checksum + data + opt_dat
-
+        print("DATA_LEN", data_len,"OPT len", opt_len, "len frame", len(frame), "len buf", len(buf))
         # Header: 6 bytes, data, optional data and data checksum
         MSG_LEN = OPT_DATA_END + 1
-        if len(buf) < MSG_LEN:
-            # If buffer isn't long enough, the message is incomplete
-            return ParseResult.INCOMPLETE, buf, None
+        # if len(buf) < MSG_LEN:
+        #     # If buffer isn't long enough, the message is incomplete
+        #     return ParseResult.INCOMPLETE, buf, None
 
-        msg = buf[0:MSG_LEN]
-        buf = buf[MSG_LEN:]
+        # msg = buf[0:MSG_LEN]
+        # buf = buf[MSG_LEN:]
 
-        packet_type = msg[4]
-        data = msg[6:DATA_END]
-        opt_data = msg[DATA_END:OPT_DATA_END]
-
+        packet_type = frame[3]
+        data = frame[DATA_START:DATA_END]
+        opt_data = frame[DATA_END:OPT_DATA_END]
+        print("DATA:", data, "OPT data:", opt_data, "packet type ",packet_type)
         # Check CRCs for header and data
-        if msg[5] != crc8.calc(msg[1:5]):
+        if frame[5] != crc8.calc(frame[1:DATA_START]):
             # Fail if doesn't match message
             Packet.logger.error('Header CRC error!')
             # Return CRC_MISMATCH
             return ParseResult.CRC_MISMATCH, buf, None
-        if msg[OPT_DATA_END] != crc8.calc(msg[6:OPT_DATA_END]):
+        if frame[OPT_DATA_END] != crc8.calc(frame[DATA_START:OPT_DATA_END]):
             # Fail if doesn't match message
             Packet.logger.error('Data CRC error!')
             # Return CRC_MISMATCH
@@ -157,7 +166,7 @@ class Packet(object):
             packet = EventPacket(packet_type, data, opt_data)
         else:
             packet = Packet(packet_type, data, opt_data)
-
+        Packet.logger.debug(f"Successfully parsed packet {packet}")
         return ParseResult.OK, buf, packet
 
     @staticmethod

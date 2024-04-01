@@ -178,7 +178,8 @@ class Communicator:
                     break
                 time.sleep(0.1)
             payload = self.controller_info
-            payload["address"] = enocean.utils.to_hex_string(self.controller_address)
+            self.logger.warning(f"Controller address bytearray is {self.controller_address}")
+            # payload["address"] = enocean.utils.to_hex_string(self.controller_address) # Set it back
             self.mqtt_publish(f"{self.topic_prefix}{self.ADAPTER_DETAILS_TOPIC}", payload, retain=True)
         except Exception:
             self.logger.exception(Exception)

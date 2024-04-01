@@ -20,7 +20,7 @@ class BaseController(threading.Thread):
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
         # Input buffer
-        self._buffer = []
+        self._buffer = bytearray()
         # Setup packet queues
         self.transmit = queue.Queue()
         self.receive = queue.Queue()
@@ -64,7 +64,16 @@ class BaseController(threading.Thread):
     def parse(self):
         ''' Parses messages and puts them to receive queue '''
         # Loop while we get new messages
+        # frame = None
         while True:
+            # try:
+            #     frame, self._buffer = self._buffer.split(b"\x55", 1)
+            # except ValueError:
+            #     pass
+            #     # print(f"Buffer: {self._buffer.hex()}")
+            # if frame:
+            #     print(f"Received frame: {frame.hex()}")
+
             status, self._buffer, packet = Packet.parse_msg(self._buffer)
             # If message is incomplete -> break the loop
             if status == ParseResult.INCOMPLETE:
@@ -143,13 +152,15 @@ class BaseController(threading.Thread):
 
     def parse_common_command_response(self, packet):
         command_id = self.command_queue.pop(0)
-        self.logger.info(f"Get packet response for command {command_id}")
+        self.logger.info(f"Get packet response for command {command_id} with data {packet.response_data}")
         if command_id == CommandCode.CO_RD_VERSION:
-            self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
-            self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
+            splited_list = list(packet.response_data)
+            self.app_version = ".".join([chr(b) for b in splited_list[0:4]])
+            self.api_version = ".".join([chr(b) for b in splited_list[4:8]])
             self._chip_id = int.from_bytes(packet.response_data[8:12])
             self._chip_version = int.from_bytes(packet.response_data[12:16])
-            self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
+            self.app_description = "".join([chr(c) for c in splited_list[16:] if c])
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.
-            self._base_id = packet.response_data
+            self._base_id = list(packet.response_data)
+            self.logger.debug(f"Setup base ID as {self._base_id}")
