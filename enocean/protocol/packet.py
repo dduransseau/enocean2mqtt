@@ -116,14 +116,10 @@ class Packet(object):
             # print("DATA:", data, "OPT data:", opt_data, "packet type",packet_type)
             # Check CRCs for header and data
             if frame[5] != crc8.calc(frame[1:5]):
-                # Fail if doesn't match message
                 Packet.logger.error('Header CRC error!')
-                # Return CRC_MISMATCH
                 return ParseResult.CRC_MISMATCH, None
             if frame[OPT_DATA_END] != crc8.calc(frame[DATA_START:OPT_DATA_END]):
-                # Fail if doesn't match message
                 Packet.logger.error('Data CRC error!')
-                # Return CRC_MISMATCH
                 return ParseResult.CRC_MISMATCH, None
         except IndexError:
             # If the fields don't exist, message is incomplete

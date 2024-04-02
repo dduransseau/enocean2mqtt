@@ -5,7 +5,7 @@ import time
 import threading
 import queue
 from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket
-from enocean.protocol.constants import PacketType, ParseResult, ReturnCode, CommandCode
+from enocean.protocol.constants import PacketType, ParseResult, CommandCode
 
 
 class BaseController(threading.Thread):
@@ -38,6 +38,7 @@ class BaseController(threading.Thread):
         self._chip_id = None
         self._chip_version = None
         self.app_description = None
+        self.crc_errors = 0
 
     def _get_from_send_queue(self):
         ''' Get message from send queue, if one exists '''
@@ -95,6 +96,8 @@ class BaseController(threading.Thread):
                 else:
                     self.__callback(packet)
                 # self.logger.debug(packet)
+            elif status == ParseResult.CRC_MISMATCH:
+                self.crc_errors += 1
 
     @property
     def base_id(self):
@@ -161,5 +164,5 @@ class BaseController(threading.Thread):
             self.logger.debug(f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={self._chip_id} chip_version={self._chip_version}")
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.
-            self._base_id = list(packet.response_data)
+            self._base_id = packet.response_data
             self.logger.debug(f"Setup base ID as {self._base_id}")
