@@ -26,13 +26,13 @@ class Packet(object):
 
         if data is None:
             self.logger.warning(f'Replacing Packet.data with default value, for packet type {self.packet_type}')
-            self.data = bytearray()
+            self.data = []
         else:
             self.data = data
 
         if optional is None:
             self.logger.debug(f'Replacing Packet.optional with default value, for packet type {self.packet_type}')
-            self.optional = bytearray()
+            self.optional = []
         else:
             self.optional = optional
 
@@ -101,6 +101,7 @@ class Packet(object):
             - Packet -object (if message was valid, else None)
         '''
         try:
+            frame = list(frame) # Convert bytearray to list to easily manage index
             data_len = (frame[1] << 8) | frame[2]
             opt_len = frame[3]
             packet_type = frame[4]

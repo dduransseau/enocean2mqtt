@@ -143,22 +143,21 @@ class BaseController(threading.Thread):
             self.send(Packet(PacketType.COMMON_COMMAND, data=[code]))
             self.command_queue.append(code)
             time.sleep(0.1)
-        for i in range(10):
-            if self._base_id and self._chip_id:
-                return True
-            time.sleep(0.1)
-        raise TimeoutError("Unable get adapter information in time")
+        # for i in range(10):
+        #     if self._base_id and self._chip_id:
+        #         return True
+        #     time.sleep(0.1)
+        # raise TimeoutError("Unable get adapter information in time")
 
     def parse_common_command_response(self, packet):
         command_id = self.command_queue.pop(0)
-        self.logger.info(f"Get packet response for command {command_id} with data {packet.response_data}")
+        # self.logger.info(f"Get packet response for command {command_id} with data {packet.response_data}")
         if command_id == CommandCode.CO_RD_VERSION:
-            splited_list = list(packet.response_data)
-            self.app_version = ".".join([str(b) for b in splited_list[0:4]])
-            self.api_version = ".".join([str(b) for b in splited_list[4:8]])
+            self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
+            self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
             self._chip_id = int.from_bytes(packet.response_data[8:12])
             self._chip_version = int.from_bytes(packet.response_data[12:16])
-            self.app_description = "".join([chr(c) for c in splited_list[16:] if c])
+            self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
             self.logger.debug(f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={self._chip_id} chip_version={self._chip_version}")
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.
