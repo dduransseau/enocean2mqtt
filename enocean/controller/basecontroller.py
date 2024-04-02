@@ -5,7 +5,7 @@ import time
 import threading
 import queue
 from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket
-from enocean.protocol.constants import PacketType, ParseResult, ReturnCode, CommandCode
+from enocean.protocol.constants import PacketType, ParseResult, CommandCode
 
 
 class BaseController(threading.Thread):
@@ -20,7 +20,7 @@ class BaseController(threading.Thread):
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
         # Input buffer
-        self._buffer = []
+        self._buffer = bytearray()
         # Setup packet queues
         self.transmit = queue.Queue()
         self.receive = queue.Queue()
@@ -38,6 +38,7 @@ class BaseController(threading.Thread):
         self._chip_id = None
         self._chip_version = None
         self.app_description = None
+        self.crc_errors = 0
 
     def _get_from_send_queue(self):
         ''' Get message from send queue, if one exists '''
@@ -65,13 +66,20 @@ class BaseController(threading.Thread):
         ''' Parses messages and puts them to receive queue '''
         # Loop while we get new messages
         while True:
-            status, self._buffer, packet = Packet.parse_msg(self._buffer)
+            try:
+                # Look for next frame separator since first byte must be a separator
+                separator_index = self._buffer.index(b"\x55", 1)
+                frame = self._buffer[0:separator_index]
+                self._buffer = self._buffer[separator_index:]
+            except ValueError:
+                return ParseResult.INCOMPLETE
+
+            status, packet = Packet.parse_frame(frame)
             # If message is incomplete -> break the loop
             if status == ParseResult.INCOMPLETE:
                 return status
-
             # If message is OK, add it to receive queue or send to the callback method
-            if status == ParseResult.OK and packet:
+            elif status == ParseResult.OK and packet:
                 if self.frame_timestamp:
                     packet.received = time.time()
 
@@ -88,6 +96,8 @@ class BaseController(threading.Thread):
                 else:
                     self.__callback(packet)
                 # self.logger.debug(packet)
+            elif status == ParseResult.CRC_MISMATCH:
+                self.crc_errors += 1
 
     @property
     def base_id(self):
@@ -135,21 +145,24 @@ class BaseController(threading.Thread):
         for code in (CommandCode.CO_RD_IDBASE, CommandCode.CO_RD_VERSION):
             self.send(Packet(PacketType.COMMON_COMMAND, data=[code]))
             self.command_queue.append(code)
-        for i in range(10):
-            if self._base_id and self._chip_id:
-                return True
             time.sleep(0.1)
-        raise TimeoutError("Unable get adapter information in time")
+        # for i in range(10):
+        #     if self._base_id and self._chip_id:
+        #         return True
+        #     time.sleep(0.1)
+        # raise TimeoutError("Unable get adapter information in time")
 
     def parse_common_command_response(self, packet):
         command_id = self.command_queue.pop(0)
-        self.logger.info(f"Get packet response for command {command_id}")
+        # self.logger.info(f"Get packet response for command {command_id} with data {packet.response_data}")
         if command_id == CommandCode.CO_RD_VERSION:
             self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
             self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
             self._chip_id = int.from_bytes(packet.response_data[8:12])
             self._chip_version = int.from_bytes(packet.response_data[12:16])
             self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
+            self.logger.debug(f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={self._chip_id} chip_version={self._chip_version}")
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.
             self._base_id = packet.response_data
+            self.logger.debug(f"Setup base ID as {self._base_id}")

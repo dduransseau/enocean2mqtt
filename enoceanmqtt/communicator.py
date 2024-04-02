@@ -167,18 +167,23 @@ class Communicator:
     def _publish_gateway_adapter_details(self):
         # Wait that enocean communicator is initialized before publishing teach in mode
         for i in range(10):
-            if self.enocean:
+            if self.controller_address is None:
+                try:
+                    self.enocean.init_adapter()
+                    self.controller_address = self.enocean.base_id
+                    self.logger.info(f"Base id {self.controller_address}")
+                    self.controller_info = self.enocean.controller_info_details
+                    self.logger.info(f"Controller info: {self.controller_info}")
+                except TimeoutError:
+                    self.logger.error(f"Unable to retrieve adapter information in time")
+            elif self.controller_address and self.controller_info:
                 break
             time.sleep(0.1)
         try:
             teach_in = "ON" if self.enocean.teach_in else "OFF"
             self.mqtt_publish(f"{self.topic_prefix}{self.TEACH_IN_TOPIC}", teach_in, retain=True)
-            for i in range(10):
-                if self.controller_info and self.controller_address:
-                    break
-                time.sleep(0.1)
             payload = self.controller_info
-            payload["address"] = enocean.utils.to_hex_string(self.controller_address)
+            payload["address"] = enocean.utils.to_hex_string(self.controller_address) # Set it back
             self.mqtt_publish(f"{self.topic_prefix}{self.ADAPTER_DETAILS_TOPIC}", payload, retain=True)
         except Exception:
             self.logger.exception(Exception)
@@ -491,15 +496,15 @@ class Communicator:
         # start endless loop for listening
         while self.enocean.is_alive():
             # Request transmitter ID, if needed
-            if self.controller_address is None:
-                try:
-                    self.enocean.init_adapter()
-                    self.controller_address = self.enocean.base_id
-                    self.logger.info(f"Base id {enocean.utils.to_hex_string(self.controller_address)}")
-                    self.controller_info = self.enocean.controller_info_details
-                    self.logger.info(f"Controller info: {self.controller_info}")
-                except TimeoutError:
-                    self.logger.error(f"Unable to retrieve adapter information in time")
+            # if self.controller_address is None:
+            #     try:
+            #         self.enocean.init_adapter()
+            #         self.controller_address = self.enocean.base_id
+            #         self.logger.info(f"Base id {self.controller_address}")
+            #         self.controller_info = self.enocean.controller_info_details
+            #         self.logger.info(f"Controller info: {self.controller_info}")
+            #     except TimeoutError:
+            #         self.logger.error(f"Unable to retrieve adapter information in time")
 
             # Loop to empty the queue...
             try:

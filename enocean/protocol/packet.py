@@ -24,13 +24,13 @@ class Packet(object):
 
         self.received = None
 
-        if data is None or not isinstance(data, list):
+        if data is None:
             self.logger.warning(f'Replacing Packet.data with default value, for packet type {self.packet_type}')
             self.data = []
         else:
             self.data = data
 
-        if not isinstance(optional, list) or optional is None:
+        if optional is None:
             self.logger.debug(f'Replacing Packet.optional with default value, for packet type {self.packet_type}')
             self.optional = []
         else:
@@ -93,56 +93,37 @@ class Packet(object):
         self.status = from_bitarray(value)
 
     @staticmethod
-    def parse_msg(buf):
+    def parse_frame(frame):
         '''
-        Parses message from buffer.
+        Parses packet from frame.
         returns:
             - PARSE_RESULT
-            - remaining buffer
             - Packet -object (if message was valid, else None)
         '''
-        # If the buffer doesn't contain 0x55 (start char)
-        # the message isn't needed -> ignore
-        if 0x55 not in buf:
-            return ParseResult.INCOMPLETE, [], None
-
-        # Valid buffer starts from 0x55
-        # Convert to list, as index -method isn't defined for bytearray
-        buf = [ord(x) if not isinstance(x, int) else x for x in buf[list(buf).index(0x55):]]
         try:
-            data_len = (buf[1] << 8) | buf[2]
-            opt_len = buf[3]
+            frame = list(frame) # Convert bytearray to list to easily manage index
+            data_len = (frame[1] << 8) | frame[2]
+            opt_len = frame[3]
+            packet_type = frame[4]
+
+            DATA_START = 6
+            DATA_END = DATA_START + data_len  # header + checksum + data
+            OPT_DATA_END = DATA_END + opt_len # header + header_checksum + data + opt_dat
+            # print("DATA_LEN", data_len,"OPT len", opt_len, "len frame", len(frame))
+            # Header: 6 bytes, data, optional data and data checksum
+            data = frame[DATA_START:DATA_END]
+            opt_data = frame[DATA_END:OPT_DATA_END]
+            # print("DATA:", data, "OPT data:", opt_data, "packet type",packet_type)
+            # Check CRCs for header and data
+            if frame[5] != crc8.calc(frame[1:5]):
+                Packet.logger.error('Header CRC error!')
+                return ParseResult.CRC_MISMATCH, None
+            if frame[OPT_DATA_END] != crc8.calc(frame[DATA_START:OPT_DATA_END]):
+                Packet.logger.error('Data CRC error!')
+                return ParseResult.CRC_MISMATCH, None
         except IndexError:
             # If the fields don't exist, message is incomplete
-            return ParseResult.INCOMPLETE, buf, None
-
-        DATA_END = 6 + data_len  # header + checksum + data
-        OPT_DATA_END = DATA_END + opt_len # header + header_checksum + data + opt_dat
-
-        # Header: 6 bytes, data, optional data and data checksum
-        MSG_LEN = OPT_DATA_END + 1
-        if len(buf) < MSG_LEN:
-            # If buffer isn't long enough, the message is incomplete
-            return ParseResult.INCOMPLETE, buf, None
-
-        msg = buf[0:MSG_LEN]
-        buf = buf[MSG_LEN:]
-
-        packet_type = msg[4]
-        data = msg[6:DATA_END]
-        opt_data = msg[DATA_END:OPT_DATA_END]
-
-        # Check CRCs for header and data
-        if msg[5] != crc8.calc(msg[1:5]):
-            # Fail if doesn't match message
-            Packet.logger.error('Header CRC error!')
-            # Return CRC_MISMATCH
-            return ParseResult.CRC_MISMATCH, buf, None
-        if msg[OPT_DATA_END] != crc8.calc(msg[6:OPT_DATA_END]):
-            # Fail if doesn't match message
-            Packet.logger.error('Data CRC error!')
-            # Return CRC_MISMATCH
-            return ParseResult.CRC_MISMATCH, buf, None
+            return ParseResult.INCOMPLETE, None
 
         # If we got this far, everything went ok (?)
         if packet_type == PacketType.RADIO:
@@ -157,8 +138,8 @@ class Packet(object):
             packet = EventPacket(packet_type, data, opt_data)
         else:
             packet = Packet(packet_type, data, opt_data)
-
-        return ParseResult.OK, buf, packet
+        Packet.logger.debug(f"Successfully parsed packet {packet}")
+        return ParseResult.OK, packet
 
     @staticmethod
     def validate_address(address):
@@ -256,7 +237,7 @@ class Packet(object):
 
     def build_message(self, data):
         self.message.set_values(self, data)
-        return Packet.parse_msg(self.build())[2]
+        return Packet.parse_frame(self.build())[1]
 
 
 class RadioPacket(Packet):

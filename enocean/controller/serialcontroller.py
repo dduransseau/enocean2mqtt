@@ -19,6 +19,7 @@ class SerialController(BaseController):
 
     def run(self):
         self.logger.info('SerialCommunicator started')
+        self.__ser.read_until(b'\55')
         while not self._stop_flag.is_set():
             # If there's messages in transmit queue
             # send them
@@ -33,15 +34,15 @@ class SerialController(BaseController):
 
             # Read chars from serial port as hex numbers
             try:
-                self._buffer.extend(bytearray(self.__ser.read(16)))
+                self._buffer.extend(self.__ser.read(16))
             except serial.SerialException:
                 self.logger.error(f'Serial port exception! (device disconnected or multiple access on port {self.__port} ?)')
                 self.stop()
-            try:
-                self.parse()
-            except Exception as e:
-                self.logger.error(f'Exception occurred while parsing: {e}')
-            time.sleep(0)
+            # try:
+            self.parse()
+            # except Exception as e:
+            #     self.logger.error(f'Exception occurred while parsing: {e}')
+            # time.sleep(0) # TODO : need ?
 
         self.__ser.close()
         self.logger.info('SerialCommunicator stopped')
