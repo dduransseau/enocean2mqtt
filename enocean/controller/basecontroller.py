@@ -6,7 +6,7 @@ import threading
 import queue
 from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket
 from enocean.protocol.constants import (PacketType, ParseResult, CommandCode,
-                                        RESPONSE_FREQUENCY_MAPPING, RESPONSE_PROTOCOL_MAPPING,
+                                        RESPONSE_FREQUENCY_FREQUENCY, RESPONSE_FREQUENCY_PROTOCOL,
                                         RESPONSE_REPEATER_MODE, RESPONSE_REPEATER_LEVEL)
 from enocean.protocol import crc8
 
@@ -199,8 +199,8 @@ class BaseController(threading.Thread):
             self._base_id = packet.response_data
             self.logger.debug(f"Setup base ID as {self._base_id}")
         elif command_id == CommandCode.CO_GET_FREQUENCY_INFO:
-            frequency = RESPONSE_FREQUENCY_MAPPING[packet.response_data[0]]
-            protocol = RESPONSE_PROTOCOL_MAPPING[packet.response_data[1]]
+            frequency = RESPONSE_FREQUENCY_FREQUENCY[packet.response_data[0]]
+            protocol = RESPONSE_FREQUENCY_PROTOCOL[packet.response_data[1]]
             self.logger.info(f"Device info: work on frequency {frequency} with protocol {protocol}")
         elif command_id == CommandCode.CO_RD_REPEATER:
             repeater_mode = RESPONSE_REPEATER_MODE[packet.response_data[0]]
