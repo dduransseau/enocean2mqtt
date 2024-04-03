@@ -18,7 +18,7 @@ class SerialController(BaseController):
         self.__ser = serial.Serial(port, baudrate, timeout=timeout)
 
     def run(self):
-        self.logger.info('SerialCommunicator started')
+        self.logger.info(f'SerialCommunicator started on port {self.__ser.name} with baudrate {self.__ser.baudrate}')
         self.__ser.read_until(b'\55')
         while not self._stop_flag.is_set():
             # If there's messages in transmit queue

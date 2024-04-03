@@ -87,7 +87,7 @@ class Communicator:
         if self.get_config_boolean('mqtt_debug'):
             self.mqtt_client.enable_logger()
         self.log_packets = self.get_config_boolean('log_packets')
-        logging.debug(f"connecting to host {self.conf['mqtt_host']}, port {mqtt_port}, keepalive {mqtt_keepalive}")
+        self.logger.debug(f"connecting to host {self.conf['mqtt_host']}, port {mqtt_port}, keepalive {mqtt_keepalive}")
         self.mqtt_qos = int(self.conf['mqtt_qos']) if self.conf.get('mqtt_qos') else 0
         self.mqtt_client.connect_async(self.conf['mqtt_host'], port=mqtt_port, keepalive=mqtt_keepalive)
         self.mqtt_client.loop_start()
