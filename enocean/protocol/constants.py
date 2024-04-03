@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-from enum import Enum, IntEnum, StrEnum, auto
+from enum import IntEnum, StrEnum, auto
 
 
 # EnOceanSerialProtocol3.pdf / 12
@@ -69,13 +69,19 @@ class CommandCode(IntEnum):
     CO_WR_MEM = 0x12
     CO_RD_MEM = 0x13
     CO_RD_MEM_ADDRESS = 0x14
-    CO_RD_SECURITY = 0x15
-    CO_WR_SECURITY = 0x16
+    CO_RD_SECURITY = 0x15 # DEPRECATED
+    CO_WR_SECURITY = 0x16 # DEPRECATED
     CO_WR_LEARNMODE = 0x17
     CO_RD_LEARNMODE = 0x18
-    CO_WR_SECUREDEVICE_ADD = 0x19
+    CO_WR_SECUREDEVICE_ADD = 0x19 # DEPRECATED
     CO_WR_SECUREDEVICE_DEL = 0x1a
-    CO_RD_SECUREDEVICES = 0x1b
+    CO_RD_SECUREDEVICES_BY_INDEX = 0x1b # DEPRECATED
+    CO_WR_MODE = 0x1c
+    CO_SET_BAUDRATE = 0x24
+    CO_GET_FREQUENCY_INFO = 0x25
+    CO_GET_STEPCODE = 0x27
+    CO_GET_NOISETHRESHOLD = 0x33
+    CO_RD_TRANSPARENT_MODE = 0x3f
 
 
 # EnOcean_Equipment_Profiles_EEP_V2.61_public.pdf / 8
@@ -121,11 +127,10 @@ class SpecificShortcut(StrEnum):
     TEMPERATURE = "TMP"
 
 
-AVAILABILITY_MAPPING = {
+AVAILABILITY_FIELD_MAPPING = {
     SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
     SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE
 }
-
 
 class FieldSetName(StrEnum):
     RAW_VALUE = auto()
@@ -213,3 +218,32 @@ class DB6:
     BIT_5 = -54
     BIT_6 = -55
     BIT_7 = -56
+
+
+RESPONSE_REPEATER_MODE = {
+    0: "OFF",
+    1: "ON",
+    2: "SELECTIVE"
+}
+
+RESPONSE_REPEATER_LEVEL = {
+    0: "OFF",
+    1: "1-level",
+    2: "2-level"
+}
+
+RESPONSE_FREQUENCY_MAPPING = {
+    0: "315Mhz",
+    1: "868.3Mhz",
+    2: "902.87Mhz",
+    3: "925Mhz",
+    4: "928Mhz",
+    32: "2.4 Ghz"
+}
+
+RESPONSE_PROTOCOL_MAPPING = {
+    0: "ERP1",
+    1: "ERP2",
+    16: "802.15.4",
+    48: "Long Range",
+}

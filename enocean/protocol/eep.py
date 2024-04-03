@@ -4,7 +4,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from enocean.utils import to_eep_hex_code, from_hex_string
-from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, FieldSetName, AVAILABILITY_MAPPING  # noqa: F401
+from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, FieldSetName, AVAILABILITY_FIELD_MAPPING  # noqa: F401
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('enocean.protocol.eep')
@@ -491,7 +491,7 @@ class Message:
                 for flag in self.profile_data.availability_fields:
                     availability_flag = flag.parse(bitarray, status)
                     self.logger.debug(f"Field availability flags to process {availability_flag}")
-                    if metric_shortcut := AVAILABILITY_MAPPING.get(availability_flag[FieldSetName.SHORTCUT]):
+                    if metric_shortcut := AVAILABILITY_FIELD_MAPPING.get(availability_flag[FieldSetName.SHORTCUT]):
                         if availability_flag[FieldSetName.VALUE] == 'not available':
                             metric_field = [v for v in self.profile_data.values if v.shortcut == metric_shortcut]
                             self.logger.debug(f"Found value field to disable: {metric_field}")
