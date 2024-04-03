@@ -67,7 +67,7 @@ class Communicator:
         self.controller_info = None
 
         # setup mqtt connection
-        client_id = self.conf.get('mqtt_client_id', "enocean2mqtt")
+        client_id = self.conf.get('mqtt_client_id', None)
         self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
         self.mqtt_client.on_connect = self._on_connect
         self.mqtt_client.on_disconnect = self._on_disconnect
@@ -308,7 +308,7 @@ class Communicator:
             # Handling received data packet
             message_fields = self._handle_esp_data_packet(packet, equipment)
             if not message_fields:
-                self.logger.warning(f"message not interpretable: {equipment.name}")
+                self.logger.warning(f"message not interpretable: {equipment.name} {packet}")
             else:
                 # Store receive date
                 if self.publish_timestamp:

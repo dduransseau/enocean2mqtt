@@ -105,27 +105,26 @@ class Packet(object):
             data_len = (frame[1] << 8) | frame[2]
             opt_len = frame[3]
             packet_type = frame[4]
+            # Calculate packet header+crc =7
+            # packet_len = 7 + data_len + opt_len
+            # if len(frame) < packet_len:
+            #     Packet.logger.warning(f"Received frame is incomplete packet len should be {packet_len}, frame len is {len(frame)}")
+            #     return ParseResult.INCOMPLETE, None
 
             DATA_START = 6
             DATA_END = DATA_START + data_len  # header + checksum + data
-            OPT_DATA_END = DATA_END + opt_len # header + header_checksum + data + opt_dat
             # print("DATA_LEN", data_len,"OPT len", opt_len, "len frame", len(frame))
             # Header: 6 bytes, data, optional data and data checksum
             data = frame[DATA_START:DATA_END]
-            opt_data = frame[DATA_END:OPT_DATA_END]
-            # print("DATA:", data, "OPT data:", opt_data, "packet type",packet_type)
-            # Check CRCs for header and data
-            if frame[5] != crc8.calc(frame[1:5]):
-                Packet.logger.error('Header CRC error!')
-                return ParseResult.CRC_MISMATCH, None
-            if frame[OPT_DATA_END] != crc8.calc(frame[DATA_START:OPT_DATA_END]):
-                Packet.logger.error('Data CRC error!')
+            opt_data = frame[DATA_END:-1]
+            # Header checksum has been checked into controller
+            if frame[-1] != crc8.calc(frame[DATA_START:-1]):
+                Packet.logger.warning(f'Data CRC error! {frame}')
                 return ParseResult.CRC_MISMATCH, None
         except IndexError:
+            Packet.logger.warning(f"Packet incomplete, Index error") # check if it can be moved into controller
             # If the fields don't exist, message is incomplete
             return ParseResult.INCOMPLETE, None
-
-        # If we got this far, everything went ok (?)
         if packet_type == PacketType.RADIO:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:

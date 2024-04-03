@@ -6,7 +6,7 @@ import threading
 import queue
 from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket
 from enocean.protocol.constants import PacketType, ParseResult, CommandCode
-
+from enocean.protocol import crc8
 
 class BaseController(threading.Thread):
     '''
@@ -21,6 +21,8 @@ class BaseController(threading.Thread):
         self._stop_flag = threading.Event()
         # Input buffer
         self._buffer = bytearray()
+        # Index of next Sync Byte that define next packet limit
+        self.next_sync_byte = 1
         # Setup packet queues
         self.transmit = queue.Queue()
         self.receive = queue.Queue()
@@ -67,22 +69,48 @@ class BaseController(threading.Thread):
         # Loop while we get new messages
         while True:
             try:
-                # Look for next frame separator since first byte must be a separator
-                separator_index = self._buffer.index(b"\x55", 1)
-                frame = self._buffer[0:separator_index]
-                self._buffer = self._buffer[separator_index:]
-            except ValueError:
+                # Look for next frame Sync Byte
+                sync_byte_index = self._buffer.index(b"\x55", self.next_sync_byte)
+                header = self._buffer[1:5]
+                crc = self._buffer[5]
+                # self.logger.warning(f"Check crc value for frame header for header={header} and crc={crc}")
+                if crc8.calc(header) == crc:
+                    # Start of an ESP3 packet, get frame
+                    # self.logger.warning("Header crc is valid !")
+                    data_len = int.from_bytes(self._buffer[1:3])
+                    opt_len = self._buffer[3]
+                    packet_type = self._buffer[3]
+                    # Calculate packet header(4)+crc (2*1) = 7
+                    packet_len = 7 + data_len + opt_len
+                    # self.logger.info(f"Packet len should be {packet_len}, buffer size={len(self._buffer)}")
+                    if packet_len > len(self._buffer):
+
+                        self.next_sync_byte = self.next_sync_byte + packet_len + 1
+                        self.logger.info(f"Packet len {packet_len} is upper then buffer size={len(self._buffer)} "
+                                         f"frame incomplete set sync byte after {self.next_sync_byte} "
+                                         f"actual sync byte index={sync_byte_index}")
+                        return ParseResult.INCOMPLETE
+                    frame = self._buffer[0:packet_len]
+                    self.next_sync_byte = 1
+                    self._buffer = self._buffer[packet_len:]
+                    # self._frame_separator_index = 1
+                else:
+                    self.logger.warning("Header CRC8 invalid, waiting for next Sync Byte")
+                    self.crc_errors += 1
+                    self._buffer = self._buffer[sync_byte_index:]
+                    return ParseResult.INCOMPLETE
+            except (ValueError, IndexError):
                 return ParseResult.INCOMPLETE
 
             status, packet = Packet.parse_frame(frame)
             # If message is incomplete -> break the loop
             if status == ParseResult.INCOMPLETE:
+                self.logger.warning("Frame parsed packet is incomplete")
                 return status
             # If message is OK, add it to receive queue or send to the callback method
             elif status == ParseResult.OK and packet:
                 if self.frame_timestamp:
                     packet.received = time.time()
-
                 if isinstance(packet, UTETeachInPacket) and self.teach_in:
                     response_packet = packet.create_response_packet(self.base_id)
                     self.logger.info('Sending response to UTE teach-in.')
@@ -98,6 +126,8 @@ class BaseController(threading.Thread):
                 # self.logger.debug(packet)
             elif status == ParseResult.CRC_MISMATCH:
                 self.crc_errors += 1
+                self.logger.info(f'Error to parse packet, remaining buffer {self._buffer}')
+                return status
 
     @property
     def base_id(self):
