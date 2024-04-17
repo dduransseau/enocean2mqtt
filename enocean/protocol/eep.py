@@ -4,10 +4,16 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from enocean.utils import to_eep_hex_code, from_hex_string
-from enocean.protocol.constants import RORG, DataFieldType, SpecificShortcut, FieldSetName, AVAILABILITY_FIELD_MAPPING  # noqa: F401
+from enocean.protocol.constants import (
+    RORG,
+    DataFieldType,
+    SpecificShortcut,
+    FieldSetName,
+    AVAILABILITY_FIELD_MAPPING,
+)  # noqa: F401
 
 # logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('enocean.protocol.eep')
+logger = logging.getLogger("enocean.protocol.eep")
 
 
 def parse_number_value(v):
@@ -20,12 +26,11 @@ def parse_number_value(v):
 
 
 class EEPLibraryInitError(Exception):
-    """ Error to init the EEP library is EEP.xml present ?"""
+    """Error to init the EEP library is EEP.xml present ?"""
 
 
 class BaseDataElt:
-
-    logger = logging.getLogger('enocean.protocol.eep.data')
+    logger = logging.getLogger("enocean.protocol.eep.data")
     " Base class inherit from every value data telegram"
 
     def __init__(self, elt):
@@ -37,29 +42,31 @@ class BaseDataElt:
         self._raw_value = None
 
     def parse_raw(self, bitarray):
-        ''' Get raw data as integer, based on offset and size '''
+        """Get raw data as integer, based on offset and size"""
         # TODO: That could be improved and could be check since it raise error
         # self.logger.debug(f"Parse raw data: {bitarray}")
         result = 0
         try:
             # return int(''.join(['1' if digit else '0' for digit in bitarray[self.offset:self.offset + self.size]]), 2)
-            for bit in bitarray[self.offset:self.offset + self.size]:
+            for bit in bitarray[self.offset : self.offset + self.size]:
                 result = (result << 1) | bit
             self._raw_value = result
             return result
-        except:
+        except Exception:
             return 0
 
     def _set_raw(self, raw_value, bitarray):
-        ''' put value into bit array '''
+        """put value into bit array"""
         size = self.size
         for digit in range(self.size):
-            bitarray[self.offset+digit] = (raw_value >> (size-digit-1)) & 0x01 != 0
+            bitarray[self.offset + digit] = (
+                raw_value >> (size - digit - 1)
+            ) & 0x01 != 0
         return bitarray
 
 
 class DataStatus(BaseDataElt):
-    """ Status element
+    """Status element
     ex: <status description="T21" shortcut="T21" offset="2" size="1" />
     """
 
@@ -67,7 +74,7 @@ class DataStatus(BaseDataElt):
         return f"Data status for {self.description}"
 
     def parse(self, bitarray, status):
-        ''' Get boolean value, based on the data in XML '''
+        """Get boolean value, based on the data in XML"""
         self._raw_value = self.parse_raw(status)
         return {
             FieldSetName.DESCRIPTION: self.description,
@@ -75,11 +82,11 @@ class DataStatus(BaseDataElt):
             FieldSetName.UNIT: self.unit,
             FieldSetName.VALUE: True if self._raw_value else False,
             FieldSetName.RAW_VALUE: self._raw_value,
-            FieldSetName.TYPE: DataFieldType.STATUS
+            FieldSetName.TYPE: DataFieldType.STATUS,
         }
 
     def set_value(self, data, bitarray):
-        ''' set given value to target bit in bitarray '''
+        """set given value to target bit in bitarray"""
         bitarray[self.offset] = data
         return bitarray
 
@@ -97,6 +104,7 @@ class DataValue(BaseDataElt):
             </scale>
           </value>
     """
+
     ROUNDING = 3
 
     def __init__(self, elt):
@@ -110,13 +118,17 @@ class DataValue(BaseDataElt):
             self.scale_min = parse_number_value(s.find("min").text)
             self.scale_max = parse_number_value(s.find("max").text)
         try:
-            self.multiplier = (self.scale_max - self.scale_min) / (self.range_max - self.range_min)
-        except Exception as e:
+            self.multiplier = (self.scale_max - self.scale_min) / (
+                self.range_max - self.range_min
+            )
+        except Exception:
             self.multiplier = 1
 
     def process_value(self, val):
         # p8 EEP profile documentation
-        return round(self.multiplier * (val - self.range_min) + self.scale_min, self.ROUNDING)
+        return round(
+            self.multiplier * (val - self.range_min) + self.scale_min, self.ROUNDING
+        )
 
     def parse(self, bitarray, status):
         self._raw_value = self.parse_raw(bitarray)
@@ -127,11 +139,11 @@ class DataValue(BaseDataElt):
             FieldSetName.UNIT: self.unit,
             FieldSetName.VALUE: self.process_value(self._raw_value),
             FieldSetName.RAW_VALUE: self._raw_value,
-            FieldSetName.TYPE: DataFieldType.VALUE
+            FieldSetName.TYPE: DataFieldType.VALUE,
         }
 
     def set_value(self, data, bitarray):
-        ''' set given numeric value to target field in bitarray '''
+        """set given numeric value to target field in bitarray"""
         # derive raw value
         # TODO : Confirm method
         # value = (data - self.scale_min) / (self.range_max - self.range_min) * (self.scale_max - self.scale_min) + self.range_min
@@ -143,7 +155,6 @@ class DataValue(BaseDataElt):
 
 
 class DataEnumItem:
-
     def __init__(self, elt):
         self.value = parse_number_value(elt.get("value"))
         self.description = elt.get("description", "")
@@ -157,7 +168,6 @@ class DataEnumItem:
 
 
 class DataEnumRangeItem:
-
     def __init__(self, elt):
         self.description = elt.get("description", "")
         range = elt.find("range")
@@ -168,24 +178,31 @@ class DataEnumRangeItem:
             self.range_max = parse_number_value(range.find("max").text)
             self.scale_min = parse_number_value(scale.find("min").text)
             self.scale_max = parse_number_value(scale.find("max").text)
+            self.start = self.scale_min
+            self.end = self.scale_max
             try:
-                self.multiplier = (self.scale_max - self.scale_min) / (self.range_max - self.range_min)
-            except Exception as e:
-                logger.debug(f"Unable to set multiplier")
+                self.multiplier = (self.scale_max - self.scale_min) / (
+                    self.range_max - self.range_min
+                )
+            except Exception:
+                logger.debug("Unable to set multiplier")
         else:
             self.start = parse_number_value(elt.get("start"))
             self.end = parse_number_value(elt.get("end"))
 
     @property
     def limit(self):
-        return (self.start, self.end,)
+        return (
+            self.start,
+            self.end,
+        )
 
     def is_in(self, value):
         if self.start <= value <= self.end:
             return True
 
     def range(self):
-        return range(self.start, self.end+1)
+        return range(self.start, self.end + 1)
 
     def __eq__(self, __value: object) -> bool:
         return super().__eq__(__value)
@@ -199,7 +216,7 @@ class DataEnumRangeItem:
 
 
 class DataEnum(BaseDataElt):
-    """ Base class used for Enum and EnumRange"""
+    """Base class used for Enum and EnumRange"""
 
     def __init__(self, elt):
         super().__init__(elt)
@@ -253,7 +270,7 @@ class DataEnum(BaseDataElt):
             for r in self.range_items:
                 if r.is_in(val):
                     return r
-        elif description: # Get instance based on description
+        elif description:  # Get instance based on description
             for item in self.items.values():
                 if item.description == description:
                     return item
@@ -265,7 +282,7 @@ class DataEnum(BaseDataElt):
         self._raw_value = self.parse_raw(bitarray)
         # Find value description
         item = self.get(int(self._raw_value))
-        #self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
+        # self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
         value = item.parse(self._raw_value)
         return {
             FieldSetName.DESCRIPTION: self.description,
@@ -273,7 +290,7 @@ class DataEnum(BaseDataElt):
             FieldSetName.UNIT: self.unit,
             FieldSetName.VALUE: value,
             FieldSetName.RAW_VALUE: self._raw_value,
-            FieldSetName.TYPE: DataFieldType.ENUM
+            FieldSetName.TYPE: DataFieldType.ENUM,
         }
 
     def set_value(self, val, bitarray):
@@ -293,7 +310,7 @@ class DataEnum(BaseDataElt):
 
 
 class ProfileCommand(DataEnum):
-    """ Used to define available commands"""
+    """Used to define available commands"""
 
     def __str__(self) -> str:
         return f"Command enum: {self.description}"
@@ -301,7 +318,8 @@ class ProfileCommand(DataEnum):
 
 class ProfileData:
     """"""
-    logger = logging.getLogger('enocean.protocol.eep.profile')
+
+    logger = logging.getLogger("enocean.protocol.eep.profile")
 
     def __init__(self, elt):
         self.command = int(elt.get("command")) if elt.get("command") else None
@@ -329,7 +347,10 @@ class ProfileData:
                 self._operator_fields.append(d)
             elif d.shortcut == SpecificShortcut.UNIT:
                 self._unit_fields.append(d)
-            elif d.shortcut in (SpecificShortcut.TEMPERATURE_AVAILABILITY, SpecificShortcut.HUMIDITY_AVAILABILITY):
+            elif d.shortcut in (
+                SpecificShortcut.TEMPERATURE_AVAILABILITY,
+                SpecificShortcut.HUMIDITY_AVAILABILITY,
+            ):
                 self._availability_fields.append(d)
 
     def __str__(self):
@@ -356,7 +377,9 @@ class ProfileData:
         #     self.logger.debug("There is multiple units for this EEP omit metric mapping")
         # Manage to operate EEP where only one operator and/or unit is specified
         # Unable to map specific operator or unit for speific field in multiple metrics context
-        if self.has_value and (len(self._operator_fields) == 1 or len(self._unit_fields) == 1):
+        if self.has_value and (
+            len(self._operator_fields) == 1 or len(self._unit_fields) == 1
+        ):
             return True
         return False
 
@@ -378,7 +401,7 @@ class ProfileData:
 
 
 class Profile:
-    logger = logging.getLogger('enocean.protocol.eep.profile')
+    logger = logging.getLogger("enocean.protocol.eep.profile")
 
     def __init__(self, elt, rorg=None, func=None):
         self.rorg = rorg
@@ -402,9 +425,11 @@ class Profile:
 
     @property
     def code(self):
-        return (f"{to_eep_hex_code(self.rorg)}"
-                f"-{to_eep_hex_code(self.func)}"
-                f"-{to_eep_hex_code(self.type)}").upper()
+        return (
+            f"{to_eep_hex_code(self.rorg)}"
+            f"-{to_eep_hex_code(self.func)}"
+            f"-{to_eep_hex_code(self.type)}"
+        ).upper()
 
     def __str__(self):
         txt = f"Profile {self.code} about {self.description}"
@@ -420,7 +445,9 @@ class Profile:
             self.logger.error("A command is specified but not supported by profile")
             # raise ValueError("A command is specified but not supported by profile")
         elif self.commands and not command:
-            raise ValueError("Command not specified but profile support multiple commands")
+            raise ValueError(
+                "Command not specified but profile support multiple commands"
+            )
             # self.logger.warning("Command is not specified but the profile support multiples commands")
         if self.commands and command:
             command_item = self.commands.get(val=command)
@@ -429,17 +456,26 @@ class Profile:
             command_item = None
             command_shortcut = None
         profile_data = self.datas.get((command, direction))
-        return Message(profile_data, command=command_item, command_shortcut=command_shortcut, direction=direction)
+        return Message(
+            profile_data,
+            command=command_item,
+            command_shortcut=command_shortcut,
+            direction=direction,
+        )
 
 
 class Message:
-    logger = logging.getLogger('enocean.protocol.eep.message')
+    logger = logging.getLogger("enocean.protocol.eep.message")
 
-    def __init__(self, profile_data, command=None, command_shortcut=None, direction=None):
+    def __init__(
+        self, profile_data, command=None, command_shortcut=None, direction=None
+    ):
         self.profile_data = profile_data
         self.command_item = command
         self.command_shortcut = command_shortcut
-        if command and not command_shortcut: # Set command shortcut to default value if set
+        if (
+            command and not command_shortcut
+        ):  # Set command shortcut to default value if set
             self.command_shortcut = SpecificShortcut.COMMAND
         self.direction = direction
 
@@ -455,7 +491,7 @@ class Message:
         return self.profile_data.bytes
 
     def get_values(self, bitarray, status, global_process=True):
-        ''' Get keys and values from bitarray '''
+        """Get keys and values from bitarray"""
         output = []
         bypass_list = []
         # Calculate the values that have unit or operator (multiplier or divisor) in the message
@@ -490,15 +526,25 @@ class Message:
                 self.logger.debug("Profile data has fields availability flags")
                 for flag in self.profile_data.availability_fields:
                     availability_flag = flag.parse(bitarray, status)
-                    self.logger.debug(f"Field availability flags to process {availability_flag}")
-                    if metric_shortcut := AVAILABILITY_FIELD_MAPPING.get(availability_flag[FieldSetName.SHORTCUT]):
-                        if availability_flag[FieldSetName.VALUE] == 'not available':
-                            metric_field = [v for v in self.profile_data.values if v.shortcut == metric_shortcut]
-                            self.logger.debug(f"Found value field to disable: {metric_field}")
+                    self.logger.debug(
+                        f"Field availability flags to process {availability_flag}"
+                    )
+                    if metric_shortcut := AVAILABILITY_FIELD_MAPPING.get(
+                        availability_flag[FieldSetName.SHORTCUT]
+                    ):
+                        if availability_flag[FieldSetName.VALUE] == "not available":
+                            metric_field = [
+                                v
+                                for v in self.profile_data.values
+                                if v.shortcut == metric_shortcut
+                            ]
+                            self.logger.debug(
+                                f"Found value field to disable: {metric_field}"
+                            )
                             bypass_list.append(metric_field[0])
                             bypass_list.append(flag)
             except IndexError:
-                self.logger.warning(f"There is an error in unavailability field")
+                self.logger.warning("There is an error in unavailability field")
             except Exception:
                 pass
 
@@ -508,21 +554,23 @@ class Message:
                 self.logger.debug(f"Bypass {source} this it has already been handled")
                 continue
             if source.shortcut == "CMD":
-                output.append({
-                    'description': "Command identifier",
-                    'value': self.command_item.description,
-                    'raw_value': self.command_item.value,
-                    'shortcut': SpecificShortcut.COMMAND,
-                    'type': DataFieldType.ENUM
-                })
+                output.append(
+                    {
+                        "description": "Command identifier",
+                        "value": self.command_item.description,
+                        "raw_value": self.command_item.value,
+                        "shortcut": SpecificShortcut.COMMAND,
+                        "type": DataFieldType.ENUM,
+                    }
+                )
             else:
                 output.append(source.parse(bitarray, status))
         return output
 
     def set_values(self, packet, values):
-        ''' Update data based on data contained in properties
+        """Update data based on data contained in properties
         profile: Profile packet._bit_data, packet._bit_status
-        '''
+        """
         self.logger.debug(f"Set value for properties={values} to {self.profile_data}")
         # self.logger.debug(f"Profile with selected command {self.profile.command_item} {self.profile.command_data}")
 
@@ -535,19 +583,19 @@ class Message:
 
 
 class EepLibraryLoader:
-    """ Class that is used to load the EEP file one time and avoid to load it each time EepLibrary is called"""
-    logger = logging.getLogger('enocean.protocol.eep_library')
+    """Class that is used to load the EEP file one time and avoid to load it each time EepLibrary is called"""
+
+    logger = logging.getLogger("enocean.protocol.eep_library")
 
     def __init__(self, filepath=None):
-
         try:
             # TODO manage to check validity of the file
-            eep_path = filepath or Path(__file__).parent.joinpath('EEP.xml')
+            eep_path = filepath or Path(__file__).parent.joinpath("EEP.xml")
             self.logger.info(f"load EEP xml file: {eep_path}")
             self.profiles = self.load_xml(eep_path)
             self.logger.debug("EEP loaded")
         except Exception as e:
-            self.logger.warning('Cannot load protocol file!')
+            self.logger.warning("Cannot load protocol file!")
             self.logger.exception(e)
             raise EEPLibraryInitError("Unable to load EEP profile")
 
@@ -557,22 +605,23 @@ class EepLibraryLoader:
         tree_root = tree.getroot()
         # TODO: Use map() here
         return {
-            from_hex_string(telegram.attrib['rorg']): {
-                from_hex_string(function.attrib['func']): {
-                    from_hex_string(profile.attrib['type']):
-                        Profile(profile,
-                                rorg=from_hex_string(telegram.attrib['rorg']),
-                                func=from_hex_string(function.attrib['func']))
-                    for profile in function.findall('profile')
+            from_hex_string(telegram.attrib["rorg"]): {
+                from_hex_string(function.attrib["func"]): {
+                    from_hex_string(profile.attrib["type"]): Profile(
+                        profile,
+                        rorg=from_hex_string(telegram.attrib["rorg"]),
+                        func=from_hex_string(function.attrib["func"]),
+                    )
+                    for profile in function.findall("profile")
                 }
-                for function in telegram.findall('profiles')
+                for function in telegram.findall("profiles")
             }
-            for telegram in tree_root.findall('telegram')
+            for telegram in tree_root.findall("telegram")
         }
 
 
 class EepLibrary:
-    logger = logging.getLogger('enocean.protocol.eep')
+    logger = logging.getLogger("enocean.protocol.eep")
 
     profiles = EepLibraryLoader().profiles
 
@@ -581,13 +630,15 @@ class EepLibrary:
         try:
             return cls.profiles[eep_rorg][rorg_func][rorg_type]
         except KeyError:
-            cls.logger.warning(f'Cannot find rorg {eep_rorg} func {rorg_func} type {rorg_type} in EEP')
-            raise NotImplementedError(f'EEP {eep_rorg} func {rorg_func} type {rorg_type} is not supported')
+            cls.logger.warning(
+                f"Cannot find rorg {eep_rorg} func {rorg_func} type {rorg_type} in EEP"
+            )
+            raise NotImplementedError(
+                f"EEP {eep_rorg} func {rorg_func} type {rorg_type} is not supported"
+            )
         except Exception as e:
             cls.logger.exception(e)
 
     @classmethod
     def load_library(cls):
         cls.profiles = EepLibraryLoader().profiles
-
-

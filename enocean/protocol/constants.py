@@ -8,7 +8,7 @@ class PacketType(IntEnum):
     # RADIO == RADIO_ERP1
     # Kept for backwards compatibility reasons, for example custom packet
     # generation shouldn't be affected...
-    RADIO = 0x01 # ERP1
+    RADIO = 0x01  # ERP1
     RESPONSE = 0x02
     RADIO_SUB_TEL = 0x03
     EVENT = 0x04
@@ -18,7 +18,7 @@ class PacketType(IntEnum):
     RADIO_MESSAGE = 0x09
     # RADIO_ADVANCED == RADIO_ERP2
     # Kept for backwards compatibility reasons
-    RADIO_ADVANCED = 0x0A # ERP2
+    RADIO_ADVANCED = 0x0A  # ERP2
     RADIO_802_15_4 = 0x10
     COMMAND_2_4 = 0x11
 
@@ -58,30 +58,30 @@ class CommandCode(IntEnum):
     CO_WR_IDBASE = 0x7
     CO_RD_IDBASE = 0x8
     CO_WR_REPEATER = 0x9
-    CO_RD_REPEATER = 0xa
-    CO_WR_FILTER_ADD = 0xb
-    CO_WR_FILTER_DEL = 0xc
-    CO_WR_FILTER_DEL_ALL = 0xd
-    CO_WR_FILTER_ENABLE = 0xe
-    CO_RD_FILTER = 0xf
+    CO_RD_REPEATER = 0xA
+    CO_WR_FILTER_ADD = 0xB
+    CO_WR_FILTER_DEL = 0xC
+    CO_WR_FILTER_DEL_ALL = 0xD
+    CO_WR_FILTER_ENABLE = 0xE
+    CO_RD_FILTER = 0xF
     CO_WR_WAIT_MATURITY = 0x10
     CO_WR_SUBTEL = 0x11
     CO_WR_MEM = 0x12
     CO_RD_MEM = 0x13
     CO_RD_MEM_ADDRESS = 0x14
-    CO_RD_SECURITY = 0x15 # DEPRECATED
-    CO_WR_SECURITY = 0x16 # DEPRECATED
+    CO_RD_SECURITY = 0x15  # DEPRECATED
+    CO_WR_SECURITY = 0x16  # DEPRECATED
     CO_WR_LEARNMODE = 0x17
     CO_RD_LEARNMODE = 0x18
-    CO_WR_SECUREDEVICE_ADD = 0x19 # DEPRECATED
-    CO_WR_SECUREDEVICE_DEL = 0x1a
-    CO_RD_SECUREDEVICES_BY_INDEX = 0x1b # DEPRECATED
-    CO_WR_MODE = 0x1c
+    CO_WR_SECUREDEVICE_ADD = 0x19  # DEPRECATED
+    CO_WR_SECUREDEVICE_DEL = 0x1A
+    CO_RD_SECUREDEVICES_BY_INDEX = 0x1B  # DEPRECATED
+    CO_WR_MODE = 0x1C
     CO_SET_BAUDRATE = 0x24
     CO_GET_FREQUENCY_INFO = 0x25
     CO_GET_STEPCODE = 0x27
     CO_GET_NOISETHRESHOLD = 0x33
-    CO_RD_TRANSPARENT_MODE = 0x3f
+    CO_RD_TRANSPARENT_MODE = 0x3F
 
 
 # EnOcean_Equipment_Profiles_EEP_V2.61_public.pdf / 8
@@ -116,11 +116,11 @@ class DataFieldType(IntEnum):
 
 
 class SpecificShortcut(StrEnum):
-    UNIT = 'UN'
-    MULTIPLIER = 'SCM'
-    DIVISOR = 'DIV'
-    COMMAND = 'CMD'
-    LEARN_BIT = 'LRNB'
+    UNIT = "UN"
+    MULTIPLIER = "SCM"
+    DIVISOR = "DIV"
+    COMMAND = "CMD"
+    LEARN_BIT = "LRNB"
     HUMIDITY_AVAILABILITY = "HSN"
     TEMPERATURE_AVAILABILITY = "TSN"
     HUMIDITY = "HUM"
@@ -129,8 +129,9 @@ class SpecificShortcut(StrEnum):
 
 AVAILABILITY_FIELD_MAPPING = {
     SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
-    SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE
+    SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE,
 }
+
 
 class FieldSetName(StrEnum):
     RAW_VALUE = auto()
@@ -220,17 +221,9 @@ class DB6:
     BIT_7 = -56
 
 
-RESPONSE_REPEATER_MODE = {
-    0: "OFF",
-    1: "ON",
-    2: "SELECTIVE"
-}
+RESPONSE_REPEATER_MODE = {0: "OFF", 1: "ON", 2: "SELECTIVE"}
 
-RESPONSE_REPEATER_LEVEL = {
-    0: "OFF",
-    1: "1-level",
-    2: "2-level"
-}
+RESPONSE_REPEATER_LEVEL = {0: "OFF", 1: "1-level", 2: "2-level"}
 
 RESPONSE_FREQUENCY_FREQUENCY = {
     0: "315Mhz",
@@ -238,7 +231,7 @@ RESPONSE_FREQUENCY_FREQUENCY = {
     2: "902.87Mhz",
     3: "925Mhz",
     4: "928Mhz",
-    32: "2.4 Ghz"
+    32: "2.4 Ghz",
 }
 
 RESPONSE_FREQUENCY_PROTOCOL = {

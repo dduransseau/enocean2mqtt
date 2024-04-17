@@ -1,5 +1,3 @@
-
-
 import logging
 
 import enocean.utils
@@ -7,8 +5,7 @@ from enocean.equipment import Equipment as EnoceanEquipment
 
 
 class Equipment(EnoceanEquipment):
-
-    logger = logging.getLogger('enocean.mqtt.equipment')
+    logger = logging.getLogger("enocean.mqtt.equipment")
 
     def __init__(self, **kwargs):
         address = kwargs["address"]
@@ -22,9 +19,15 @@ class Equipment(EnoceanEquipment):
         # self.logger.debug(f"Lookup profile for {rorg} {func} {type_}")
         super().__init__(address=address, rorg=rorg, func=func, type_=type_, name=name)
         self.publish_raw = self.get_config_boolean(kwargs, "publish_raw", default=False)
-        self.publish_flat = self.get_config_boolean(kwargs, "publish_flat", default=False)
-        self.publish_rssi = self.get_config_boolean(kwargs, "publish_rssi", default=True)
-        self.use_key_shortcut = self.get_config_boolean(kwargs, "use_key_shortcut", default=False)
+        self.publish_flat = self.get_config_boolean(
+            kwargs, "publish_flat", default=False
+        )
+        self.publish_rssi = self.get_config_boolean(
+            kwargs, "publish_rssi", default=True
+        )
+        self.use_key_shortcut = self.get_config_boolean(
+            kwargs, "use_key_shortcut", default=False
+        )
         self.retain = self.get_config_boolean(kwargs, "persistent", default=False)
         self.log_learn = self.get_config_boolean(kwargs, "log_learn", default=False)
         self.ignore = self.get_config_boolean(kwargs, "ignore", default=False)
@@ -63,6 +66,6 @@ class Equipment(EnoceanEquipment):
                 retain=self.retain,
                 ignore=self.ignore,
                 command=self.command,
-                sender=self.sender
-            )
+                sender=self.sender,
+            ),
         )

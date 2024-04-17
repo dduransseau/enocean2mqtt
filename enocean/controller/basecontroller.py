@@ -5,17 +5,25 @@ import time
 import threading
 import queue
 from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket
-from enocean.protocol.constants import (PacketType, ParseResult, CommandCode,
-                                        RESPONSE_FREQUENCY_FREQUENCY, RESPONSE_FREQUENCY_PROTOCOL,
-                                        RESPONSE_REPEATER_MODE, RESPONSE_REPEATER_LEVEL)
+from enocean.protocol.constants import (
+    PacketType,
+    ParseResult,
+    CommandCode,
+    RESPONSE_FREQUENCY_FREQUENCY,
+    RESPONSE_FREQUENCY_PROTOCOL,
+    RESPONSE_REPEATER_MODE,
+    RESPONSE_REPEATER_LEVEL,
+)
 from enocean.protocol import crc8
 
+
 class BaseController(threading.Thread):
-    '''
+    """
     Communicator base-class for EnOcean.
     Not to be used directly, only serves as base class for SerialCommunicator etc.
-    '''
-    logger = logging.getLogger('enocean.controller.BaseController')
+    """
+
+    logger = logging.getLogger("enocean.controller.BaseController")
 
     def __init__(self, callback=None, teach_in=True, timestamp=True):
         super(BaseController, self).__init__()
@@ -45,7 +53,7 @@ class BaseController(threading.Thread):
         self.crc_errors = 0
 
     def _get_from_send_queue(self):
-        ''' Get message from send queue, if one exists '''
+        """Get message from send queue, if one exists"""
         try:
             packet = self.transmit.get(block=False)
             # self.logger.debug(packet)
@@ -58,7 +66,7 @@ class BaseController(threading.Thread):
     def send(self, packet):
         # TODO: Evaluate this and raise Exception if relevant
         if not isinstance(packet, Packet):
-            self.logger.error('Object to send must be an instance of Packet')
+            self.logger.error("Object to send must be an instance of Packet")
             return False
         self.transmit.put(packet)
         return True
@@ -67,7 +75,7 @@ class BaseController(threading.Thread):
         self._stop_flag.set()
 
     def parse(self):
-        ''' Parses messages and puts them to receive queue '''
+        """Parses messages and puts them to receive queue"""
         # Loop while we get new messages
         while True:
             try:
@@ -84,20 +92,25 @@ class BaseController(threading.Thread):
                     packet_type = self._buffer[3]
                     # Calculate packet header(4)+crc (2*1) = 7
                     packet_len = 7 + data_len + opt_len
-                    # self.logger.info(f"Packet len should be {packet_len}, buffer size={len(self._buffer)}")
+                    self.logger.debug(
+                        f"Packet {packet_type} with data len {data_len} and optionnal len {opt_len}"
+                    )
                     if packet_len > len(self._buffer):
-
                         self.next_sync_byte = self.next_sync_byte + packet_len + 1
-                        self.logger.info(f"Packet len {packet_len} is upper then buffer size={len(self._buffer)} "
-                                         f"frame incomplete set sync byte after {self.next_sync_byte} "
-                                         f"actual sync byte index={sync_byte_index}")
+                        self.logger.debug(
+                            f"Packet len {packet_len} is upper then buffer size={len(self._buffer)} "
+                            f"frame incomplete set sync byte after {self.next_sync_byte} "
+                            f"actual sync byte index={sync_byte_index}"
+                        )
                         return ParseResult.INCOMPLETE
                     frame = self._buffer[0:packet_len]
                     self.next_sync_byte = 1
                     self._buffer = self._buffer[packet_len:]
                     # self._frame_separator_index = 1
                 else:
-                    self.logger.warning("Header CRC8 invalid, waiting for next Sync Byte")
+                    self.logger.warning(
+                        "Header CRC8 invalid, waiting for next Sync Byte"
+                    )
                     self.crc_errors += 1
                     self._buffer = self._buffer[sync_byte_index:]
                     return ParseResult.INCOMPLETE
@@ -115,11 +128,11 @@ class BaseController(threading.Thread):
                     packet.received = time.time()
                 if isinstance(packet, UTETeachInPacket) and self.teach_in:
                     response_packet = packet.create_response_packet(self.base_id)
-                    self.logger.info('Sending response to UTE teach-in.')
+                    self.logger.info("Sending response to UTE teach-in.")
                     self.send(response_packet)
                 elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                     self.parse_common_command_response(packet)
-                    continue # Bypass packet emit to avoid to log internal command
+                    continue  # Bypass packet emit to avoid to log internal command
                 if self.__callback is None:
                     # Add received packet into receive queue
                     self.receive.put(packet)
@@ -128,12 +141,14 @@ class BaseController(threading.Thread):
                 # self.logger.debug(packet)
             elif status == ParseResult.CRC_MISMATCH:
                 self.crc_errors += 1
-                self.logger.info(f'Error to parse packet, remaining buffer {self._buffer}')
+                self.logger.info(
+                    f"Error to parse packet, remaining buffer {self._buffer}"
+                )
                 return status
 
     @property
     def base_id(self):
-        ''' Fetches Base ID from the transmitter, if required. Otherwise returns the currently set Base ID. '''
+        """Fetches Base ID from the transmitter, if required. Otherwise returns the currently set Base ID."""
         # If base id is already set, return it.
         if self._base_id:
             return self._base_id
@@ -153,8 +168,12 @@ class BaseController(threading.Thread):
     @property
     def controller_info_details(self):
         if self._chip_id:
-            return dict(app_version=self.app_version, api_version=self.api_version,
-                        app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
+            return dict(
+                app_version=self.app_version,
+                api_version=self.api_version,
+                app_description=self.app_description,
+                id=hex(self._chip_id)[2:].upper(),
+            )
         # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
         self.send(Packet(PacketType.COMMON_COMMAND, data=[CommandCode.CO_RD_VERSION]))
         self.command_queue.append(CommandCode.CO_RD_VERSION)
@@ -163,18 +182,27 @@ class BaseController(threading.Thread):
         # Unfortunately, all other messages received during this time are ignored.
         for i in range(0, 5):
             if self._chip_id:
-                return dict(app_version=self.app_version, api_version=self.api_version,
-                            app_description=self.app_description, id=hex(self._chip_id)[2:].upper())
+                return dict(
+                    app_version=self.app_version,
+                    api_version=self.api_version,
+                    app_description=self.app_description,
+                    id=hex(self._chip_id)[2:].upper(),
+                )
             time.sleep(0.1)
         return True
 
     @base_id.setter
     def base_id(self, base_id):
-        ''' Sets the Base ID manually, only for testing purposes. '''
+        """Sets the Base ID manually, only for testing purposes."""
         self._base_id = base_id
 
     def init_adapter(self):
-        for code in (CommandCode.CO_RD_IDBASE, CommandCode.CO_RD_VERSION, CommandCode.CO_GET_FREQUENCY_INFO, CommandCode.CO_WR_BIST):
+        for code in (
+            CommandCode.CO_RD_IDBASE,
+            CommandCode.CO_RD_VERSION,
+            CommandCode.CO_GET_FREQUENCY_INFO,
+            CommandCode.CO_WR_BIST,
+        ):
             self.send(Packet(PacketType.COMMON_COMMAND, data=[code]))
             self.command_queue.append(code)
             time.sleep(0.1)
@@ -192,8 +220,12 @@ class BaseController(threading.Thread):
             self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
             self._chip_id = int.from_bytes(packet.response_data[8:12])
             self._chip_version = int.from_bytes(packet.response_data[12:16])
-            self.app_description = "".join([chr(c) for c in packet.response_data[16:] if c])
-            self.logger.debug(f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={self._chip_id} chip_version={self._chip_version}")
+            self.app_description = "".join(
+                [chr(c) for c in packet.response_data[16:] if c]
+            )
+            self.logger.debug(
+                f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={self._chip_id} chip_version={self._chip_version}"
+            )
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.
             self._base_id = packet.response_data
@@ -201,10 +233,16 @@ class BaseController(threading.Thread):
         elif command_id == CommandCode.CO_GET_FREQUENCY_INFO:
             frequency = RESPONSE_FREQUENCY_FREQUENCY[packet.response_data[0]]
             protocol = RESPONSE_FREQUENCY_PROTOCOL[packet.response_data[1]]
-            self.logger.info(f"Device info: work on frequency {frequency} with protocol {protocol}")
+            self.logger.info(
+                f"Device info: work on frequency {frequency} with protocol {protocol}"
+            )
         elif command_id == CommandCode.CO_RD_REPEATER:
             repeater_mode = RESPONSE_REPEATER_MODE[packet.response_data[0]]
             repeater_level = RESPONSE_REPEATER_LEVEL[packet.response_data[1]]
-            self.logger.info(f"Device info: repeater mode={repeater_mode} repeater level={repeater_level}")
+            self.logger.info(
+                f"Device info: repeater mode={repeater_mode} repeater level={repeater_level}"
+            )
         else:
-            self.logger.debug(f"Receive command response for command id {command_id} with content {packet.response_data}")
+            self.logger.debug(
+                f"Receive command response for command id {command_id} with content {packet.response_data}"
+            )

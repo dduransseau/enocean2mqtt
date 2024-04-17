@@ -886,71 +886,6 @@
      </enum>
     </data>
    </profile>
-   <profile type="0x0c" description="VOC sensorNG">
-    <data>
-     <value description="concentration" shortcut="CONC" offset="0" size="16">
-      <range>
-       <min>0</min>
-       <max>65535</max>
-      </range>
-      <scale>
-       <min>0.000000</min>
-       <max>65535.000000</max>
-      </scale>
-     </value>
-     <enum description="VOC" shortcut="VOCID" offset="16" size="8">
-      <item description="VOCT (total)" value="0" />
-      <item description="Formaldehyde" value="1" />
-      <item description="Benzene" value="2" />
-      <item description="Styrene" value="3" />
-      <item description="Toluene" value="4" />
-      <item description="Tetrachloroethylene" value="5" />
-      <item description="Xylene" value="6" />
-      <item description="n-Hexane" value="7" />
-      <item description="n-Octane" value="8" />
-      <item description="Cyclopentane" value="9" />
-      <item description="Methanol" value="10" />
-      <item description="Ethanol" value="11" />
-      <item description="1-Pentanol" value="12" />
-      <item description="Acetone" value="13" />
-      <item description="Ethylene Oxide" value="14" />
-      <item description="Acetaldehyde ue" value="15" />
-      <item description="Acetic Acid" value="16" />
-      <item description="Propionice Acid" value="17" />
-      <item description="Valeric Acid" value="18" />
-      <item description="Butyric Acid" value="19" />
-      <item description="Ammoniac" value="20" />
-      <item description="Hydrogen Sulfide" value="22" />
-      <item description="Dimethylsulfide" value="23" />
-      <item description="2-Butanol (butyl Alcohol)" value="24" />
-      <item description="2-Methylpropanol" value="25" />
-      <item description="Diethyl ether" value="26" />
-      <item description="Naphthalene" value="27" />
-      <item description="4-Phenylcyclohexene" value="28" />
-      <item description="Limonene" value="29" />
-      <item description="Trichloroethylene" value="30" />
-      <item description="Isovaleric acid" value="31" />
-      <item description="Indole" value="32" />
-      <item description="Cadaverine" value="33" />
-      <item description="Putrescine" value="34" />
-      <item description="Caproic acid" value="35" />
-      <item description="Sulfurous smells?" value="250" />
-      <item description="Sulfurous smells" value="253" />
-      <item description="NOx" value="254" />
-      <item description="Ozone" value="255" />
-     </enum>
-     <enum shortcut="UN" description="Unit" offset="29" size="1">
-      <item description="ppb" value="0" />
-      <item description="ug/m3" value="1" />
-     </enum>
-     <enum description="Scale Multiplier" shortcut="SCM" offset="30" size="2">
-      <item description="0.01" value="0" />
-      <item description="0.1" value="1" />
-      <item description="1" value="2" />
-      <item description="10" value="3" />
-     </enum>
-    </data>
-   </profile>
    <profile type="0x05" description="VOC Sensor">
     <data>
      <value shortcut="Conc" description="VOC Concentration" offset="0" size="16" unit="ppb">
@@ -1079,6 +1014,71 @@
      <enum description="PM1 Active" shortcut="PM1a" offset="31" size="1">
       <item description="not active" value="0" />
       <item description="active" value="1" />
+     </enum>
+    </data>
+   </profile>
+   <profile type="0x0c" description="VOC sensorNG">
+    <data>
+     <value description="concentration" shortcut="CONC" offset="0" size="16">
+      <range>
+       <min>0</min>
+       <max>65535</max>
+      </range>
+      <scale>
+       <min>0.000000</min>
+       <max>65535.000000</max>
+      </scale>
+     </value>
+     <enum description="VOC" shortcut="VOCID" offset="16" size="8">
+      <item description="VOCT (total)" value="0" />
+      <item description="Formaldehyde" value="1" />
+      <item description="Benzene" value="2" />
+      <item description="Styrene" value="3" />
+      <item description="Toluene" value="4" />
+      <item description="Tetrachloroethylene" value="5" />
+      <item description="Xylene" value="6" />
+      <item description="n-Hexane" value="7" />
+      <item description="n-Octane" value="8" />
+      <item description="Cyclopentane" value="9" />
+      <item description="Methanol" value="10" />
+      <item description="Ethanol" value="11" />
+      <item description="1-Pentanol" value="12" />
+      <item description="Acetone" value="13" />
+      <item description="Ethylene Oxide" value="14" />
+      <item description="Acetaldehyde ue" value="15" />
+      <item description="Acetic Acid" value="16" />
+      <item description="Propionice Acid" value="17" />
+      <item description="Valeric Acid" value="18" />
+      <item description="Butyric Acid" value="19" />
+      <item description="Ammoniac" value="20" />
+      <item description="Hydrogen Sulfide" value="22" />
+      <item description="Dimethylsulfide" value="23" />
+      <item description="2-Butanol (butyl Alcohol)" value="24" />
+      <item description="2-Methylpropanol" value="25" />
+      <item description="Diethyl ether" value="26" />
+      <item description="Naphthalene" value="27" />
+      <item description="4-Phenylcyclohexene" value="28" />
+      <item description="Limonene" value="29" />
+      <item description="Trichloroethylene" value="30" />
+      <item description="Isovaleric acid" value="31" />
+      <item description="Indole" value="32" />
+      <item description="Cadaverine" value="33" />
+      <item description="Putrescine" value="34" />
+      <item description="Caproic acid" value="35" />
+      <item description="Sulfurous smells?" value="250" />
+      <item description="Sulfurous smells" value="253" />
+      <item description="NOx" value="254" />
+      <item description="Ozone" value="255" />
+     </enum>
+     <enum shortcut="UN" description="Unit" offset="29" size="1">
+      <item description="ppb" value="0" />
+      <item description="ug/m3" value="1" />
+     </enum>
+     <enum description="Scale Multiplier" shortcut="SCM" offset="30" size="2">
+      <item description="0.01" value="0" />
+      <item description="0.1" value="1" />
+      <item description="1" value="2" />
+      <item description="10" value="3" />
      </enum>
     </data>
    </profile>
@@ -2687,7 +2687,7 @@
   <profiles func="0x3F" description="Universal">
    <profile type="0x7F" description="Universal">
     <data>
-     <value shortcut="DB3" description="Data Byte 3" offset="0" size="8" unit="">
+     <value shortcut="DB3" description="Byte 3" offset="0" size="8" unit="">
       <range>
        <min>0</min>
        <max>255</max>
@@ -2697,7 +2697,7 @@
        <max>255</max>
       </scale>
      </value>
-     <value shortcut="DB2" description="Data Byte 2" offset="8" size="8" unit="">
+     <value shortcut="DB2" description="Byte 2" offset="8" size="8" unit="">
       <range>
        <min>0</min>
        <max>255</max>
@@ -2707,7 +2707,7 @@
        <max>255</max>
       </scale>
      </value>
-     <value shortcut="DB1" description="Data Byte 1" offset="16" size="8" unit="">
+     <value shortcut="DB1" description="Byte 1" offset="16" size="8" unit="">
       <range>
        <min>0</min>
        <max>255</max>
@@ -2717,7 +2717,7 @@
        <max>255</max>
       </scale>
      </value>
-     <value shortcut="DB0" description="Data Byte 0" offset="24" size="8" unit="">
+     <value shortcut="DB0" description="Byte 0" offset="24" size="8" unit="">
       <range>
        <min>0</min>
        <max>255</max>
@@ -9659,54 +9659,6 @@
    </profile>
   </profiles>
   <profiles func="0x60" description="Special applications">
-   <profile type="0x02" description="Damper, valve and VAV returned data">
-    <data>
-     <enum description="Actuator type" shortcut="ACTT" offset="0" size="1">
-      <item description="Damper or Valve" value="0" />
-      <item description="Variable air volume" value="1" />
-     </enum>
-     <enum description="Actuator function" shortcut="ACTF" offset="1" size="3">
-      <item description="Unspecified" value="0" />
-      <item description="Air Exhaust" value="1" />
-      <item description="Air Supply" value="2" />
-      <item description="Hot Hydraulic 2 ways" value="3" />
-      <item description="Cold Hydraulic 2 ways" value="4" />
-      <item description="Seasonal 2 Ways" value="5" />
-      <item description="Hydraulic 6 ways" value="6" />
-      <item description="Reserved" value="7" />
-     </enum>
-     <value description="Air Flow" shortcut="AIRF" offset="4" size="12" unit="m³/h">
-      <range>
-       <min>0</min>
-       <max>4095</max>
-      </range>
-      <scale>
-       <min>0</min>
-       <max>4095</max>
-      </scale>
-     </value>
-     <enum description="Opening" shortcut="OPN" offset="17" size="7">
-      <rangeitem description="Percentage" start="0" end="100" />
-      <rangeitem description="Reserved" start="101" end="127" />
-     </enum>
-     <enum description="Temperature" shortcut="TMP" offset="30" size="10">
-      <rangeitem description="Percentage" start="0" end="1000">
-       <range>
-        <min>0</min>
-        <max>1000</max>
-       </range>
-       <scale>
-        <min>-20</min>
-        <max>80</max>
-       </scale>
-      </rangeitem>
-      <item description="Out of range negative" value="1001" />
-      <item description="Out of range positive" value="1002" />
-      <rangeitem description="Reserved" start="1003" end="1022" />
-      <item description="Not measured" value="1023" />
-     </enum>
-    </data>
-   </profile>
    <profile type="0x03" description="Modes and exemptions">
     <data>
      <enum description="Thermal Mode " shortcut="9901" offset="1" size="3">
@@ -9986,6 +9938,54 @@
       <item description="Eco" value="1" />
       <item description="Night" value="2" />
       <item description="Maintenance" value="3" />
+     </enum>
+    </data>
+   </profile>
+   <profile type="0x02" description="Damper, valve and VAV returned data">
+    <data>
+     <enum description="Actuator type" shortcut="ACTT" offset="0" size="1">
+      <item description="Damper or Valve" value="0" />
+      <item description="Variable air volume" value="1" />
+     </enum>
+     <enum description="Actuator function" shortcut="ACTF" offset="1" size="3">
+      <item description="Unspecified" value="0" />
+      <item description="Air Exhaust" value="1" />
+      <item description="Air Supply" value="2" />
+      <item description="Hot Hydraulic 2 ways" value="3" />
+      <item description="Cold Hydraulic 2 ways" value="4" />
+      <item description="Seasonal 2 Ways" value="5" />
+      <item description="Hydraulic 6 ways" value="6" />
+      <item description="Reserved" value="7" />
+     </enum>
+     <value description="Air Flow" shortcut="AIRF" offset="4" size="12" unit="m³/h">
+      <range>
+       <min>0</min>
+       <max>4095</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>4095</max>
+      </scale>
+     </value>
+     <enum description="Opening" shortcut="OPN" offset="17" size="7">
+      <rangeitem description="Percentage" start="0" end="100" />
+      <rangeitem description="Reserved" start="101" end="127" />
+     </enum>
+     <enum description="Temperature" shortcut="TMP" offset="30" size="10">
+      <rangeitem description="Percentage" start="0" end="1000">
+       <range>
+        <min>0</min>
+        <max>1000</max>
+       </range>
+       <scale>
+        <min>-20</min>
+        <max>80</max>
+       </scale>
+      </rangeitem>
+      <item description="Out of range negative" value="1001" />
+      <item description="Out of range positive" value="1002" />
+      <rangeitem description="Reserved" start="1003" end="1022" />
+      <item description="Not measured" value="1023" />
      </enum>
     </data>
    </profile>

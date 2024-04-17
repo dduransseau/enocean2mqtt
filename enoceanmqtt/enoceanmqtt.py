@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Author: Damien Duransseau <damien@duransseau.net> based on Roman Morawek <roman.morawek@embyt.com>
 """this is the main entry point, which sets up the Communicator class"""
+
 import logging
 import sys
 import copy
@@ -10,21 +11,19 @@ from configparser import ConfigParser
 
 from communicator import Communicator
 
-
 conf = {
-    'debug': False,
-    'config': ['/etc/gateway.conf', '../gateway.conf', '../equipments.conf'],
-    'logfile': '../gateway.log'
+    "debug": False,
+    "config": ["/etc/gateway.conf", "../gateway.conf", "../equipments.conf"],
+    "logfile": "../gateway.log",
 }
 
 
 class ConfigManager:
-
     def __init__(self, conf):
         self._conf = conf
-        self.logging_level = logging.DEBUG if self._conf.get('debug') else logging.INFO
-        self.logging_file = self._conf.get('logfile')
-        self.config_files = self._conf.get('config', [])
+        self.logging_level = logging.DEBUG if self._conf.get("debug") else logging.INFO
+        self.logging_file = self._conf.get("logfile")
+        self.config_files = self._conf.get("config", [])
         self.sensors = []
         self.global_config = {}
 
@@ -42,10 +41,12 @@ class ConfigManager:
         """load sensor and general configuration from given config files"""
         # extract sensor configuration
         self.sensors = []
-        if not omit_global: # Empty the global config only if it's not omitted
+        if not omit_global:  # Empty the global config only if it's not omitted
             self.global_config = {}
         logger = logging.getLogger("enocean.mqtt.config")
-        config_parser = ConfigParser(inline_comment_prefixes=('#', ';'), interpolation=None)
+        config_parser = ConfigParser(
+            inline_comment_prefixes=("#", ";"), interpolation=None
+        )
         for conf_file in self.config_files:
             if not Path(conf_file).is_file():
                 logger.warning("Config file %s does not exist, skipping", conf_file)
@@ -55,20 +56,25 @@ class ConfigManager:
                 logger.error("Cannot read config file: %s", conf_file)
                 sys.exit(1)
             for section in config_parser.sections():
-                if section == 'CONFIG':
+                if section == "CONFIG":
                     if omit_global:
                         continue
                     # general configuration is part of CONFIG section
                     for key in config_parser[section]:
-                        self.global_config[key] = self.config_parse_value(config_parser[section][key])
+                        self.global_config[key] = self.config_parse_value(
+                            config_parser[section][key]
+                        )
                 else:
-                    mqtt_prefix = self.global_config['mqtt_prefix'] \
-                        if 'mqtt_prefix' in self.global_config else "enocean/"
-                    new_sens = {'name': mqtt_prefix + section}
+                    mqtt_prefix = (
+                        self.global_config["mqtt_prefix"]
+                        if "mqtt_prefix" in self.global_config
+                        else "enocean/"
+                    )
+                    new_sens = {"name": mqtt_prefix + section}
                     for key in config_parser[section]:
                         try:
                             # new_sens[key] = config_parser[section][key]
-                            if key in ('address', 'rorg', "func", "type"):
+                            if key in ("address", "rorg", "func", "type"):
                                 new_sens[key] = int(config_parser[section][key], 16)
                             else:
                                 new_sens[key] = config_parser[section][key]
@@ -84,11 +90,11 @@ class ConfigManager:
 
 
 def parse_args():
-    """ Parse command line arguments. """
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
-    parser.add_argument('--debug', help='enable console debugging', action='store_true')
-    parser.add_argument('--logfile', help='set log file location')
-    parser.add_argument('config', help='specify config file[s]', nargs='*')
+    parser.add_argument("--debug", help="enable console debugging", action="store_true")
+    parser.add_argument("--logfile", help="set log file location")
+    parser.add_argument("config", help="specify config file[s]", nargs="*")
     # parser.add_argument('--version', help='show application version',
     #     action='version', version='%(prog)s ' + VERSION)
     args = vars(parser.parse_args())
@@ -96,10 +102,10 @@ def parse_args():
     return args
 
 
-def setup_logging(log_filename='', log_level=logging.INFO):
+def setup_logging(log_filename="", log_level=logging.INFO):
     """initialize python logging infrastructure"""
     # create formatter
-    log_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
+    log_formatter = logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
 
     # set root logger to lowest log level
     logging.getLogger().setLevel(log_level)
@@ -122,7 +128,7 @@ def main():
     # logging.getLogger().setLevel(logging.DEBUG)
     # Parse command line arguments
     conf.update(parse_args())
-    config_manager= ConfigManager(conf)
+    config_manager = ConfigManager(conf)
     # setup logger
     setup_logging(config_manager.logging_file, config_manager.logging_level)
     # load config file
