@@ -362,7 +362,7 @@ class Gateway:
     # ENOCEAN TO MQTT
     # =============================================================================================
 
-    def _publish_mqtt(self, equipment, mqtt_json):
+    def _publish_mqtt_json(self, equipment, mqtt_json, channel=None):
         """Publish decoded packet content to MQTT"""
         # Retain the to-be-published message ?
         retain = equipment.retain
@@ -370,59 +370,89 @@ class Gateway:
         topic = equipment.topic
 
         # Is grouping enabled on this sensor
-        if self.CHANNEL_MESSAGE_KEY in mqtt_json.keys():
-            topic += f"/{mqtt_json[self.CHANNEL_MESSAGE_KEY]}"
+        # if self.CHANNEL_MESSAGE_KEY in mqtt_json.keys():
+        #     topic += f"/{mqtt_json[self.CHANNEL_MESSAGE_KEY]}"
             # del mqtt_json[self.CHANNEL_MESSAGE_KEY]
+        if channel:
+            topic += f"/{channel}"
 
         # Publish packet data to MQTT
         self.logger.debug(f"{topic}: Sent MQTT: {mqtt_json}")
         self.mqtt_publish(topic, mqtt_json, retain=retain)
-        if equipment.publish_flat:
-            for prop_name, value in mqtt_json.items():
-                prop_name = prop_name.replace(
-                    "/", ""
-                )  # Avoid sub topic if property has / ex: "I/O"
-                self.mqtt_publish(f"{topic}/{prop_name}", value, retain=retain)
+        # if equipment.publish_flat:
+        #     for prop_name, value in mqtt_json.items():
+        #         prop_name = prop_name.replace(
+        #             "/", ""
+        #         )  # Avoid sub topic if property has / ex: "I/O"
+        #         if prop_name.endswith("|unit"):
+        #             val_name = prop_name.split("|")[0]
+        #             unit = value
+        #             self.mqtt_publish(f"{topic}/{val_name}/$unit", unit, retain=retain)
+        #         else:
+        #             self.mqtt_publish(f"{topic}/{prop_name}", value, retain=retain)
 
-    def _parse_esp_packet(self, packet, equipment):
+    def _publish_mqtt_flat(self, equipment, fields_list, channel=None):
+        # retain = equipment.retain
+        retain = True
+        base_topic = equipment.topic
+        if channel:
+            base_topic += f"/{channel}"
+        for field in fields_list:
+            self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}", field[FieldSetName.VALUE], retain=retain)
+            self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$name", field[FieldSetName.DESCRIPTION], retain=retain)
+            if field[FieldSetName.UNIT]:
+                self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$unit", field[FieldSetName.UNIT],
+                                  retain=retain)
+
+    def _handle_esp_packet(self, packet, equipment):
         """interpret packet, read properties and publish to MQTT"""
         if not packet.learn or equipment.log_learn:
             # Handling received data packet
-            message_fields = self._handle_esp_data_packet(packet, equipment)
+            message_fields = self._parse_esp_packet(packet, equipment)
+
             if not message_fields:
                 self.logger.warning(
                     f"message not interpretable: {equipment.name} {packet}"
                 )
             else:
+                channel = None
+                message_payload = self.format_enocean_message(message_fields, equipment)
+                if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
+                    channel = message_payload[self.CHANNEL_MESSAGE_KEY]
                 # Store receive date
                 if self.publish_timestamp:
-                    message_fields[self.TIMESTAMP_MESSAGE_KEY] = int(packet.received)
+                    message_payload[self.TIMESTAMP_MESSAGE_KEY] = int(packet.received)
                 if equipment.publish_rssi:
                     # Store RSSI
                     try:
-                        message_fields[self.RSSI_MESSAGE_KEY] = packet.dBm
+                        message_payload[self.RSSI_MESSAGE_KEY] = packet.dBm
                     except AttributeError:
                         self.logger.warning(
                             f"Unable to set RSSI value in packet {packet}"
                         )
-                message_fields[self.RORG_MESSAGE_KEY] = packet.rorg
-                self.logger.debug(f"Publish message {message_fields}")
-                self._publish_mqtt(equipment, message_fields)
+                message_payload[self.RORG_MESSAGE_KEY] = packet.rorg
+                self.logger.debug(f"Publish message {message_payload}")
+                self._publish_mqtt_json(equipment, message_payload, channel=channel)
+                if equipment.publish_flat:
+                    self._publish_mqtt_flat(equipment, message_fields, channel=channel)
+
+
         elif packet.learn and not self.enocean.teach_in:
             self.logger.info("Received teach-in packet but learn is not enabled")
         else:
             # learn request received
             self.logger.info("learn request not emitted to mqtt")
 
-    def _handle_esp_data_packet(self, packet, equipment):
+    def _parse_esp_packet(self, packet, equipment):
         # data packet received
         if packet.packet_type == PacketType.RADIO and packet.rorg == equipment.rorg:
             # radio packet of proper rorg type received; parse EEP
             self.logger.debug(f"handle radio packet for sensor {equipment}")
+            # TODO: Improve this logic
             fields = equipment.get_packet_fields(packet, direction=equipment.direction)
             properties = packet.parse_message(fields)
             # self.logger.debug(f"found properties in message: {properties}")
-            return self.format_enocean_message(properties, equipment)
+            return properties
 
     def format_enocean_message(self, parsed_message, equipment):
         """
@@ -432,9 +462,6 @@ class Gateway:
         return: dict() with formatted fields and units
         """
         message_payload = dict()
-        value_fields = list()
-        operator_fields = list()
-        unit_fields = list()
         # Define the key that should be used in field to compose json message
         if equipment.publish_raw or self.publish_raw:
             # Message format must be published as raw (<shortcut>: <raw_value>)
@@ -453,16 +480,6 @@ class Gateway:
                 and "not supported" in prop[FieldSetName.VALUE]
             ):
                 continue
-            # Manage to calculate value before send
-            if prop[FieldSetName.TYPE] == DataFieldType.VALUE:
-                value_fields.append(prop)
-            elif prop[FieldSetName.SHORTCUT] in (
-                SpecificShortcut.MULTIPLIER,
-                SpecificShortcut.DIVISOR,
-            ):
-                operator_fields.append(prop)
-            elif prop[FieldSetName.SHORTCUT] == SpecificShortcut.UNIT:
-                unit_fields.append(prop)
             key = prop[property_key]
             val = prop[value_key]
             message_payload[key] = val
@@ -587,7 +604,7 @@ class Gateway:
         # elif equipment.rorg == RORG.RPS:
         #     packet.learn = False
         # interpret packet, read properties and publish to MQTT
-        self._parse_esp_packet(packet, equipment)
+        self._handle_esp_packet(packet, equipment)
 
         # check for necessary reply
         if equipment.answer:
