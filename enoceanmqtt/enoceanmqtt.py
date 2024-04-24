@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Author: Damien Duransseau <damien@duransseau.net> based on Roman Morawek <roman.morawek@embyt.com>
+# Author: Damien Duransseau <damien@duransseau.net>
 """this is the main entry point, which sets up the Communicator class"""
 
 import logging
@@ -9,7 +9,7 @@ import argparse
 from pathlib import Path
 from configparser import ConfigParser
 
-from communicator import Communicator
+from gateway import Gateway
 
 conf = {
     "debug": False,
@@ -135,7 +135,7 @@ def main():
     config_manager.load_config_file()
 
     # start working
-    com = Communicator(config_manager)
+    com = Gateway(config_manager)
     try:
         com.run()
     except Exception as e:

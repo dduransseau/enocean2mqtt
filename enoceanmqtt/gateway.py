@@ -21,7 +21,7 @@ import enocean.utils
 import paho.mqtt.client as mqtt
 
 
-class Communicator:
+class Gateway:
     """the main working class providing the MQTT interface to the enocean packet classes"""
 
     mqtt_client = None
