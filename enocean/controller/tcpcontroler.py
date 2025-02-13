@@ -37,7 +37,7 @@ class TCPControler(BaseController):
                 if not data:
                     break
                 self._buffer.extend(bytearray(data))
-            self.parse()
+            self.read()
             client.close()
             self.logger.debug("Client disconnected")
         sock.close()

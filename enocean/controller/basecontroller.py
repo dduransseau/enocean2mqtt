@@ -15,6 +15,7 @@ from enocean.protocol.constants import (
     RESPONSE_REPEATER_LEVEL,
 )
 from enocean.protocol import crc8
+from enocean.utils import to_hex_string
 
 
 class BaseController(threading.Thread):
@@ -32,7 +33,7 @@ class BaseController(threading.Thread):
         # Input buffer
         self._buffer = bytearray()
         # Index of next Sync Byte that define next packet limit
-        self.next_sync_byte = 1
+        self.next_sync_byte = 1 # TODO: Probably at least 6 to pass header sequence
         # Setup packet queues
         self.transmit = queue.Queue()
         self.receive = queue.Queue()
@@ -71,10 +72,14 @@ class BaseController(threading.Thread):
         self.transmit.put(packet)
         return True
 
+    def send_common_command(self, code):
+        self.send(Packet(PacketType.COMMON_COMMAND, data=[code]))
+        self.command_queue.append(code)
+
     def stop(self):
         self._stop_flag.set()
 
-    def parse(self):
+    def read(self):
         """Parses messages and puts them to receive queue"""
         # Loop while we get new messages
         while True:
@@ -82,9 +87,9 @@ class BaseController(threading.Thread):
                 # Look for next frame Sync Byte
                 sync_byte_index = self._buffer.index(b"\x55", self.next_sync_byte)
                 header = self._buffer[1:5]
-                crc = self._buffer[5]
+                received_crc_byte = self._buffer[5]
                 # self.logger.warning(f"Check crc value for frame header for header={header} and crc={crc}")
-                if crc8.calc(header) == crc:
+                if crc8.calc(header) == received_crc_byte:
                     # Start of an ESP3 packet, get frame
                     # self.logger.warning("Header crc is valid !")
                     data_len = int.from_bytes(self._buffer[1:3])
@@ -130,6 +135,8 @@ class BaseController(threading.Thread):
                     response_packet = packet.create_response_packet(self.base_id)
                     self.logger.info("Sending response to UTE teach-in.")
                     self.send(response_packet)
+                elif isinstance(packet, UTETeachInPacket):
+                    self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
                 elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                     self.parse_common_command_response(packet)
                     continue  # Bypass packet emit to avoid to log internal command
@@ -154,8 +161,7 @@ class BaseController(threading.Thread):
             return self._base_id
 
         # Send COMMON_COMMAND 0x08, CO_RD_IDBASE request to the module
-        self.send(Packet(PacketType.COMMON_COMMAND, data=[CommandCode.CO_RD_IDBASE]))
-        self.command_queue.append(CommandCode.CO_RD_IDBASE)
+        self.send_common_command(CommandCode.CO_RD_IDBASE)
         # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
         # Unfortunately, all other messages received during this time are ignored.
@@ -175,8 +181,7 @@ class BaseController(threading.Thread):
                 id=hex(self._chip_id)[2:].upper(),
             )
         # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
-        self.send(Packet(PacketType.COMMON_COMMAND, data=[CommandCode.CO_RD_VERSION]))
-        self.command_queue.append(CommandCode.CO_RD_VERSION)
+        self.send_common_command(CommandCode.CO_RD_VERSION)
         # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
         # Unfortunately, all other messages received during this time are ignored.
@@ -198,14 +203,15 @@ class BaseController(threading.Thread):
 
     def init_adapter(self):
         for code in (
-            CommandCode.CO_RD_IDBASE,
-            CommandCode.CO_RD_VERSION,
-            CommandCode.CO_GET_FREQUENCY_INFO,
-            CommandCode.CO_WR_BIST,
+            CommandCode.CO_RD_IDBASE
+            ,CommandCode.CO_RD_VERSION
+            ,CommandCode.CO_GET_FREQUENCY_INFO
+            # ,CommandCode.CO_WR_BIST
+            , CommandCode.CO_GET_NOISETHRESHOLD
+            ,CommandCode.CO_RD_REPEATER
         ):
-            self.send(Packet(PacketType.COMMON_COMMAND, data=[code]))
-            self.command_queue.append(code)
-            time.sleep(0.1)
+            self.send_common_command(code)
+            time.sleep(0.01)
         # for i in range(10):
         #     if self._base_id and self._chip_id:
         #         return True
@@ -229,7 +235,7 @@ class BaseController(threading.Thread):
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.
             self._base_id = packet.response_data
-            self.logger.debug(f"Setup base ID as {self._base_id}")
+            self.logger.debug(f"Setup base ID as {to_hex_string(self._base_id)}")
         elif command_id == CommandCode.CO_GET_FREQUENCY_INFO:
             frequency = RESPONSE_FREQUENCY_FREQUENCY[packet.response_data[0]]
             protocol = RESPONSE_FREQUENCY_PROTOCOL[packet.response_data[1]]
@@ -242,6 +248,13 @@ class BaseController(threading.Thread):
             self.logger.info(
                 f"Device info: repeater mode={repeater_mode} repeater level={repeater_level}"
             )
+        elif command_id == CommandCode.CO_GET_NOISETHRESHOLD:
+            noise_threshold = int.from_bytes(packet.response_data[0:4])
+            self.logger.info(
+                f"Device info: noise threshold={noise_threshold}"
+            )
+        elif command_id == CommandCode.CO_RD_SYS_LOG:
+            self.logger.warning(f"Controller log: {packet.response_data}\nOptional data: {packet.optional}")
         else:
             self.logger.debug(
                 f"Receive command response for command id {command_id} with content {packet.response_data}"

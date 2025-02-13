@@ -11,6 +11,8 @@ from enocean.utils import (
 from enocean.protocol import crc8
 from enocean.protocol.constants import (
     PacketType,
+    ReturnCode,
+    EventCode,
     RORG,
     ParseResult,
     DB0,
@@ -452,20 +454,22 @@ class UTETeachInPacket(RadioPacket):
 
 
 class ResponsePacket(Packet):
-    response = 0
+    # response = 0
+    return_code = ReturnCode(0)
     response_data = []
 
     def parse(self):
-        self.response = self.data[0]
+        # self.response = self.data[0]
+        self.return_code = ReturnCode(self.data[0])
         self.response_data = self.data[1:]
         return super(ResponsePacket, self).parse()
 
 
 class EventPacket(Packet):
-    event = 0
+    event_code = None
     event_data = []
 
     def parse(self):
-        self.event = self.data[0]
+        self.event_code = EventCode(self.data[0])
         self.event_data = self.data[1:]
         return super(EventPacket, self).parse()

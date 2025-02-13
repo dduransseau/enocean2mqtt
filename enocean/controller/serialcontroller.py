@@ -1,7 +1,6 @@
 # -*- encoding: utf-8 -*-
 import logging
 import serial
-# import time
 
 from enocean.controller.basecontroller import BaseController
 
@@ -43,11 +42,7 @@ class SerialController(BaseController):
                     f"Serial port exception! (device disconnected or multiple access on port {self.__port} ?)"
                 )
                 self.stop()
-            # try:
-            self.parse()
-            # except Exception as e:
-            #     self.logger.error(f'Exception occurred while parsing: {e}')
-            # time.sleep(0) # TODO : need ?
+            self.read()
 
         self.__ser.close()
         self.logger.info("SerialCommunicator stopped")

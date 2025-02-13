@@ -11,9 +11,6 @@ from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket
 from enocean.protocol.constants import (
     PacketType,
-    ReturnCode,
-    DataFieldType,
-    SpecificShortcut,
     FieldSetName,
 )
 from equipment import Equipment
@@ -167,7 +164,7 @@ class Gateway:
         for equipment in self.equipments.values():
             if id == equipment.name:
                 return equipment
-        self.logger.warning(f"Unable to find equipment with key {id}")
+        self.logger.debug(f"Unable to find equipment with key {id:x}")
 
     @property
     def equipments_definition_list(self):
@@ -221,7 +218,7 @@ class Gateway:
                 try:
                     self.enocean.init_adapter()
                     self.controller_address = self.enocean.base_id
-                    self.logger.info(f"Base id {self.controller_address}")
+                    self.logger.info(f"Base id {enocean.utils.to_hex_string(self.controller_address)}")
                     self.controller_info = self.enocean.controller_info_details
                     self.logger.info(f"Controller info: {self.controller_info}")
                 except TimeoutError:
@@ -400,7 +397,7 @@ class Gateway:
         for field in fields_list:
             self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}", field[FieldSetName.VALUE], retain=retain)
             self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$name", field[FieldSetName.DESCRIPTION], retain=retain)
-            if field[FieldSetName.UNIT]:
+            if field.get(FieldSetName.UNIT):
                 self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$unit", field[FieldSetName.UNIT],
                                   retain=retain)
 
@@ -408,7 +405,7 @@ class Gateway:
         """interpret packet, read properties and publish to MQTT"""
         if not packet.learn or equipment.log_learn:
             # Handling received data packet
-            message_fields = self._parse_esp_packet(packet, equipment)
+            message_fields = self._parse_esp_radio_packet(packet, equipment)
 
             if not message_fields:
                 self.logger.warning(
@@ -435,15 +432,13 @@ class Gateway:
                 self._publish_mqtt_json(equipment, message_payload, channel=channel)
                 if equipment.publish_flat:
                     self._publish_mqtt_flat(equipment, message_fields, channel=channel)
-
-
         elif packet.learn and not self.enocean.teach_in:
             self.logger.info("Received teach-in packet but learn is not enabled")
         else:
             # learn request received
             self.logger.info("learn request not emitted to mqtt")
 
-    def _parse_esp_packet(self, packet, equipment):
+    def _parse_esp_radio_packet(self, packet, equipment):
         # data packet received
         if packet.packet_type == PacketType.RADIO and packet.rorg == equipment.rorg:
             # radio packet of proper rorg type received; parse EEP
@@ -567,9 +562,7 @@ class Gateway:
                 packet = packet.build_message(data)
             else:
                 # what to do if we have no data to send yet?
-                self.logger.warning(
-                    "sending only default data as answer to %s", equipment.name
-                )
+                self.logger.warning(f"sending only default data as answer to {equipment.name}")
         self.enocean.send(packet)
 
     def _process_radio_packet(self, packet):
@@ -586,7 +579,7 @@ class Gateway:
         if not equipment:
             # skip unknown sensor
             self.logger.info(
-                f"unknown sender id {formatted_address}, telegram disregarded"
+                f"unknown sender id 0x{formatted_address}, telegram disregarded"
             )
             return
         elif equipment.ignore:
@@ -639,10 +632,11 @@ class Gateway:
                 if packet.packet_type == PacketType.RADIO:
                     self._process_radio_packet(packet)
                 elif packet.packet_type == PacketType.RESPONSE:
-                    response_code = ReturnCode(packet.data[0])
-                    self.logger.info(f"got esp response packet: {response_code.name}")
+                    self.logger.debug(f"got esp response packet: {packet.return_code.name}")
                     if self.publish_response_status:
-                        self.mqtt_publish(f"{self.topic_prefix}rep", response_code.name)
+                        self.mqtt_publish(f"{self.topic_prefix}rep", packet.return_code.name)
+                elif packet.packet_type == PacketType.EVENT:
+                    self.logger.warning(f"Received EVENT packet {packet}")
                 else:
                     self.logger.info(
                         f"got unsupported packet: type={packet.packet_type} {packet}"
@@ -654,6 +648,11 @@ class Gateway:
                 logging.debug("Exception: KeyboardInterrupt")
                 break
         # Run finished, close MQTT client and stop Enocean thread
+        self.mqtt_publish(
+            f"{self.topic_prefix}{self.GATEWAY_STATUS_TOPIC}",
+            "OFFLINE",
+            retain=True,
+        )
         self.logger.info(
             f"Close the enocean controller, get {self.enocean.crc_errors} crc errors during run"
         )

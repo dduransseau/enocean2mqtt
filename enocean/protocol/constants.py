@@ -110,27 +110,9 @@ class ParseResult(IntEnum):
 
 
 class DataFieldType(IntEnum):
-    STATUS = 1
-    VALUE = 2
-    ENUM = 3
-
-
-class SpecificShortcut(StrEnum):
-    UNIT = "UN"
-    MULTIPLIER = "SCM"
-    DIVISOR = "DIV"
-    COMMAND = "CMD"
-    LEARN_BIT = "LRNB"
-    HUMIDITY_AVAILABILITY = "HSN"
-    TEMPERATURE_AVAILABILITY = "TSN"
-    HUMIDITY = "HUM"
-    TEMPERATURE = "TMP"
-
-
-AVAILABILITY_FIELD_MAPPING = {
-    SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
-    SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE,
-}
+    STATUS = 0x01
+    VALUE = 0x02
+    ENUM = 0x03
 
 
 class FieldSetName(StrEnum):
