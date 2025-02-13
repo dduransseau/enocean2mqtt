@@ -12,7 +12,7 @@ class Equipment(EnoceanEquipment):
         rorg = int(kwargs.get("rorg"))
         func = int(kwargs.get("func"))
         type_ = int(kwargs.get("type"))
-        name = kwargs.get("name")
+        name = kwargs.get("name", str(address)) # Default set equipment address as name is none is set
         topic_prefix = kwargs.get("topic_prefix")
         if topic_prefix and name.startswith(topic_prefix):
             name = name.replace(topic_prefix, "")

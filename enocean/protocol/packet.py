@@ -395,7 +395,6 @@ class UTETeachInPacket(RadioPacket):
     unidirectional = False
     response_expected = False
     number_of_channels = 0xFF
-    rorg_of_eep = RORG.UNDEFINED
     request_type = NOT_SPECIFIC
     channel = None
 
@@ -423,13 +422,13 @@ class UTETeachInPacket(RadioPacket):
             + self._bit_data[DB4.BIT_7 : DB3.BIT_7]
         )  # noqa: E501
         self.channel = self.data[2]
-        self.rorg_type = self.data[5]
+        self.rorg = self.data[7]
         self.rorg_func = self.data[6]
-        self.rorg_of_eep = self.data[7]
+        self.rorg_type = self.data[5]
         if self.teach_in:
             self.learn = True
-        self.logger.info(
-            f"Received UTE teach in packet from {self.sender} manu:{self.rorg_manufacturer}"
+        self.logger.debug(
+            f"Received UTE teach in packet from {self.sender} manufacturer:{self.rorg_manufacturer} and EEP: {self.rorg:0x}-{self.rorg_type:0x}-{self.rorg_func:0x}"
         )
         # return self.parsed
 

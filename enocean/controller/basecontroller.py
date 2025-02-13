@@ -15,7 +15,8 @@ from enocean.protocol.constants import (
     RESPONSE_REPEATER_LEVEL,
 )
 from enocean.protocol import crc8
-from enocean.utils import to_hex_string
+from enocean.utils import to_hex_string, combine_hex
+from enocean.equipment import Equipment
 
 
 class BaseController(threading.Thread):
@@ -26,7 +27,7 @@ class BaseController(threading.Thread):
 
     logger = logging.getLogger("enocean.controller.BaseController")
 
-    def __init__(self, callback=None, teach_in=True, timestamp=True):
+    def __init__(self, callback=None, teach_in=True, timestamp=False):
         super(BaseController, self).__init__()
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
@@ -38,6 +39,7 @@ class BaseController(threading.Thread):
         self.transmit = queue.Queue()
         self.receive = queue.Queue()
         self.command_queue = list()
+        self.learned_equipment = set()
         # Set the callback method
         self.__callback = callback
         # Internal variable for the Base ID of the module.
@@ -131,12 +133,15 @@ class BaseController(threading.Thread):
             elif status == ParseResult.OK and packet:
                 if self.frame_timestamp:
                     packet.received = time.time()
-                if isinstance(packet, UTETeachInPacket) and self.teach_in:
-                    response_packet = packet.create_response_packet(self.base_id)
-                    self.logger.info("Sending response to UTE teach-in.")
-                    self.send(response_packet)
-                elif isinstance(packet, UTETeachInPacket):
-                    self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
+                if isinstance(packet, UTETeachInPacket):
+                    if self.teach_in:
+                        response_packet = packet.create_response_packet(self.base_id)
+                        self.logger.info("Sending response to UTE teach-in.")
+                        self.send(response_packet)
+                    else:
+                        self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
+                    self.logger.info(f"Received UTE teach-in packet from {combine_hex(packet.sender)} with EEP: {packet.rorg:0x}-{packet.rorg_type:0x}-{packet.rorg_func:0x}")
+                    self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.rorg, type_=packet.rorg_type, func=packet.rorg_func))
                 elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                     self.parse_common_command_response(packet)
                     continue  # Bypass packet emit to avoid to log internal command
@@ -203,12 +208,12 @@ class BaseController(threading.Thread):
 
     def init_adapter(self):
         for code in (
-            CommandCode.CO_RD_IDBASE
-            ,CommandCode.CO_RD_VERSION
-            ,CommandCode.CO_GET_FREQUENCY_INFO
-            # ,CommandCode.CO_WR_BIST
-            , CommandCode.CO_GET_NOISETHRESHOLD
-            ,CommandCode.CO_RD_REPEATER
+            CommandCode.CO_RD_IDBASE,
+            CommandCode.CO_RD_VERSION,
+            CommandCode.CO_GET_FREQUENCY_INFO,
+            #CommandCode.CO_WR_BIST,
+            CommandCode.CO_GET_NOISETHRESHOLD,
+            CommandCode.CO_RD_REPEATER,
         ):
             self.send_common_command(code)
             time.sleep(0.01)
@@ -230,7 +235,8 @@ class BaseController(threading.Thread):
                 [chr(c) for c in packet.response_data[16:] if c]
             )
             self.logger.debug(
-                f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={self._chip_id} chip_version={self._chip_version}"
+                f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={self._chip_id}"
+                f" chip_version={self._chip_version}"
             )
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.

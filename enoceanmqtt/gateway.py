@@ -57,10 +57,10 @@ class Gateway:
             f"Init communicator with sensors: {self.conf_manager.sensors}, publish timestamp: {self.publish_timestamp}"
         )
         self.equipments = dict()
-        # Set self.equipments based on sensors present in config_manager
-        self.setup_devices_list()
         # Define set() of detected address received by the gateway
         self.detected_equipments = set()
+        # Set self.equipments based on sensors present in config_manager
+        self.setup_devices_list()
 
         # check for mandatory configuration
         if "mqtt_host" not in self.conf or "enocean_port" not in self.conf:
@@ -565,6 +565,21 @@ class Gateway:
                 self.logger.warning(f"sending only default data as answer to {equipment.name}")
         self.enocean.send(packet)
 
+    def add_equipments(self):
+        # Allow to add equipment live without config file if teach-in packet received with eep
+        ignore = False if self.enocean.teach_in else True
+        for i in range(len(self.enocean.learned_equipment)):
+            new_equipment = self.enocean.learned_equipment.pop()
+            equipment = Equipment(address=new_equipment.address, rorg=new_equipment.rorg, func=new_equipment.func, type=new_equipment.type,
+                                  topic_prefix=self.topic_prefix, ignore=ignore)
+            self.equipments[new_equipment.address] = equipment
+            self.mqtt_client.subscribe(equipment.topic + "/req")
+        self.mqtt_publish(
+            f"{self.topic_prefix}{self.GATEWAY_EQUIPMENTS_TOPIC}",
+            self.equipments_definition_list,
+            retain=True,
+        )
+
     def _process_radio_packet(self, packet):
         # first, look whether we have this sensor configured
         sender_address = enocean.utils.combine_hex(packet.sender)
@@ -575,6 +590,11 @@ class Gateway:
             self.logger.info(f"Detected new equipment with address {formatted_address}")
             # self.mqtt_publish(f"{self.topic_prefix}gateway/detected_equipments", list(self.detected_equipments))
         self.logger.debug(f"received: {packet}")
+        # Check if new device has been detected and add it to known equipment
+        if self.enocean.learned_equipment:
+            self.add_equipments()
+
+
         equipment = self.get_equipment(sender_address)
         if not equipment:
             # skip unknown sensor
