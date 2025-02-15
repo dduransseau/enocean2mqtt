@@ -1,4 +1,5 @@
 # -*- encoding: utf-8 -*-
+import time
 import logging
 import serial
 
@@ -15,7 +16,12 @@ class SerialController(BaseController):
         # Initialize serial port
         self.__port = port
         self.__baudrate = baudrate
-        self.__ser = serial.Serial(port, baudrate, timeout=timeout)
+        # TODO: Improve this
+        try:
+            self.__ser = serial.Serial(port, baudrate, timeout=timeout)
+        except serial.serialutil.SerialException:
+            time.sleep(0.1)
+            self.__ser = serial.Serial(port, baudrate, timeout=timeout)
 
     def run(self):
         self.logger.info(
@@ -23,13 +29,11 @@ class SerialController(BaseController):
         )
         self.__ser.read_until(b"\55")
         while not self._stop_flag.is_set():
-            # If there's messages in transmit queue
-            # send them
-            while True:
-                packet = self._get_from_send_queue()
-                if not packet:
-                    break
+            # If there's messages in transmit queue send them
+            while not self.transmit.empty():
+                packet = self.transmit.get(block=False)
                 try:
+                    self.logger.debug(f"Sending: {packet}")
                     self.__ser.write(bytearray(packet.build()))
                 except serial.SerialException:
                     self.stop()

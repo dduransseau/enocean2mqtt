@@ -55,17 +55,6 @@ class BaseController(threading.Thread):
         self.app_description = None
         self.crc_errors = 0
 
-    def _get_from_send_queue(self):
-        """Get message from send queue, if one exists"""
-        try:
-            packet = self.transmit.get(block=False)
-            # self.logger.debug(packet)
-            self.logger.debug("Sending: %s", packet)
-            return packet
-        except queue.Empty:
-            pass
-        return None
-
     def send(self, packet):
         # TODO: Evaluate this and raise Exception if relevant
         if not isinstance(packet, Packet):
@@ -140,7 +129,7 @@ class BaseController(threading.Thread):
                         self.send(response_packet)
                     else:
                         self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
-                    self.logger.info(f"Received UTE teach-in packet from {combine_hex(packet.sender)} with EEP: {packet.rorg:0x}-{packet.rorg_type:0x}-{packet.rorg_func:0x}")
+                    self.logger.info(f"Received UTE teach-in packet from {to_hex_string(packet.sender)} with EEP: {packet.rorg:0x}-{packet.rorg_type:0x}-{packet.rorg_func:0x}")
                     self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.rorg, type_=packet.rorg_type, func=packet.rorg_func))
                 elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                     self.parse_common_command_response(packet)
@@ -217,6 +206,8 @@ class BaseController(threading.Thread):
         ):
             self.send_common_command(code)
             time.sleep(0.01)
+        self.logger.info(f"Controller info: base id {to_hex_string(self.base_id)}")
+        self.logger.info(f"Controller info: {self.controller_info_details}")
         # for i in range(10):
         #     if self._base_id and self._chip_id:
         #         return True
@@ -246,18 +237,18 @@ class BaseController(threading.Thread):
             frequency = RESPONSE_FREQUENCY_FREQUENCY[packet.response_data[0]]
             protocol = RESPONSE_FREQUENCY_PROTOCOL[packet.response_data[1]]
             self.logger.info(
-                f"Device info: work on frequency {frequency} with protocol {protocol}"
+                f"Controller info: work on frequency {frequency} with protocol {protocol}"
             )
         elif command_id == CommandCode.CO_RD_REPEATER:
             repeater_mode = RESPONSE_REPEATER_MODE[packet.response_data[0]]
             repeater_level = RESPONSE_REPEATER_LEVEL[packet.response_data[1]]
             self.logger.info(
-                f"Device info: repeater mode={repeater_mode} repeater level={repeater_level}"
+                f"Controller info: repeater mode={repeater_mode} repeater level={repeater_level}"
             )
         elif command_id == CommandCode.CO_GET_NOISETHRESHOLD:
             noise_threshold = int.from_bytes(packet.response_data[0:4])
             self.logger.info(
-                f"Device info: noise threshold={noise_threshold}"
+                f"Controller info: noise threshold={noise_threshold}"
             )
         elif command_id == CommandCode.CO_RD_SYS_LOG:
             self.logger.warning(f"Controller log: {packet.response_data}\nOptional data: {packet.optional}")
