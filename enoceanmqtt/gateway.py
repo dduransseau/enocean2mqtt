@@ -165,6 +165,7 @@ class Gateway:
         """Try to get the equipment based on id (can be address or name)"""
         if equipment := self.equipments.get(id):
             return equipment
+        # if equipment not found by id, lookup by name
         for equipment in self.equipments.values():
             if id == equipment.name:
                 return equipment
@@ -413,19 +414,20 @@ class Gateway:
                 self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$unit", field[FieldSetName.UNIT],
                                   retain=retain)
 
-    def _handle_esp_packet(self, packet, equipment):
-        """interpret packet, read properties and publish to MQTT"""
+    def _process_erp_packet(self, packet, equipment):
+        """interpret radio packet, read properties and publish to MQTT"""
         if not packet.learn or equipment.log_learn:
             # Handling received data packet
-            message_fields = self._parse_esp_radio_packet(packet, equipment)
-
-            if not message_fields:
+            self.logger.debug(f"handle radio packet for sensor {equipment}")
+            # Parse message based on fields definition (profile)
+            radio_message = packet.parse_erp_message(equipment.profile, direction=equipment.direction)
+            if not radio_message:
                 self.logger.warning(
                     f"message not interpretable: {equipment.name} {packet}"
                 )
             else:
                 channel = None
-                message_payload = self.format_enocean_message(message_fields, equipment)
+                message_payload = self.format_enocean_message(radio_message, equipment)
                 if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
                     channel = message_payload[self.CHANNEL_MESSAGE_KEY]
                 # Store receive date
@@ -443,23 +445,12 @@ class Gateway:
                 self.logger.debug(f"Publish message {message_payload}")
                 self._publish_mqtt_json(equipment, message_payload, channel=channel)
                 if equipment.publish_flat:
-                    self._publish_mqtt_flat(equipment, message_fields, channel=channel)
+                    self._publish_mqtt_flat(equipment, radio_message, channel=channel)
         elif packet.learn and not self.enocean.teach_in:
             self.logger.info("Received teach-in packet but learn is not enabled")
         else:
             # learn request received
             self.logger.info("learn request not emitted to mqtt")
-
-    def _parse_esp_radio_packet(self, packet, equipment):
-        # data packet received
-        if packet.packet_type == PacketType.RADIO and packet.rorg == equipment.rorg:
-            # radio packet of proper rorg type received; parse EEP
-            self.logger.debug(f"handle radio packet for sensor {equipment}")
-            # TODO: Improve this logic
-            fields = equipment.get_packet_fields(packet, direction=equipment.direction)
-            properties = packet.parse_message(fields)
-            # self.logger.debug(f"found properties in message: {properties}")
-            return properties
 
     def format_enocean_message(self, parsed_message, equipment):
         """
@@ -594,7 +585,7 @@ class Gateway:
                 retain=True,
             )
 
-    def _process_radio_packet(self, packet):
+    def _handle_erp_packet(self, packet):
         # first, look whether we have this sensor configured
         sender_address = combine_hex(packet.sender)
         formatted_address = to_hex_string(packet.sender)
@@ -607,7 +598,6 @@ class Gateway:
         # Check if new device has been detected and add it to known equipment
         if self.enocean.learned_equipment:
             self.add_equipments()
-
 
         equipment = self.get_equipment(sender_address)
         if not equipment:
@@ -631,7 +621,7 @@ class Gateway:
         # elif equipment.rorg == RORG.RPS:
         #     packet.learn = False
         # interpret packet, read properties and publish to MQTT
-        self._handle_esp_packet(packet, equipment)
+        self._process_erp_packet(packet, equipment)
 
         # check for necessary reply
         if equipment.answer:
@@ -663,8 +653,8 @@ class Gateway:
                 else:
                     packet = self.enocean.receive.get(block=True)
                 # check packet type
-                if packet.packet_type == PacketType.RADIO:
-                    self._process_radio_packet(packet)
+                if packet.packet_type == PacketType.RADIO_ERP1:
+                    self._handle_erp_packet(packet)
                 elif packet.packet_type == PacketType.RESPONSE:
                     self.logger.debug(f"got esp response packet: {packet.return_code.name}")
                     if self.publish_response_status:

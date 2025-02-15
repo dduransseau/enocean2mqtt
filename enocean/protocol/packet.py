@@ -67,11 +67,7 @@ class Packet(object):
         self.parse()
 
     def __str__(self):
-        return "0x%02X %s %s" % (
-            self.packet_type,
-            [hex(o) for o in self.data],
-            [hex(o) for o in self.optional],
-        )
+        return f"{PacketType(self.packet_type).name} {[hex(o) for o in self.data]} {[hex(o) for o in self.optional]}"
 
     def __eq__(self, other):
         return (
@@ -154,7 +150,7 @@ class Packet(object):
             )  # check if it can be moved into controller
             # If the fields don't exist, message is incomplete
             return ParseResult.INCOMPLETE, None
-        if packet_type == PacketType.RADIO:
+        if packet_type == PacketType.RADIO_ERP1:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:
                 packet = UTETeachInPacket(packet_type, data, opt_data)
@@ -188,7 +184,7 @@ class Packet(object):
         **kwargs,
     ):
         Packet.logger.debug(f"Create packet for equipment profile {equipment.profile}")
-        if packet_type != PacketType.RADIO:
+        if packet_type != PacketType.RADIO_ERP1:
             raise NotImplementedError("Packet type not supported by this function.")
 
         if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD]:  # , RORG.MSC
@@ -255,16 +251,6 @@ class Packet(object):
         if self.rorg == RORG.VLD:
             self.status = self.optional[-1]
 
-        # return self.parsed
-
-    def parse_message(self, message):
-        """Parse EEP based on FUNC and TYPE"""
-        # set EEP profile, if demanded
-        # parse data
-        values = message.get_values(self._bit_data, self._bit_status)
-        self.logger.debug(f"Parsed data values {values}")
-        return values
-
     def build(self):
         """Build Packet for sending to EnOcean controller"""
         data_length = len(self.data)
@@ -314,7 +300,7 @@ class RadioPacket(Packet):
     ):
         Packet.logger.debug(f"Create message RadioPacket for rorg {equipment.rorg}")
         return Packet.create_message(
-            PacketType.RADIO,
+            PacketType.RADIO_ERP1,
             equipment,
             direction,
             command,
@@ -343,7 +329,7 @@ class RadioPacket(Packet):
     def parse(self):
         self.destination = self.optional[1:5]
         self.dBm = -self.optional[5]
-        self.sender = self.data[-5:-1]
+        self.sender = self.data[DB0.BIT_4:DB0.BIT_0]
         # Default to learn == True, as some devices don't have a learn button
         self.learn = True
         self.rorg = self.data[0]
@@ -366,18 +352,33 @@ class RadioPacket(Packet):
                         self._bit_data[DB2.BIT_2 : DB0.BIT_7]
                     )
                     self.logger.info(
-                        "learn received, EEP detected, RORG: 0x%02X, FUNC: 0x%02X, TYPE: 0x%02X, Manufacturer: 0x%02X"
-                        % (
-                            self.rorg,
-                            self.rorg_func,
-                            self.rorg_type,
-                            self.rorg_manufacturer,
-                        )
+                        f"learn received, EEP detected, RORG: 0x{self.rorg:0x}, FUNC: 0x{self.rorg_func:0x}, "
+                        f"TYPE: 0x{self.rorg_type:0x}, Manufacturer: 0x{self.rorg_manufacturer:0x}"
                     )  # noqa: E501
         elif self.rorg == RORG.VLD or self.rorg == RORG.RPS:
             self.learn = False
 
         return super(RadioPacket, self).parse()
+
+    ## Method to parse ERP message into ESP packet
+
+    def _get_command_id(self, profile):
+        """interpret packet to retrieve command id from VLD packets"""
+        if profile.commands:
+            self.logger.debug(f"Get command id in packet : {self.data}")
+            command_id = profile.commands.parse_raw(self._bit_data)
+            return command_id if command_id else None
+
+    def get_packet_fields(self, profile, direction):
+        command_id = self._get_command_id(profile)
+        return profile.get_message_form(command=command_id, direction=direction)
+
+    def parse_erp_message(self, profile, direction=1):
+        """Parse EEP based on FUNC and TYPE"""
+        message_form = self.get_packet_fields(profile, direction)
+        values = message_form.get_values(self._bit_data, self._bit_status)
+        self.logger.debug(f"Parsed data values {values}")
+        return values
 
 
 class UTETeachInPacket(RadioPacket):
@@ -449,7 +450,7 @@ class UTETeachInPacket(RadioPacket):
         # Always use 0x03 to indicate sending, attach sender ID, dBm, and security level
         optional = [0x03] + self.sender + [0xFF, 0x00]
 
-        return RadioPacket(PacketType.RADIO, data=data, optional=optional)
+        return RadioPacket(PacketType.RADIO_ERP1, data=data, optional=optional)
 
 
 class ResponsePacket(Packet):

@@ -8,7 +8,7 @@ class PacketType(IntEnum):
     # RADIO == RADIO_ERP1
     # Kept for backwards compatibility reasons, for example custom packet
     # generation shouldn't be affected...
-    RADIO = 0x01  # ERP1
+    RADIO_ERP1 = 0x01
     RESPONSE = 0x02
     RADIO_SUB_TEL = 0x03
     EVENT = 0x04
@@ -18,7 +18,7 @@ class PacketType(IntEnum):
     RADIO_MESSAGE = 0x09
     # RADIO_ADVANCED == RADIO_ERP2
     # Kept for backwards compatibility reasons
-    RADIO_ADVANCED = 0x0A  # ERP2
+    RADIO_ERP2 = 0x0A
     RADIO_802_15_4 = 0x10
     COMMAND_2_4 = 0x11
 

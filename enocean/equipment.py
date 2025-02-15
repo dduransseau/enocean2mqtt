@@ -30,19 +30,3 @@ class Equipment(object):
         if self.name:
             return f"equipment {self.address} name {self.name} eep {self.eep_code}"
         return f"equipment {self.address} eep {self.eep_code}"
-
-    def get_command_id(self, packet):
-        """interpret packet to retrieve command id from VLD packets"""
-        if self.profile.commands:
-            self.logger.debug(
-                f"Get command id in packet : {packet.data} {packet._bit_data}"
-            )
-            command_id = self.profile.commands.parse_raw(packet._bit_data)
-            return command_id if command_id else None
-
-    def get_message_form(self, **kwargs):
-        return self.profile.get_message_form(**kwargs)
-
-    def get_packet_fields(self, packet, direction=1):
-        command_id = self.get_command_id(packet)
-        return self.profile.get_message_form(command=command_id, direction=direction)

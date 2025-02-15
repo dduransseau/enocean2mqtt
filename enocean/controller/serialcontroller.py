@@ -11,17 +11,12 @@ class SerialController(BaseController):
 
     logger = logging.getLogger("enocean.controller.SerialController")
 
-    def __init__(self, port="/dev/ttyAMA0", baudrate=57600, timeout=0.1, **kwargs):
+    def __init__(self, port="/dev/ttyAMA0", baudrate=57600, timeout=0, **kwargs):
         super(SerialController, self).__init__(**kwargs)
         # Initialize serial port
         self.__port = port
         self.__baudrate = baudrate
-        # TODO: Improve this
-        try:
-            self.__ser = serial.Serial(port, baudrate, timeout=timeout)
-        except serial.serialutil.SerialException:
-            time.sleep(0.1)
-            self.__ser = serial.Serial(port, baudrate, timeout=timeout)
+        self.__ser = serial.Serial(port, baudrate, timeout=timeout)
 
     def run(self):
         self.logger.info(
