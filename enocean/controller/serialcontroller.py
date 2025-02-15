@@ -9,7 +9,7 @@ from enocean.controller.basecontroller import BaseController
 class SerialController(BaseController):
     """Serial port communicator class for EnOcean radio"""
 
-    logger = logging.getLogger("enocean.controller.SerialController")
+    # logger = logging.getLogger("enocean.controller.SerialController")
 
     def __init__(self, port="/dev/ttyAMA0", baudrate=57600, timeout=0, **kwargs):
         super(SerialController, self).__init__(**kwargs)
@@ -25,17 +25,13 @@ class SerialController(BaseController):
         self.__ser.read_until(b"\55")
         while not self._stop_flag.is_set():
             # If there's messages in transmit queue send them
-            while not self.transmit.empty():
-                packet = self.transmit.get(block=False)
-                try:
+            try:
+                while not self.transmit.empty():
+                    packet = self.transmit.get(block=False)
                     self.logger.debug(f"Sending: {packet}")
                     self.__ser.write(bytearray(packet.build()))
-                except serial.SerialException:
-                    self.stop()
-
-            # Read chars from serial port as hex numbers
-            try:
-                self._buffer.extend(self.__ser.read(16))
+                # Read chars from serial port as hex numbers
+                self._buffer.extend(self.__ser.read())
             except serial.SerialException:
                 self.logger.error(
                     f"Serial port exception! (device disconnected or multiple access on port {self.__port} ?)"

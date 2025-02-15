@@ -360,7 +360,7 @@ class RadioPacket(Packet):
 
         return super(RadioPacket, self).parse()
 
-    ## Method to parse ERP message into ESP packet
+    ## Method to parse ERP message from ESP packet
 
     def _get_command_id(self, profile):
         """interpret packet to retrieve command id from VLD packets"""

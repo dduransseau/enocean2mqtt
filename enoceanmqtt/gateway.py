@@ -36,7 +36,7 @@ class Gateway:
     CHANNEL_MESSAGE_KEY = "_channel"
     RORG_MESSAGE_KEY = "_rorg"
 
-    logger = logging.getLogger("enocean.mqtt.Gateway")
+    logger = logging.getLogger("enocean.mqtt.gateway")
 
     def __init__(self, config):
         self.conf_manager = config

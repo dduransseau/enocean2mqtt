@@ -25,7 +25,7 @@ class BaseController(threading.Thread):
     Not to be used directly, only serves as base class for SerialCommunicator etc.
     """
 
-    logger = logging.getLogger("enocean.controller.BaseController")
+    logger = logging.getLogger("enocean.controller.controller")
 
     def __init__(self, callback=None, teach_in=True, timestamp=False):
         super(BaseController, self).__init__()
@@ -73,79 +73,79 @@ class BaseController(threading.Thread):
     def read(self):
         """Parses messages and puts them to receive queue"""
         # Loop while we get new messages
-        while True:
-            try:
-                # Look for next frame Sync Byte
-                sync_byte_index = self._buffer.index(b"\x55", self.next_sync_byte)
-                header = self._buffer[1:5]
-                received_crc_byte = self._buffer[5]
-                # self.logger.warning(f"Check crc value for frame header for header={header} and crc={crc}")
-                if crc8.calc(header) == received_crc_byte:
-                    # Start of an ESP3 packet, get frame
-                    # self.logger.warning("Header crc is valid !")
-                    data_len = int.from_bytes(self._buffer[1:3])
-                    opt_len = self._buffer[3]
-                    packet_type = self._buffer[3]
-                    # Calculate packet header(4)+crc (2*1) = 7
-                    packet_len = 7 + data_len + opt_len
-                    self.logger.debug(
-                        f"Packet {packet_type} with data len {data_len} and optionnal len {opt_len}"
-                    )
-                    if packet_len > len(self._buffer):
-                        self.next_sync_byte = self.next_sync_byte + packet_len + 1
-                        self.logger.debug(
-                            f"Packet len {packet_len} is upper then buffer size={len(self._buffer)} "
-                            f"frame incomplete set sync byte after {self.next_sync_byte} "
-                            f"actual sync byte index={sync_byte_index}"
-                        )
-                        return ParseResult.INCOMPLETE
-                    frame = self._buffer[0:packet_len]
-                    self.next_sync_byte = 1
-                    self._buffer = self._buffer[packet_len:]
-                    # self._frame_separator_index = 1
-                else:
-                    self.logger.warning(
-                        "Header CRC8 invalid, waiting for next Sync Byte"
-                    )
-                    self.crc_errors += 1
-                    self._buffer = self._buffer[sync_byte_index:]
+        # while True:
+        try:
+            # Look for next frame Sync Byte
+            sync_byte_index = self._buffer.find(b"\x55", self.next_sync_byte)
+            header = self._buffer[1:5]
+            received_crc_byte = self._buffer[5]
+            # self.logger.warning(f"Check crc value for frame header for header={header} and crc={crc}")
+            if crc8.calc(header) == received_crc_byte:
+                # Start of an ESP3 packet, get frame
+                # self.logger.warning("Header crc is valid !")
+                data_len = int.from_bytes(self._buffer[1:3])
+                opt_len = self._buffer[3]
+                packet_type = self._buffer[3]
+                # Calculate packet header(4)+crc (2*1) = 7
+                packet_len = 7 + data_len + opt_len
+                # self.logger.debug(
+                #     f"Packet {packet_type:0x} with data len {data_len} and optional len {opt_len} buffer len {len(self._buffer)}"
+                # )
+                if packet_len > len(self._buffer):
+                    self.next_sync_byte = self.next_sync_byte + packet_len
+                    # self.logger.debug(
+                    #     f"Packet len {packet_len} is upper then buffer size={len(self._buffer)} "
+                    #     f"frame incomplete set sync byte after {self.next_sync_byte} "
+                    #     f"actual sync byte index={sync_byte_index}"
+                    # )
                     return ParseResult.INCOMPLETE
-            except (ValueError, IndexError):
-                return ParseResult.INCOMPLETE
-
-            status, packet = Packet.parse_frame(frame)
-            # If message is incomplete -> break the loop
-            if status == ParseResult.INCOMPLETE:
-                self.logger.warning("Frame parsed packet is incomplete")
-                return status
-            # If message is OK, add it to receive queue or send to the callback method
-            elif status == ParseResult.OK and packet:
-                if self.frame_timestamp:
-                    packet.received = time.time()
-                if isinstance(packet, UTETeachInPacket):
-                    if self.teach_in:
-                        response_packet = packet.create_response_packet(self.base_id)
-                        self.logger.info("Sending response to UTE teach-in.")
-                        self.send(response_packet)
-                    else:
-                        self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
-                    self.logger.info(f"Received UTE teach-in packet from {to_hex_string(packet.sender)} with EEP: {packet.rorg:0x}-{packet.rorg_type:0x}-{packet.rorg_func:0x}")
-                    self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.rorg, type_=packet.rorg_type, func=packet.rorg_func))
-                elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
-                    self.parse_common_command_response(packet)
-                    continue  # Bypass packet emit to avoid to log internal command
-                if self.__callback is None:
-                    # Add received packet into receive queue
-                    self.receive.put(packet)
-                else:
-                    self.__callback(packet)
-                # self.logger.debug(packet)
-            elif status == ParseResult.CRC_MISMATCH:
-                self.crc_errors += 1
-                self.logger.info(
-                    f"Error to parse packet, remaining buffer {self._buffer}"
+                frame = self._buffer[0:packet_len]
+                self.next_sync_byte = 1
+                self._buffer = self._buffer[packet_len:]
+                # self._frame_separator_index = 1
+            else:
+                self.logger.warning(
+                    "Header CRC8 invalid, waiting for next Sync Byte"
                 )
-                return status
+                self.crc_errors += 1
+                self._buffer = self._buffer[sync_byte_index:]
+                return ParseResult.INCOMPLETE
+        except (ValueError, IndexError):
+            return ParseResult.INCOMPLETE
+
+        status, packet = Packet.parse_frame(frame)
+        # If message is incomplete -> break the loop
+        if status == ParseResult.INCOMPLETE:
+            self.logger.warning("Frame parsed packet is incomplete")
+            return status
+        # If message is OK, add it to receive queue or send to the callback method
+        elif status == ParseResult.OK and packet:
+            if self.frame_timestamp:
+                packet.received = time.time()
+            if isinstance(packet, UTETeachInPacket):
+                if self.teach_in:
+                    response_packet = packet.create_response_packet(self.base_id)
+                    self.logger.info("Sending response to UTE teach-in.")
+                    self.send(response_packet)
+                else:
+                    self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
+                self.logger.info(f"Received UTE teach-in packet from {to_hex_string(packet.sender)} with EEP: {packet.rorg:0x}-{packet.rorg_type:0x}-{packet.rorg_func:0x}")
+                self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.rorg, type_=packet.rorg_type, func=packet.rorg_func))
+            elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
+                self.parse_common_command_response(packet)
+                return  # Bypass packet emit to avoid to log internal command
+            if self.__callback is None:
+                # Add received packet into receive queue
+                self.receive.put(packet)
+            else:
+                self.__callback(packet)
+            # self.logger.debug(packet)
+        elif status == ParseResult.CRC_MISMATCH:
+            self.crc_errors += 1
+            self.logger.info(
+                f"Error to parse packet, remaining buffer {self._buffer}"
+            )
+            return status
 
     @property
     def base_id(self):
