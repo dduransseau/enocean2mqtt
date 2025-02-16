@@ -1,20 +1,31 @@
 # -*- encoding: utf-8 -*-
 import logging
+from enum import StrEnum
 from pathlib import Path
 from xml.etree import ElementTree
 
 from enocean.utils import to_eep_hex_code, from_hex_string
-from enocean.protocol.constants import (
-    RORG,
-    DataFieldType,
-    SpecificShortcut,
-    FieldSetName,
-    AVAILABILITY_FIELD_MAPPING,
-)  # noqa: F401
+from enocean.protocol.constants import DataFieldType, FieldSetName
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("enocean.protocol.eep")
 
+class SpecificShortcut(StrEnum):
+    UNIT = "UN"
+    MULTIPLIER = "SCM"
+    DIVISOR = "DIV"
+    COMMAND = "CMD"
+    LEARN_BIT = "LRNB"
+    HUMIDITY_AVAILABILITY = "HSN"
+    TEMPERATURE_AVAILABILITY = "TSN"
+    HUMIDITY = "HUM"
+    TEMPERATURE = "TMP"
+
+
+AVAILABILITY_FIELD_MAPPING = {
+    SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
+    SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE,
+}
 
 def parse_number_value(v):
     if v.startswith("0x"):

@@ -8,7 +8,7 @@ class PacketType(IntEnum):
     # RADIO == RADIO_ERP1
     # Kept for backwards compatibility reasons, for example custom packet
     # generation shouldn't be affected...
-    RADIO = 0x01  # ERP1
+    RADIO_ERP1 = 0x01
     RESPONSE = 0x02
     RADIO_SUB_TEL = 0x03
     EVENT = 0x04
@@ -18,7 +18,7 @@ class PacketType(IntEnum):
     RADIO_MESSAGE = 0x09
     # RADIO_ADVANCED == RADIO_ERP2
     # Kept for backwards compatibility reasons
-    RADIO_ADVANCED = 0x0A  # ERP2
+    RADIO_ERP2 = 0x0A
     RADIO_802_15_4 = 0x10
     COMMAND_2_4 = 0x11
 
@@ -102,35 +102,10 @@ class RORG(IntEnum):
     UTE = 0xD4
 
 
-# Results for message parsing
-class ParseResult(IntEnum):
-    OK = 0x00
-    INCOMPLETE = 0x01
-    CRC_MISMATCH = 0x03
-
-
 class DataFieldType(IntEnum):
-    STATUS = 1
-    VALUE = 2
-    ENUM = 3
-
-
-class SpecificShortcut(StrEnum):
-    UNIT = "UN"
-    MULTIPLIER = "SCM"
-    DIVISOR = "DIV"
-    COMMAND = "CMD"
-    LEARN_BIT = "LRNB"
-    HUMIDITY_AVAILABILITY = "HSN"
-    TEMPERATURE_AVAILABILITY = "TSN"
-    HUMIDITY = "HUM"
-    TEMPERATURE = "TMP"
-
-
-AVAILABILITY_FIELD_MAPPING = {
-    SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
-    SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE,
-}
+    STATUS = 0x01
+    VALUE = 0x02
+    ENUM = 0x03
 
 
 class FieldSetName(StrEnum):

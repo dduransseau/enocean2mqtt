@@ -1,17 +1,16 @@
 # -*- encoding: utf-8 -*-
+import time
 import logging
 import serial
-# import time
 
-from enocean.controller.basecontroller import BaseController
-
+from enocean.controller.basecontroller import BaseController, FrameIncompleteError
 
 class SerialController(BaseController):
     """Serial port communicator class for EnOcean radio"""
 
-    logger = logging.getLogger("enocean.controller.SerialController")
+    # logger = logging.getLogger("enocean.controller.SerialController")
 
-    def __init__(self, port="/dev/ttyAMA0", baudrate=57600, timeout=0.1, **kwargs):
+    def __init__(self, port="/dev/ttyAMA0", baudrate=57600, timeout=0, **kwargs):
         super(SerialController, self).__init__(**kwargs)
         # Initialize serial port
         self.__port = port
@@ -24,30 +23,23 @@ class SerialController(BaseController):
         )
         self.__ser.read_until(b"\55")
         while not self._stop_flag.is_set():
-            # If there's messages in transmit queue
-            # send them
-            while True:
-                packet = self._get_from_send_queue()
-                if not packet:
-                    break
-                try:
-                    self.__ser.write(bytearray(packet.build()))
-                except serial.SerialException:
-                    self.stop()
-
-            # Read chars from serial port as hex numbers
+            # If there's messages in transmit queue send them
             try:
-                self._buffer.extend(self.__ser.read(16))
+                while not self.transmit.empty():
+                    packet = self.transmit.get(block=False)
+                    self.logger.debug(f"Sending: {packet}")
+                    self.__ser.write(bytearray(packet.build()))
+                # Read chars from serial port as hex numbers
+                self._buffer.extend(self.__ser.read())
             except serial.SerialException:
                 self.logger.error(
                     f"Serial port exception! (device disconnected or multiple access on port {self.__port} ?)"
                 )
                 self.stop()
-            # try:
-            self.parse()
-            # except Exception as e:
-            #     self.logger.error(f'Exception occurred while parsing: {e}')
-            # time.sleep(0) # TODO : need ?
+            try:
+                self.read()
+            except FrameIncompleteError:
+                time.sleep(self._wait_time)
 
         self.__ser.close()
         self.logger.info("SerialCommunicator stopped")

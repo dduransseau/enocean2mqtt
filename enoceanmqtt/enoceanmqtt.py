@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 # Author: Damien Duransseau <damien@duransseau.net>
 """this is the main entry point, which sets up the Communicator class"""
-
 import logging
 import sys
 import copy
 import argparse
 from pathlib import Path
-from configparser import ConfigParser
+from configparser import ConfigParser, DuplicateSectionError
 
 from gateway import Gateway
 
+DISCOVERED_EQUIPMENTS_FILE = "../discovered.conf"
+
 conf = {
     "debug": False,
-    "config": ["/etc/gateway.conf", "../gateway.conf", "../equipments.conf"],
+    "config": ["/etc/gateway.conf", "../gateway.conf", "../equipments.conf", DISCOVERED_EQUIPMENTS_FILE],
     "logfile": "../gateway.log",
 }
 
@@ -24,8 +25,9 @@ class ConfigManager:
         self.logging_level = logging.DEBUG if self._conf.get("debug") else logging.INFO
         self.logging_file = self._conf.get("logfile")
         self.config_files = self._conf.get("config", [])
-        self.sensors = []
+        self.equipments = list()
         self.global_config = {}
+        self._discovered_config = None
 
     @staticmethod
     def config_parse_value(v):
@@ -40,7 +42,7 @@ class ConfigManager:
     def load_config_file(self, omit_global=False):
         """load sensor and general configuration from given config files"""
         # extract sensor configuration
-        self.sensors = []
+        self.equipments = list()
         if not omit_global:  # Empty the global config only if it's not omitted
             self.global_config = {}
         logger = logging.getLogger("enocean.mqtt.config")
@@ -55,6 +57,8 @@ class ConfigManager:
             if not config_parser.read(conf_file):
                 logger.error("Cannot read config file: %s", conf_file)
                 sys.exit(1)
+            elif conf_file == DISCOVERED_EQUIPMENTS_FILE:
+                self._discovered_config = config_parser
             for section in config_parser.sections():
                 if section == "CONFIG":
                     if omit_global:
@@ -80,13 +84,31 @@ class ConfigManager:
                                 new_sens[key] = config_parser[section][key]
                         except KeyError:
                             new_sens[key] = None
-                    self.sensors.append(new_sens)
+                    self.equipments.append(new_sens)
                     logger.debug("Created sensor: %s", new_sens)
         if not omit_global:
             logging_global_config = copy.deepcopy(self.global_config)
             if "mqtt_pwd" in logging_global_config:
                 logging_global_config["mqtt_pwd"] = "*****"
             logger.debug("Global config: %s", logging_global_config)
+        # self.save_equipment()
+
+    def save_discovered_equipment(self, equipment):
+        config = ConfigParser(
+            inline_comment_prefixes=("#", ";"), interpolation=None
+        )
+        config.read(DISCOVERED_EQUIPMENTS_FILE)
+        try:
+            address = str(equipment.address)
+            config.add_section(address)
+            config.set(address, "address", f"{hex(equipment.address)}")
+            config.set(address, "rorg", f"{hex(equipment.rorg)}")
+            config.set(address, "func", f"{hex(equipment.func)}")
+            config.set(address, "type", f"{hex(equipment.type)}")
+        except DuplicateSectionError:
+            pass
+        with open(Path(DISCOVERED_EQUIPMENTS_FILE), "wt", encoding="utf-8") as config_file:
+            config.write(config_file)
 
 
 def parse_args():
