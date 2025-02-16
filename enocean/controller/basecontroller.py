@@ -129,8 +129,10 @@ class BaseController(threading.Thread):
                     self.send(response_packet)
                 else:
                     self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
-                self.logger.info(f"Received UTE teach-in packet from {to_hex_string(packet.sender)} with EEP: {packet.rorg:0x}-{packet.rorg_type:0x}-{packet.rorg_func:0x}")
-                self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.rorg, type_=packet.rorg_type, func=packet.rorg_func))
+                self.logger.info(f"Received UTE teach-in packet from {to_hex_string(packet.sender)} "
+                                 f" EEP: {packet.equipment_eep_label}")
+                self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.equipment_eep_rorg,
+                                                     type_=packet.equipment_eep_type, func=packet.equipment_eep_func))
             elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                 self.parse_common_command_response(packet)
                 return  # Bypass packet emit to avoid to log internal command

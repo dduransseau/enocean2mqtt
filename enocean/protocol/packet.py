@@ -393,15 +393,21 @@ class UTETeachInPacket(RadioPacket):
             + self._bit_data[DB4.BIT_7 : DB3.BIT_7]
         )  # noqa: E501
         self.channel = self.data[2]
-        self.rorg = self.data[7]
-        self.rorg_func = self.data[6]
-        self.rorg_type = self.data[5]
+        self.rorg = RORG.UTE
+        self.equipment_eep_rorg = self.data[7]
+        self.equipment_eep_func = self.data[6]
+        self.equipment_eep_type = self.data[5]
         if self.teach_in:
             self.learn = True
         self.logger.debug(
-            f"Received UTE teach in packet from {self.sender} manufacturer:{self.rorg_manufacturer} and EEP: {self.rorg:0x}-{self.rorg_type:0x}-{self.rorg_func:0x}"
+            f"Received UTE teach in packet from {self.sender} "
+            f"manufacturer:{self.rorg_manufacturer} and EEP:{self.equipment_eep_label}"
         )
         # return self.parsed
+
+    @property
+    def equipment_eep_label(self):
+        return f"{self.equipment_eep_rorg:0x}-{self.equipment_eep_func:0x}-{self.equipment_eep_type:0x}"
 
     def create_response_packet(self, sender_id, response=TEACHIN_ACCEPTED):
         # Create data:
