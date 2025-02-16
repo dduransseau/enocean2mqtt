@@ -203,7 +203,7 @@ class Packet(object):
 
     def build_message(self, data):
         self.message.set_values(self, data)
-        return Packet.parse_frame(self.build())[1]
+        return Packet.parse_frame(self.build())
 
 
 class RadioPacket(Packet):

@@ -203,16 +203,16 @@ class Gateway:
             self.mqtt_subscribe(f"{self.topic_prefix}req")
             self.mqtt_subscribe(f"{self.topic_prefix}learn")
             self.mqtt_subscribe(f"{self.topic_prefix}reload")
+            # listen to enocean send requests
+            for equipment in self.equipments.values():
+                # logging.debug("MQTT subscribing: %s", cur_sensor['name']+'/req/#')
+                self.mqtt_subscribe(equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX)
             if self.publish_internal:
                 self.mqtt_publish(
                     f"{self.topic_prefix}{self.GATEWAY_STATUS_TOPIC}",
                     "ONLINE",
                     retain=True,
                 )
-                # listen to enocean send requests
-                for equipment in self.equipments.values():
-                    # logging.debug("MQTT subscribing: %s", cur_sensor['name']+'/req/#')
-                    self.mqtt_subscribe(equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX)
                 self.mqtt_publish(
                     f"{self.topic_prefix}{self.GATEWAY_EQUIPMENTS_TOPIC}",
                     self.equipments_definition_list,
