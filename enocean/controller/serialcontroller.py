@@ -3,8 +3,7 @@ import time
 import logging
 import serial
 
-from enocean.controller.basecontroller import BaseController
-
+from enocean.controller.basecontroller import BaseController, FrameIncompleteError
 
 class SerialController(BaseController):
     """Serial port communicator class for EnOcean radio"""
@@ -37,7 +36,10 @@ class SerialController(BaseController):
                     f"Serial port exception! (device disconnected or multiple access on port {self.__port} ?)"
                 )
                 self.stop()
-            self.read()
+            try:
+                self.read()
+            except FrameIncompleteError:
+                time.sleep(self._wait_time)
 
         self.__ser.close()
         self.logger.info("SerialCommunicator stopped")

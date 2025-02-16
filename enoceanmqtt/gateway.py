@@ -224,17 +224,20 @@ class Gateway:
 
     def _publish_gateway_adapter_details(self):
         # Wait that enocean communicator is initialized before publishing teach in mode
-        for i in range(10):
-            if self.controller_address is None:
-                try:
-                    self.enocean.init_adapter()
-                    self.controller_address = self.enocean.base_id
-                    self.controller_info = self.enocean.controller_info_details
-                except TimeoutError:
-                    self.logger.error("Unable to retrieve adapter information in time")
-            elif self.controller_address and self.controller_info:
-                break
-            time.sleep(0.1)
+        self.enocean.init_adapter()
+        self.controller_address = self.enocean.base_id
+        self.controller_info = self.enocean.controller_info_details
+        # for i in range(10):
+        #     if self.controller_address is None:
+        #         try:
+        #             self.enocean.init_adapter()
+        #             self.controller_address = self.enocean.base_id
+        #             self.controller_info = self.enocean.controller_info_details
+        #         except TimeoutError:
+        #             self.logger.error("Unable to retrieve adapter information in time")
+        #     elif self.controller_address and self.controller_info:
+        #         break
+        #     time.sleep(0.01)
         try:
             teach_in = "ON" if self.enocean.teach_in else "OFF"
             self.mqtt_publish(

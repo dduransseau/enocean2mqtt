@@ -102,13 +102,6 @@ class RORG(IntEnum):
     UTE = 0xD4
 
 
-# Results for message parsing
-class ParseResult(IntEnum):
-    OK = 0x00
-    INCOMPLETE = 0x01
-    CRC_MISMATCH = 0x03
-
-
 class DataFieldType(IntEnum):
     STATUS = 0x01
     VALUE = 0x02

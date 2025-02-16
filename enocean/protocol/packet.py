@@ -14,13 +14,24 @@ from enocean.protocol.constants import (
     ReturnCode,
     EventCode,
     RORG,
-    ParseResult,
     DB0,
     DB2,
     DB3,
     DB4,
     DB6,
 )
+
+
+class FrameParserError(Exception):
+    """ Base error class for parser exception"""
+
+
+class FrameIncompleteError(FrameParserError):
+    """ Frame is not complete """
+
+
+class CrcMismatchError(FrameParserError):
+    """ Frame is corrupted, CRC mismatch"""
 
 
 class Packet(object):
@@ -140,13 +151,15 @@ class Packet(object):
             # Header checksum has been checked into controller
             if frame[-1] != crc8.calc(frame[DATA_START:-1]):
                 Packet.logger.warning(f"Data CRC error! {frame}")
-                return ParseResult.CRC_MISMATCH, None
+                raise CrcMismatchError(f"Data CRC error on {frame}")
+                # return ParseResult.CRC_MISMATCH, None
         except IndexError:
             Packet.logger.warning(
                 "Packet incomplete, Index error"
             )  # check if it can be moved into controller
             # If the fields don't exist, message is incomplete
-            return ParseResult.INCOMPLETE, None
+            raise FrameIncompleteError()
+            # return ParseResult.INCOMPLETE, None
         if packet_type == PacketType.RADIO_ERP1:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:
@@ -160,7 +173,7 @@ class Packet(object):
         else:
             packet = Packet(packet_type, data, opt_data)
         Packet.logger.debug(f"Successfully parsed packet {packet}")
-        return ParseResult.OK, packet
+        return packet
 
     @staticmethod
     def validate_address(address):

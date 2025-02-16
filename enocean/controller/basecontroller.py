@@ -4,10 +4,9 @@ import time
 
 import threading
 import queue
-from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket
+from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket, FrameIncompleteError, CrcMismatchError
 from enocean.protocol.constants import (
     PacketType,
-    ParseResult,
     CommandCode,
     RESPONSE_FREQUENCY_FREQUENCY,
     RESPONSE_FREQUENCY_PROTOCOL,
@@ -54,6 +53,7 @@ class BaseController(threading.Thread):
         self._chip_version = None
         self.app_description = None
         self.crc_errors = 0
+        self._wait_time = 0.01
 
     def send(self, packet):
         # TODO: Evaluate this and raise Exception if relevant
@@ -85,7 +85,6 @@ class BaseController(threading.Thread):
                 # self.logger.warning("Header crc is valid !")
                 data_len = int.from_bytes(self._buffer[1:3])
                 opt_len = self._buffer[3]
-                packet_type = self._buffer[3]
                 # Calculate packet header(4)+crc (2*1) = 7
                 packet_len = 7 + data_len + opt_len
                 # self.logger.debug(
@@ -98,28 +97,17 @@ class BaseController(threading.Thread):
                     #     f"frame incomplete set sync byte after {self.next_sync_byte} "
                     #     f"actual sync byte index={sync_byte_index}"
                     # )
-                    return ParseResult.INCOMPLETE
+                    raise FrameIncompleteError
                 frame = self._buffer[0:packet_len]
                 self.next_sync_byte = 1
                 self._buffer = self._buffer[packet_len:]
                 # self._frame_separator_index = 1
             else:
-                self.logger.warning(
-                    "Header CRC8 invalid, waiting for next Sync Byte"
-                )
-                self.crc_errors += 1
+                self.logger.warning("Header CRC8 invalid, waiting for next Sync Byte")
+                # Discard data
                 self._buffer = self._buffer[sync_byte_index:]
-                return ParseResult.INCOMPLETE
-        except (ValueError, IndexError):
-            return ParseResult.INCOMPLETE
-
-        status, packet = Packet.parse_frame(frame)
-        # If message is incomplete -> break the loop
-        if status == ParseResult.INCOMPLETE:
-            self.logger.warning("Frame parsed packet is incomplete")
-            return status
-        # If message is OK, add it to receive queue or send to the callback method
-        elif status == ParseResult.OK and packet:
+                raise CrcMismatchError
+            packet = Packet.parse_frame(frame)
             if self.frame_timestamp:
                 packet.received = time.time()
             if isinstance(packet, UTETeachInPacket):
@@ -142,12 +130,14 @@ class BaseController(threading.Thread):
             else:
                 self.__callback(packet)
             # self.logger.debug(packet)
-        elif status == ParseResult.CRC_MISMATCH:
+        except (ValueError, IndexError):
+            raise FrameIncompleteError
+        except CrcMismatchError:
             self.crc_errors += 1
             self.logger.info(
                 f"Error to parse packet, remaining buffer {self._buffer}"
             )
-            return status
+
 
     @property
     def base_id(self):
@@ -161,10 +151,12 @@ class BaseController(threading.Thread):
         # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
         # Unfortunately, all other messages received during this time are ignored.
-        for i in range(0, 5):
-            if self._base_id:
-                return self._base_id
-            time.sleep(0.1)
+        while not self._base_id:
+            time.sleep(self._wait_time*10)
+        # for i in range(0, 5):
+        #     if self._base_id:
+        #         return self._base_id
+        #     time.sleep(0.1)
         return self._base_id
 
     @property
@@ -189,7 +181,7 @@ class BaseController(threading.Thread):
                     app_description=self.app_description,
                     id=hex(self._chip_id)[2:].upper(),
                 )
-            time.sleep(0.1)
+            time.sleep(self._wait_time*10)
         return True
 
     @base_id.setter
@@ -207,7 +199,7 @@ class BaseController(threading.Thread):
             CommandCode.CO_RD_REPEATER,
         ):
             self.send_common_command(code)
-            time.sleep(0.01)
+            time.sleep(self._wait_time)
         self.logger.info(f"Controller info: base id {to_hex_string(self.base_id)}")
         self.logger.info(f"Controller info: {self.controller_info_details}")
         # for i in range(10):
