@@ -141,21 +141,6 @@ class Gateway:
             else False
         )
 
-    def setup_devices_list(self, force=False):
-        """ Initialise the list of known device
-        force: force to load the config file from disk in case device config as been added
-        """
-        if force:
-            self.conf_manager.load_config_file(omit_global=True)
-        for s in self.conf_manager.equipments:
-            address = s.get("address")
-            try:
-                s["topic_prefix"] = self.topic_prefix
-                equipment = Equipment(**s)
-                self.equipments[address] = equipment
-            except NotImplementedError:
-                self.logger.warning(f"Unable to setup device {address}")
-
     def get_equipment_by_topic(self, topic):
         for equipment in self.equipments.values():
             if f"{equipment.topic}/" in topic:
@@ -170,6 +155,21 @@ class Gateway:
             if id == equipment.name:
                 return equipment
         self.logger.debug(f"Unable to find equipment with key {id:x}")
+
+    def setup_devices_list(self, force=False):
+        """ Initialise the list of known device
+        force: force to load the config file from disk in case device config as been added
+        """
+        if force:
+            self.conf_manager.load_config_file(omit_global=True)
+        for s in self.conf_manager.equipments:
+            address = s.get("address")
+            try:
+                s["topic_prefix"] = self.topic_prefix
+                equipment = Equipment(**s)
+                self.equipments[address] = equipment
+            except NotImplementedError:
+                self.logger.warning(f"Unable to setup device {address}")
 
     @property
     def equipments_definition_list(self):
@@ -263,7 +263,7 @@ class Gateway:
         if msg.topic == f"{self.topic_prefix}learn":
             self.handle_learn_activation_request(msg)
         elif msg.topic == f"{self.topic_prefix}reload":
-            self.reload_equipments_config()
+            self.handle_reload_equipments_request()
         else:
             # Get how to handle MQTT message
             try:
@@ -299,7 +299,7 @@ class Gateway:
                 f"{self.topic_prefix}{self.TEACH_IN_TOPIC}", command, retain=True
             )
 
-    def reload_equipments_config(self):
+    def handle_reload_equipments_request(self):
         self.logger.info("Reload equipments list")
         self.setup_devices_list(force=True)
         self.mqtt_publish(
@@ -539,7 +539,7 @@ class Gateway:
                 learn=is_learn,
             )
             self.logger.debug(f"Packet built: {packet.data}")
-        except ValueError as err:
+        except (ValueError, NotImplemented) as err:
             self.logger.error(f"cannot create RF packet: {err}")
             return
 

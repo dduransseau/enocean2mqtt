@@ -5,11 +5,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from enocean.utils import to_eep_hex_code, from_hex_string
-from enocean.protocol.constants import (
-    RORG,
-    DataFieldType,
-    FieldSetName,
-)  # noqa: F401
+from enocean.protocol.constants import DataFieldType, FieldSetName
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("enocean.protocol.eep")
