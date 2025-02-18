@@ -5,7 +5,6 @@ import logging
 import queue
 import json
 import platform
-import time
 
 from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket
@@ -55,7 +54,8 @@ class Gateway:
             topic_prefix = ""
         self.topic_prefix = topic_prefix
         self.logger.info(
-            f"Init communicator with sensors: {self.conf_manager.equipments}, publish timestamp: {self.publish_timestamp}"
+            f"Init communicator with sensors: {self.conf_manager.equipments}, "
+            f"publish timestamp: {self.publish_timestamp}"
         )
         self.equipments = dict()
         # Define set() of detected address received by the gateway
@@ -146,15 +146,15 @@ class Gateway:
             if f"{equipment.topic}/" in topic:
                 return equipment
 
-    def get_equipment(self, id):
+    def get_equipment(self, address):
         """Try to get the equipment based on id (can be address or name)"""
-        if equipment := self.equipments.get(id):
+        if equipment := self.equipments.get(address):
             return equipment
         # if equipment not found by id, lookup by name
         for equipment in self.equipments.values():
-            if id == equipment.name:
+            if address == equipment.name:
                 return equipment
-        self.logger.debug(f"Unable to find equipment with key {id:x}")
+        self.logger.debug(f"Unable to find equipment with key {address:X}")
 
     def setup_devices_list(self, force=False):
         """ Initialise the list of known device
@@ -385,7 +385,7 @@ class Gateway:
         # Is grouping enabled on this sensor
         # if self.CHANNEL_MESSAGE_KEY in mqtt_json.keys():
         #     topic += f"/{mqtt_json[self.CHANNEL_MESSAGE_KEY]}"
-            # del mqtt_json[self.CHANNEL_MESSAGE_KEY]
+        #     del mqtt_json[self.CHANNEL_MESSAGE_KEY]
         if channel:
             topic += f"/{channel}"
 
@@ -411,11 +411,13 @@ class Gateway:
         if channel:
             base_topic += f"/{channel}"
         for field in fields_list:
-            self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}", field[FieldSetName.VALUE], retain=retain)
-            self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$name", field[FieldSetName.DESCRIPTION], retain=retain)
+            self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}",
+                              field[FieldSetName.VALUE], retain=retain)
+            self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$name",
+                              field[FieldSetName.DESCRIPTION], retain=retain)
             if field.get(FieldSetName.UNIT):
-                self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$unit", field[FieldSetName.UNIT],
-                                  retain=retain)
+                self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$unit",
+                                  field[FieldSetName.UNIT], retain=retain)
 
     def _process_erp_packet(self, packet, equipment):
         """interpret radio packet, read properties and publish to MQTT"""
@@ -514,7 +516,7 @@ class Gateway:
     ):
         """triggers sending of an enocean packet"""
         # determine direction indicator
-        self.logger.info(f"send packet to device {equipment.name} {equipment.address}")
+        self.logger.info(f"send packet to device {equipment.name}")
         direction = equipment.direction
         if negate_direction:
             # we invert the direction in this reply
@@ -576,8 +578,8 @@ class Gateway:
         ignore = False if self.enocean.teach_in else True
         for i in range(len(self.enocean.learned_equipment)):
             new_equipment = self.enocean.learned_equipment.pop()
-            equipment = Equipment(address=new_equipment.address, rorg=new_equipment.rorg, func=new_equipment.func, type=new_equipment.type,
-                                  topic_prefix=self.topic_prefix, ignore=ignore)
+            equipment = Equipment(address=new_equipment.address, rorg=new_equipment.rorg, func=new_equipment.func,
+                                  type=new_equipment.variant, topic_prefix=self.topic_prefix, ignore=ignore)
             self.equipments[new_equipment.address] = equipment
             self.mqtt_subscribe(equipment.topic + "/req")
             self.conf_manager.save_discovered_equipment(equipment)

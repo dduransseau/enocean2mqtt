@@ -120,7 +120,7 @@ class BaseController(threading.Thread):
                 self.logger.info(f"Received UTE teach-in packet from {to_hex_string(packet.sender)} "
                                  f" EEP: {packet.equipment_eep_label}")
                 self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.equipment_eep_rorg,
-                                                     type_=packet.equipment_eep_type, func=packet.equipment_eep_func))
+                                                     variant=packet.equipment_eep_type, func=packet.equipment_eep_func))
             elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                 self.parse_common_command_response(packet)
                 return  # Bypass packet emit to avoid to log internal command

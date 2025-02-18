@@ -8,7 +8,7 @@ class PacketType(IntEnum):
     # RADIO == RADIO_ERP1
     # Kept for backwards compatibility reasons, for example custom packet
     # generation shouldn't be affected...
-    RADIO_ERP1 = 0x01
+    RADIO_ERP1 = 0x01  # ERP1
     RESPONSE = 0x02
     RADIO_SUB_TEL = 0x03
     EVENT = 0x04
@@ -18,7 +18,7 @@ class PacketType(IntEnum):
     RADIO_MESSAGE = 0x09
     # RADIO_ADVANCED == RADIO_ERP2
     # Kept for backwards compatibility reasons
-    RADIO_ERP2 = 0x0A
+    RADIO_ERP2 = 0x0A  # RADIO_ADVANCED
     RADIO_802_15_4 = 0x10
     COMMAND_2_4 = 0x11
 
@@ -86,26 +86,47 @@ class CommandCode(IntEnum):
 
 # EnOcean_Equipment_Profiles_EEP_V2.61_public.pdf / 8
 class RORG(IntEnum):
-    UNDEFINED = 0x00
     RPS = 0xF6
-    BS1 = 0xD5
     BS4 = 0xA5
-    VLD = 0xD2
-    MSC = 0xD1
     ADT = 0xA6
-    SM_LRN_REQ = 0xC6
-    SM_LRN_ANS = 0xC7
     SM_REC = 0xA7
     SYS_EX = 0xC5
+    SM_LRN_REQ = 0xC6
+    SM_LRN_ANS = 0xC7
     SEC = 0x30
     SEC_ENCAPS = 0x31
+    DECRYPTED = 0x32
+    SEC_CDM = 0x33
+    SEC_TI = 0x35
+    SIGNAL = 0xD0
+    MSC = 0xD1
+    VLD = 0xD2
     UTE = 0xD4
+    BS1 = 0xD5
 
 
 class DataFieldType(IntEnum):
-    STATUS = 0x01
-    VALUE = 0x02
-    ENUM = 0x03
+    STATUS = 1
+    VALUE = 2
+    ENUM = 3
+
+
+class SpecificShortcut(StrEnum):
+    UNIT = "UN"
+    MULTIPLIER = "SCM"
+    DIVISOR = "DIV"
+    COMMAND = "CMD"
+    LEARN_BIT = "LRNB"
+    HUMIDITY_AVAILABILITY = "HSN"
+    TEMPERATURE_AVAILABILITY = "TSN"
+    HUMIDITY = "HUM"
+    TEMPERATURE = "TMP"
+
+
+AVAILABILITY_FIELD_MAPPING = {
+    SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
+    SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE,
+}
 
 
 class FieldSetName(StrEnum):
@@ -214,4 +235,126 @@ RESPONSE_FREQUENCY_PROTOCOL = {
     1: "ERP2",
     16: "802.15.4",
     48: "Long Range",
+}
+
+MANUFACTURER_CODE = {
+    0: 'Reserved',
+    1: 'Peha',
+    2: 'Thermokon',
+    3: 'Servodan',
+    4: 'Echoflex Solutions',
+    5: 'Awag Elektrotechnik Ag',  # previously Omnio Ag
+    6: 'Hardmeier Electronics',
+    7: 'Regulvar Inc',
+    8: 'Ad Hoc Electronics',
+    9: 'Distech Controls',
+    10: 'Kieback And Peter',
+    11: 'EnOcean',
+    12: 'Vicos Gmbh',  # previously Probare
+    13: 'Eltako',
+    14: 'Leviton',
+    15: 'Honeywell',
+    16: 'Spartan Peripheral Devices',
+    17: 'Siemens',
+    18: 'T Mac',
+    19: 'Reliable Controls Corporation',
+    20: 'Elsner Elektronik Gmbh',
+    21: 'Diehl Controls',
+    22: 'Bsc Computer',
+    23: 'S And S Regeltechnik Gmbh',
+    24: 'Masco Corporation',  # previously Zeno Controls
+    25: 'Intesis Software Sl',
+    26: 'Viessmann',
+    27: 'Lutuo Technology',
+    28: 'Can2Go',
+    29: 'Sauter',
+    30: 'Boot Up',
+    31: 'Osram Sylvania',
+    32: 'Unotech',
+    33: 'Delta Controls Inc',
+    34: 'Unitronic Ag',
+    35: 'Nanosense',
+    36: 'The S4 Group',
+    37: 'Veissmann Hausatomation Gmbh',  # previously Msr Solutions
+    38: 'GE',
+    39: 'Maico',
+    40: 'Ruskin Company',
+    41: 'Magnum Energy Solutions',
+    42: 'KMC Controls',
+    43: 'Ecologix Controls',
+    44: 'Trio 2 Sys',
+    45: 'Afriso Euro Index',
+    46: 'Waldmann Gmbh',
+    48: 'Nec Platforms Ltd',
+    49: 'Itec Corporation',
+    50: 'Simicx Co Ltd',
+    51: 'Permundo Gmbh',
+    52: 'Eurotronic Technology Gmbh',
+    53: 'Art Japan Co Ltd',
+    54: 'Tiansu Automation Control Syste Co Ltd',
+    55: 'Weinzierl Engineering Gmbh',
+    56: 'Gruppo Giordano Idea Spa',
+    57: 'Alphaeos Ag',
+    58: 'Tag Technologies',
+    59: 'Wattstopper',
+    60: 'Pressac Communications Ltd',
+    62: 'Giga Concept',
+    63: 'Sensortec',
+    64: 'Jaeger Direkt',
+    65: 'Air System Components Inc',
+    66: 'Ermine Corp',
+    67: 'Soda Gmbh',
+    68: 'Eke Automation',
+    69: 'Holter Regelarmutren',
+    70: 'ID RF',
+    71: 'Deuta Controls Gmbh',
+    72: 'Ewattch',
+    73: 'Micropelt',
+    74: 'Caleffi Spa',
+    75: 'Digital Concepts',
+    76: 'Emerson Climate Technologies',
+    77: 'Adee Electronic',
+    78: 'Altecon',
+    79: 'Nanjing Putian Telecommunications',
+    80: 'Terralux',
+    81: 'Menred',
+    82: 'Iexergy Gmbh',
+    83: 'Oventrop Gmbh',
+    84: 'Building Automation Products Inc',
+    85: 'Functional Devices Inc',
+    86: 'Ogga',
+    87: 'Itho Daalderop',
+    88: 'Resol',
+    89: 'Advanced Devices',
+    90: 'Autani Lcc',
+    91: 'Dr Riedel Gmbh',
+    92: 'Hoppe Holding Ag',
+    93: 'Siegenia Aubi Kg',
+    94: 'Adeo Services',
+    95: 'Eimsig Efp Gmbh',
+    96: 'Vimar Spa',
+    97: 'Glen Dimlax Gmbh',
+    98: 'Pmdm Gmbh',
+    99: 'Hubbel Lightning',
+    100: 'Debflex',
+    101: 'Perifactory Sensorsystems',
+    102: 'Watty Corp',
+    103: 'Wago Kontakttechnik',
+    104: 'Kessel',
+    105: 'Aug Winkhaus',
+    106: 'Decelect',
+    107: 'Mst Industries',
+    108: 'Becker Antriebe',
+    109: 'Nexelec',
+    110: 'Wieland Electric',
+    111: 'Avidsen',
+    112: 'Cws Boco International',
+    113: 'Roto Frank',
+    114: 'Alm Contorls',
+    115: 'Tommaso Technologies',
+    116: 'Rehau',
+    117: 'Inaba Denki Sangyo Co Lt',
+    118: 'Hager Controls Sas',
+    255: 'Multiple',
+    2047: 'Multi-user (test purpose)'
 }

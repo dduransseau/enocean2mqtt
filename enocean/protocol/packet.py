@@ -19,6 +19,7 @@ from enocean.protocol.constants import (
     DB3,
     DB4,
     DB6,
+    MANUFACTURER_CODE
 )
 
 
@@ -43,7 +44,7 @@ class Packet(object):
 
     def __init__(self, packet_type, data=None, optional=None, status=0):
         self.packet_type = packet_type
-        self.rorg = RORG.UNDEFINED
+        self.rorg = None
         self.rorg_func = None
         self.rorg_type = None
         self.rorg_manufacturer = None
@@ -128,7 +129,6 @@ class Packet(object):
         """
         Parses packet from frame.
         returns:
-            - PARSE_RESULT
             - Packet -object (if message was valid, else None)
         """
         try:
@@ -144,7 +144,6 @@ class Packet(object):
 
             DATA_START = 6
             DATA_END = DATA_START + data_len  # header + checksum + data
-            # print("DATA_LEN", data_len,"OPT len", opt_len, "len frame", len(frame))
             # Header: 6 bytes, data, optional data and data checksum
             data = frame[DATA_START:DATA_END]
             opt_data = frame[DATA_END:-1]
@@ -152,14 +151,12 @@ class Packet(object):
             if frame[-1] != crc8.calc(frame[DATA_START:-1]):
                 Packet.logger.warning(f"Data CRC error! {frame}")
                 raise CrcMismatchError(f"Data CRC error on {frame}")
-                # return ParseResult.CRC_MISMATCH, None
         except IndexError:
             Packet.logger.warning(
                 "Packet incomplete, Index error"
             )  # check if it can be moved into controller
             # If the fields don't exist, message is incomplete
             raise FrameIncompleteError()
-            # return ParseResult.INCOMPLETE, None
         if packet_type == PacketType.RADIO_ERP1:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:
@@ -171,6 +168,7 @@ class Packet(object):
         elif packet_type == PacketType.EVENT:
             packet = EventPacket(packet_type, data, opt_data)
         else:
+            Packet.logger.warning(f"Received unsupported packet type: {packet_type}")
             packet = Packet(packet_type, data, opt_data)
         Packet.logger.debug(f"Successfully parsed packet {packet}")
         return packet
@@ -178,9 +176,9 @@ class Packet(object):
     @staticmethod
     def validate_address(address):
         if isinstance(address, list) and len(address) == 4:
-            for i in address:
-                if 0 > i > 255:
-                    return False
+            if all(0 <= i <= 255 for i in address):
+                return True
+        return False
 
     def parse(self):
         """ Parse generic values and flag """
@@ -214,12 +212,7 @@ class RadioPacket(Packet):
 
     def __str__(self):
         packet_str = super(RadioPacket, self).__str__()
-        return "%s->%s (%d dBm): %s" % (
-            self.sender_hex,
-            self.destination_hex,
-            self.dBm,
-            packet_str,
-        )
+        return f"{to_hex_string(self.sender)}->{to_hex_string(self.destination)} ({self.dBm} dBm): {packet_str}"
 
     @staticmethod
     def create_message(
@@ -286,22 +279,6 @@ class RadioPacket(Packet):
         Packet.logger.debug(f"Packet data length {len(packet.data)} after set_eep")
         return packet
 
-    @property
-    def sender_int(self):
-        return combine_hex(self.sender)
-
-    @property
-    def sender_hex(self):
-        return to_hex_string(self.sender)
-
-    @property
-    def destination_int(self):
-        return combine_hex(self.destination)
-
-    @property
-    def destination_hex(self):
-        return to_hex_string(self.destination)
-
     def parse(self):
         """Parse data from Packet"""
         self.destination = self.optional[1:5]
@@ -325,21 +302,24 @@ class RadioPacket(Packet):
                 contain_eep = self._bit_data[DB0.BIT_7]
                 if contain_eep:
                     # Get rorg_func and rorg_type from an unidirectional learn packet
-                    self.rorg_func = from_bitarray(
+                    func = from_bitarray(
                         self._bit_data[DB3.BIT_7 : DB3.BIT_1]
                     )
-                    self.rorg_type = from_bitarray(
+                    variant = from_bitarray(
                         self._bit_data[DB3.BIT_1 : DB2.BIT_2]
                     )
-                    self.rorg_manufacturer = from_bitarray(
+                    rorg_manufacturer = from_bitarray(
                         self._bit_data[DB2.BIT_2 : DB0.BIT_7]
                     )
                     self.logger.info(
-                        f"learn received, EEP detected, RORG: 0x{self.rorg:0x}, FUNC: 0x{self.rorg_func:0x}, "
-                        f"TYPE: 0x{self.rorg_type:0x}, Manufacturer: 0x{self.rorg_manufacturer:0x}"
+                        f"Received BS4 learn packet from {combine_hex(self.sender)} "
+                        f"manufacturer={MANUFACTURER_CODE.get(rorg_manufacturer, rorg_manufacturer)}"
+                        f" EEP={self.rorg:X}-{func:X}-{variant:X}"
                     )  # noqa: E501
         elif self.rorg == RORG.VLD or self.rorg == RORG.RPS:
             self.learn = False
+        elif self.rorg == RORG.SIGNAL:
+            self.logger.warning(f"Received SIGNAL message: {self}")
 
         return super(RadioPacket, self).parse()
 
@@ -412,15 +392,15 @@ class UTETeachInPacket(RadioPacket):
         self.equipment_eep_type = self.data[5]
         if self.teach_in:
             self.learn = True
-        self.logger.debug(
-            f"Received UTE teach in packet from {self.sender} "
-            f"manufacturer:{self.rorg_manufacturer} and EEP:{self.equipment_eep_label}"
+        self.logger.info(
+            f"Received UTE teach in packet from {combine_hex(self.sender)} "
+            f"manufacturer={MANUFACTURER_CODE.get(self.rorg_manufacturer, self.rorg_manufacturer)} "
+            f"EEP={self.equipment_eep_label}"
         )
-        # return self.parsed
 
     @property
     def equipment_eep_label(self):
-        return f"{self.equipment_eep_rorg:0x}-{self.equipment_eep_func:0x}-{self.equipment_eep_type:0x}"
+        return f"{self.equipment_eep_rorg:X}-{self.equipment_eep_func:X}-{self.equipment_eep_type:X}"
 
     def create_response_packet(self, sender_id, response=TEACHIN_ACCEPTED):
         # Create data:
@@ -439,7 +419,7 @@ class UTETeachInPacket(RadioPacket):
         # Always use 0x03 to indicate sending, attach sender ID, dBm, and security level
         optional = [0x03] + self.sender + [0xFF, 0x00]
 
-        return RadioPacket(PacketType.RADIO_ERP1, data=data, optional=optional)
+        return RadioPacket(PacketType.RADIO, data=data, optional=optional)
 
 
 class ResponsePacket(Packet):

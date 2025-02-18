@@ -104,7 +104,7 @@ class ConfigManager:
             config.set(address, "address", f"{hex(equipment.address)}")
             config.set(address, "rorg", f"{hex(equipment.rorg)}")
             config.set(address, "func", f"{hex(equipment.func)}")
-            config.set(address, "type", f"{hex(equipment.type)}")
+            config.set(address, "type", f"{hex(equipment.variant)}")
         except DuplicateSectionError:
             pass
         with open(Path(DISCOVERED_EQUIPMENTS_FILE), "wt", encoding="utf-8") as config_file:

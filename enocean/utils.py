@@ -23,14 +23,17 @@ def to_bitarray(data, width=8):
 
 def from_bitarray(data):
     """Convert bit array back to integer"""
-    return int("".join(["1" if x else "0" for x in data]), 2)
+    out = 0
+    for bit in data:
+        out = (out << 1) | bit
+    return out
 
 
 def to_hex_string(data):
     """Convert list of integers to a hex string, separated by ":" """
     if isinstance(data, int):
-        return "%02X" % data
-    return ":".join([("%02X" % o) for o in data])
+        return f"{data:X}"
+    return ":".join([f"{o:X}" for o in data])
 
 
 def from_hex_string(hex_string):

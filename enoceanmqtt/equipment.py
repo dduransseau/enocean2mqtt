@@ -11,13 +11,13 @@ class Equipment(EnoceanEquipment):
         address = kwargs["address"]
         rorg = int(kwargs.get("rorg"))
         func = int(kwargs.get("func"))
-        type_ = int(kwargs.get("type"))
-        name = kwargs.get("name", str(address)) # Default set equipment address as name is none is set
+        variant = int(kwargs.get("variant", 0)) or int(kwargs.get("type"))
+        self.name = kwargs.get("name", str(address)) # Default set equipment address as name is none is set
         topic_prefix = kwargs.get("topic_prefix")
-        if topic_prefix and name.startswith(topic_prefix):
-            name = name.replace(topic_prefix, "")
+        if topic_prefix and self.name.startswith(topic_prefix):
+            self.name = self.name.replace(topic_prefix, "")
         # self.logger.debug(f"Lookup profile for {rorg} {func} {type_}")
-        super().__init__(address=address, rorg=rorg, func=func, type_=type_, name=name)
+        super().__init__(address=address, rorg=rorg, func=func, variant=variant)
         self.publish_raw = self.get_config_boolean(kwargs, "publish_raw", default=False)
         self.publish_flat = self.get_config_boolean(
             kwargs, "publish_flat", default=False
@@ -34,15 +34,15 @@ class Equipment(EnoceanEquipment):
         self.answer = kwargs.get("answer")
         self.command = kwargs.get("command", "CMD")
         self.channel = kwargs.get("channel")
-        self.direction = kwargs.get("direction")
         self.sender = kwargs.get("sender")
+        self.direction = kwargs.get("direction")
         self.default_data = kwargs.get("default_data")
         # self.data = dict()
         # Allow to specify a topic different from name to allow blank
         if topic := kwargs.get("topic"):
             self.topic = f"{topic_prefix}{topic}"
         else:
-            self.topic = f"{topic_prefix}{name}"
+            self.topic = f"{topic_prefix}{self.name}"
 
     @staticmethod
     def get_config_boolean(c, key, default=False):
@@ -57,7 +57,7 @@ class Equipment(EnoceanEquipment):
             eep=self.eep_code,
             rorg=self.rorg,
             func=self.func,
-            type=self.type,
+            variant=self.variant,
             description=self.description,
             address=enocean.utils.to_hex_string(self.address),
             topic=self.topic,
@@ -66,6 +66,6 @@ class Equipment(EnoceanEquipment):
                 retain=self.retain,
                 ignore=self.ignore,
                 command=self.command,
-                sender=self.sender,
+                sender=self.sender
             ),
         )
