@@ -13,6 +13,7 @@ from enocean.protocol.constants import (
     PacketType,
     ReturnCode,
     EventCode,
+    RadioDirection,
     RORG,
     DB0,
     DB2,
@@ -44,47 +45,37 @@ class Packet(object):
 
     def __init__(self, packet_type, data=None, optional=None, status=0):
         self.packet_type = packet_type
-        self.rorg = None
-        self.rorg_func = None
-        self.rorg_type = None
-        self.rorg_manufacturer = None
 
         self.received = None
+        self.data = data or []
+        self.optional = optional or []
 
-        if data is None:
-            self.logger.warning(
-                f"Replacing Packet.data with default value, for packet type {self.packet_type}"
-            )
-            self.data = []
-        else:
-            self.data = data
+        # if data is None:
+        #     self.logger.warning(
+        #         f"Replacing Packet.data with default value, for packet type {self.packet_type}"
+        #     )
+        #     self.data = []
+        # else:
+        #     self.data = data
+        #
+        # if optional is None:
+        #     # self.logger.debug(
+        #     #     f"Replacing Packet.optional with default value, for packet type {self.packet_type}"
+        #     # )
+        #     self.optional = []
+        # else:
+        #     self.optional = optional
 
-        if optional is None:
-            self.logger.debug(
-                f"Replacing Packet.optional with default value, for packet type {self.packet_type}"
-            )
-            self.optional = []
-        else:
-            self.optional = optional
-
-        self.status = status
+        self._status = status
         self.repeater_count = 0
         self._profile = None
         self.message = None
 
         # TODO: Confirm usage for mqtt to ESP
-        self.parse()
+        # self.parse()
 
     def __str__(self):
         return f"{PacketType(self.packet_type).name} {[hex(o) for o in self.data]} {[hex(o) for o in self.optional]}"
-
-    def __eq__(self, other):
-        return (
-            self.packet_type == other.packet_type
-            and self.rorg == other.rorg
-            and self.data == other.data
-            and self.optional == other.optional
-        )
 
     @property
     def _bit_data(self):
@@ -118,11 +109,11 @@ class Packet(object):
 
     @property
     def _bit_status(self):
-        return to_bitarray(self.status)
+        return to_bitarray(self._status)
 
     @_bit_status.setter
     def _bit_status(self, value):
-        self.status = from_bitarray(value)
+        self._status = from_bitarray(value)
 
     @staticmethod
     def parse_frame(frame):
@@ -160,9 +151,10 @@ class Packet(object):
         if packet_type == PacketType.RADIO_ERP1:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:
-                packet = UTETeachInPacket(packet_type, data, opt_data)
+                Packet.logger.warning(f"Received UTE packet data={data} opt={opt_data}")
+                packet = UTETeachInPacket(data, opt_data)
             else:
-                packet = RadioPacket(packet_type, data, opt_data)
+                packet = RadioPacket(data, opt_data)
         elif packet_type == PacketType.RESPONSE:
             packet = ResponsePacket(packet_type, data, opt_data)
         elif packet_type == PacketType.EVENT:
@@ -170,7 +162,8 @@ class Packet(object):
         else:
             Packet.logger.warning(f"Received unsupported packet type: {packet_type}")
             packet = Packet(packet_type, data, opt_data)
-        Packet.logger.debug(f"Successfully parsed packet {packet}")
+        # Packet.logger.debug(f"Parsed packet {packet}")
+        packet.parse()
         return packet
 
     @staticmethod
@@ -182,6 +175,7 @@ class Packet(object):
 
     def parse(self):
         """ Parse generic values and flag """
+        Packet.logger.debug(f"Parsed packet {self}")
 
     def build(self):
         """Build Packet for sending to EnOcean controller"""
@@ -205,25 +199,46 @@ class Packet(object):
 
 
 class RadioPacket(Packet):
+
+    DIRECTION = RadioDirection
+
+    DEFAULT_ADDRESS = [0xFF, 0xFF, 0xFF, 0xFF]
     destination = [0xFF, 0xFF, 0xFF, 0xFF]
     dBm = 0
     sender = [0xFF, 0xFF, 0xFF, 0xFF]
-    learn = None
+    # sub_tel_num = 0
+
+    def __init__(self, data=None, optional=None, status=0, direction=DIRECTION.FROM):
+        super().__init__(PacketType.RADIO_ERP1, data, optional, status)
+        self.rorg = None
+        # self.destination = self.DEFAULT_ADDRESS
+        self.sub_tel_num = 0
+        self.dBm = 0
+        self.security_level = None
+        # self.sender = self.DEFAULT_ADDRESS
+        self.learn = None
+
+        if direction == self.DIRECTION.TO:
+            # ESP3 documentation p18
+            self.dBm = 0xFF
+            self.sub_tel_num = 3
+            self.security_level = 0
 
     def __str__(self):
-        packet_str = super(RadioPacket, self).__str__()
-        return f"{to_hex_string(self.sender)}->{to_hex_string(self.destination)} ({self.dBm} dBm): {packet_str}"
+        packet_str = super().__str__()
+        return (f"{to_hex_string(self.sender)}->{to_hex_string(self.destination)} ({self.dBm} dBm "
+                f"{self.sub_tel_num} Subtel): {packet_str} status={self.status}")
 
-    @staticmethod
-    def create_message(
-            equipment,
-            direction=None,
-            command=None,
-            destination=None,
-            sender=None,
-            learn=False,
-            **kwargs,
-    ):
+    @classmethod
+    def create_telegram(cls,
+                        equipment,
+                        direction=None,
+                        command=None,
+                        destination=None,
+                        sender=None,
+                        learn=False,
+                        **kwargs,
+                        ):
         Packet.logger.debug(f"Create packet for equipment profile {equipment.profile}")
         if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD]:  # , RORG.MSC
             raise NotImplementedError("RORG not supported by this function.")
@@ -232,25 +247,23 @@ class RadioPacket(Packet):
             if equipment.address:
                 destination = address_to_bytes_list(equipment.address)
             else:
-                destination = [0xFF, 0xFF, 0xFF, 0xFF]
+                destination = cls.DEFAULT_ADDRESS
                 Packet.logger.warning("Replacing destination with broadcast address.")
         else:
             Packet.validate_address(destination)
 
         # TODO: Should use the correct Base ID as default.
         #       Might want to change the sender to be an offset from the actual address?
-        if sender is None:
-            Packet.logger.warning("Replacing sender with default address.")
-            sender = [0xDE, 0xAD, 0xBE, 0xEF]
-        else:
-            Packet.validate_address(sender)
+        # if sender is None:
+        #     Packet.logger.warning("Replacing sender with default address.")
+        #     sender = [0xDE, 0xAD, 0xBE, 0xEF]
+        # else:
+        Packet.validate_address(sender)
 
-        packet = Packet(PacketType.RADIO_ERP1, data=[], optional=[])
+        packet = RadioPacket(data=[], optional=[], direction=RadioDirection.TO)
         packet.rorg = equipment.rorg
         packet.data = [packet.rorg]
-        packet.message = equipment.profile.get_message_form(
-            command=command, direction=direction
-        )
+        packet.message = equipment.profile.get_telegram_form(command=command, direction=direction)
 
         # Initialize data depending on the profile.
         if packet.rorg in [RORG.RPS, RORG.BS1]:
@@ -258,29 +271,26 @@ class RadioPacket(Packet):
         elif packet.rorg == RORG.BS4:
             packet.data.extend([0, 0, 0, 0])
         else:  # For VLD extend the data variable len
-            Packet.logger.debug(
-                f"Extend the size of packet by {packet.message.data_length} bits"
-            )
+            # Packet.logger.debug(f"Extend the size of packet by {packet.message.data_length} bits")
             packet.data.extend([0] * int(packet.message.data_length))
         packet.data.extend(sender)
         packet.data.extend([0])  # Add status byte
         Packet.logger.debug(f"Data length {len(packet.data)}")
-        # Always use sub-telegram 3, maximum dbm (as per spec, when sending),
-        # and no security (security not supported as per EnOcean Serial Protocol).
-        # p18 ESP3: SubTelNum + Destination ID + dBm + Security level
-        packet.optional = [3] + destination + [0xFF] + [0]
+        packet.optional = [packet.sub_tel_num] + destination + [packet.dBm] + [packet.security_level]
 
         if packet.rorg in [RORG.BS1, RORG.BS4] and not learn:
             if packet.rorg == RORG.BS1:
                 packet.data[1] |= 1 << 3
             if packet.rorg == RORG.BS4:
                 packet.data[4] |= 1 << 3
-        packet.data[-1] = packet.status
+        packet.data[-1] = packet._status
         Packet.logger.debug(f"Packet data length {len(packet.data)} after set_eep")
+        packet.parse()
         return packet
 
     def parse(self):
         """Parse data from Packet"""
+        self.sub_tel_num = self.optional[0]
         self.destination = self.optional[1:5]
         self.dBm = -self.optional[5]
         self.sender = self.data[DB0.BIT_4:DB0.BIT_0]
@@ -288,11 +298,10 @@ class RadioPacket(Packet):
         self.learn = True
         self.rorg = self.data[0]
         # Parse status from messages
-        # TODO: Investigate this logic
-        self.status = self.data[-1]
-        if self.rorg in [RORG.RPS, RORG.BS1, RORG.BS4]:
-            # These message types should have repeater count in the last for bits of status.
-            self.repeater_count = from_bitarray(self._bit_status[4:])
+        self._status = self.data[DB0.BIT_0]
+        # if self.rorg in [RORG.RPS, RORG.BS1, RORG.BS4]:
+        #     # These message types should have repeater count in the last for bits of status.
+        #     self.repeater_count = from_bitarray(self._bit_status[4:])
         # parse learn bit and FUNC/TYPE, if applicable
         if self.rorg == RORG.BS1:
             self.learn = not self._bit_data[DB0.BIT_3]
@@ -321,26 +330,31 @@ class RadioPacket(Packet):
         elif self.rorg == RORG.SIGNAL:
             self.logger.warning(f"Received SIGNAL message: {self}")
 
-        return super(RadioPacket, self).parse()
+        return super().parse()
 
     ## Method to parse ERP message from ESP packet
 
-    def _get_command_id(self, profile):
+    @property
+    def status(self):
+        status = ErpStatusByte(self._status)
+        return status
+
+    def __get_command_id(self, profile):
         """interpret packet to retrieve command id from VLD packets"""
         if profile.commands:
-            self.logger.debug(f"Get command id in packet : {self.data}")
+            # self.logger.debug(f"Get command id in packet : {self.data}")
             command_id = profile.commands.parse_raw(self._bit_data)
             return command_id if command_id else None
 
-    def get_packet_fields(self, profile, direction):
-        command_id = self._get_command_id(profile)
-        return profile.get_message_form(command=command_id, direction=direction)
+    def __get_telegram_fields(self, profile, direction):
+        command_id = self.__get_command_id(profile)
+        return profile.get_telegram_form(command=command_id, direction=direction)
 
-    def parse_erp_message(self, profile, direction=1):
+    def parse_telegram(self, profile, direction=1):
         """Parse EEP based on FUNC and TYPE"""
-        message_form = self.get_packet_fields(profile, direction)
+        message_form = self.__get_telegram_fields(profile, direction)
         values = message_form.get_values(self._bit_data, self._bit_status)
-        self.logger.debug(f"Parsed data values {values}, status={self.status}")
+        # self.logger.debug(f"Parsed data values {values}")
         return values
 
 
@@ -377,7 +391,7 @@ class UTETeachInPacket(RadioPacket):
         return self.request_type == self.DELETE
 
     def parse(self):
-        super(UTETeachInPacket, self).parse()
+        super().parse()
         self.unidirectional = not self._bit_data[DB6.BIT_7]
         self.response_expected = not self._bit_data[DB6.BIT_6]
         self.request_type = from_bitarray(self._bit_data[DB6.BIT_5 : DB6.BIT_3])
@@ -419,7 +433,7 @@ class UTETeachInPacket(RadioPacket):
         # Always use 0x03 to indicate sending, attach sender ID, dBm, and security level
         optional = [0x03] + self.sender + [0xFF, 0x00]
 
-        return RadioPacket(PacketType.RADIO, data=data, optional=optional)
+        return RadioPacket(data=data, optional=optional)
 
 
 class ResponsePacket(Packet):
@@ -442,3 +456,18 @@ class EventPacket(Packet):
         self.event_code = EventCode(self.data[0])
         self.event_data = self.data[1:]
         return super(EventPacket, self).parse()
+
+
+class ErpStatusByte:
+
+    def __init__(self, b):
+        bit_array = to_bitarray(b)
+        self.hash_type = "CRC" if bit_array[0] else "Checksum"
+        self.rfu = int(bit_array[1])
+        self.ptm_generation = "PTM 21X" if bit_array[2] else "other"
+        self.ptm_identified = bit_array[3]
+        self.repeater_info = from_bitarray(bit_array[4:])
+
+    def __str__(self):
+        return (f"status:hash type={self.hash_type}, rfu={self.rfu}, ptm generation={self.ptm_generation}, "
+                f"ptm identified={self.ptm_identified}, repeater={self.repeater_info}")

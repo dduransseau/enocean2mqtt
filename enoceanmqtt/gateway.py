@@ -21,7 +21,7 @@ class Gateway:
     """the main working class providing the MQTT interface to the enocean packet classes"""
 
     mqtt_client = None
-    enocean = None
+    controller = None
 
     GATEWAY_TOPIC = "_gateway"
     TEACH_IN_TOPIC = f"{GATEWAY_TOPIC}/teach-in"
@@ -74,13 +74,10 @@ class Gateway:
         )
 
         # setup enocean connection
-        self.enocean = SerialController(
+        self.controller = SerialController(
             self.conf["enocean_port"], teach_in=False, timestamp=self.publish_timestamp
         )
-        self.enocean.start()
-        # sender will be automatically determined
-        self.controller_address = None
-        self.controller_info = None
+        self.controller.start()
 
         # setup mqtt connection
         client_id = self.conf.get("mqtt_client_id", None)
@@ -131,8 +128,16 @@ class Gateway:
         self.mqtt_client.loop_start()
 
     def __del__(self):
-        if self.enocean is not None and self.enocean.is_alive():
-            self.enocean.stop()
+        if self.controller is not None and self.controller.is_alive():
+            self.controller.stop()
+
+    @property
+    def equipments_definition_list(self):
+        equipments_definition_list = list()
+        # listen to enocean send requests
+        for equipment in self.equipments.values():
+            equipments_definition_list.append(equipment.definition)
+        return equipments_definition_list
 
     def get_config_boolean(self, key):
         return (
@@ -170,14 +175,6 @@ class Gateway:
                 self.equipments[address] = equipment
             except NotImplementedError:
                 self.logger.warning(f"Unable to setup device {address}")
-
-    @property
-    def equipments_definition_list(self):
-        equipments_definition_list = list()
-        # listen to enocean send requests
-        for equipment in self.equipments.values():
-            equipments_definition_list.append(equipment.definition)
-        return equipments_definition_list
 
     # =============================================================================================
     # MQTT CLIENT
@@ -222,11 +219,19 @@ class Gateway:
         else:
             self.logger.error(f"error connecting to MQTT broker: {reason_code}")
 
+    @property
+    def controller_address(self):
+        return self.controller.base_id
+
+    @property
+    def controller_info(self):
+        return self.controller.controller_info_details
+
     def _publish_gateway_adapter_details(self):
         # Wait that enocean communicator is initialized before publishing teach in mode
-        self.enocean.init_adapter()
-        self.controller_address = self.enocean.base_id
-        self.controller_info = self.enocean.controller_info_details
+        self.controller.init_adapter()
+        # self.controller_address = self.controller.base_id
+        # self.controller_info = self.controller.controller_info_details
         # for i in range(10):
         #     if self.controller_address is None:
         #         try:
@@ -239,7 +244,7 @@ class Gateway:
         #         break
         #     time.sleep(0.01)
         try:
-            teach_in = "ON" if self.enocean.teach_in else "OFF"
+            teach_in = "ON" if self.controller.teach_in else "OFF"
             self.mqtt_publish(
                 f"{self.topic_prefix}{self.TEACH_IN_TOPIC}", teach_in, retain=True
             )
@@ -289,10 +294,10 @@ class Gateway:
     def handle_learn_activation_request(self, msg):
         command = msg.payload.decode("utf-8").upper()
         if command == "ON":
-            self.enocean.teach_in = True
+            self.controller.teach_in = True
             self.logger.info("gateway teach in mode enabled")
         elif command == "OFF":
-            self.enocean.teach_in = False
+            self.controller.teach_in = False
             self.logger.info("gateway teach in mode disabled ")
         else:
             self.logger.warning(f"not supported command: {command} for learn")
@@ -423,16 +428,16 @@ class Gateway:
         """interpret radio packet, read properties and publish to MQTT"""
         if not packet.learn or equipment.log_learn:
             # Handling received data packet
-            self.logger.debug(f"handle radio packet for sensor {equipment}")
+            self.logger.debug(f"process radio packet for sensor {equipment}")
             # Parse message based on fields definition (profile)
-            radio_message = packet.parse_erp_message(equipment.profile, direction=equipment.direction)
-            if not radio_message:
+            radio_telegram = packet.parse_telegram(equipment.profile, direction=equipment.direction)
+            if not radio_telegram:
                 self.logger.warning(
                     f"message not interpretable: {equipment.name} {packet}"
                 )
             else:
                 channel = None
-                message_payload = self.format_enocean_message(radio_message, equipment)
+                message_payload = self.format_enocean_message(radio_telegram, equipment)
                 if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
                     channel = message_payload[self.CHANNEL_MESSAGE_KEY]
                 # Store receive date
@@ -450,8 +455,8 @@ class Gateway:
                 self.logger.debug(f"Publish message {message_payload}")
                 self._publish_mqtt_json(equipment, message_payload, channel=channel)
                 if equipment.publish_flat:
-                    self._publish_mqtt_flat(equipment, radio_message, channel=channel)
-        elif packet.learn and not self.enocean.teach_in:
+                    self._publish_mqtt_flat(equipment, radio_telegram, channel=channel)
+        elif packet.learn and not self.controller.teach_in:
             self.logger.info("Received teach-in packet but learn is not enabled")
         else:
             # learn request received
@@ -536,7 +541,7 @@ class Gateway:
         )
 
         try:
-            packet = RadioPacket.create_message(
+            packet = RadioPacket.create_telegram(
                 equipment,
                 direction=direction,
                 command=command,
@@ -571,13 +576,13 @@ class Gateway:
             else:
                 # what to do if we have no data to send yet?
                 self.logger.warning(f"sending only default data as answer to {equipment.name}")
-        self.enocean.send(packet)
+        self.controller.send(packet)
 
     def add_equipments(self, publish=True):
         # Allow to add equipment live without config file if teach-in packet received with eep
-        ignore = False if self.enocean.teach_in else True
-        for i in range(len(self.enocean.learned_equipment)):
-            new_equipment = self.enocean.learned_equipment.pop()
+        ignore = False if self.controller.teach_in else True
+        for i in range(len(self.controller.learned_equipment)):
+            new_equipment = self.controller.learned_equipment.pop()
             equipment = Equipment(address=new_equipment.address, rorg=new_equipment.rorg, func=new_equipment.func,
                                   type=new_equipment.variant, topic_prefix=self.topic_prefix, ignore=ignore)
             self.equipments[new_equipment.address] = equipment
@@ -594,14 +599,14 @@ class Gateway:
         # first, look whether we have this sensor configured
         sender_address = combine_hex(packet.sender)
         formatted_address = to_hex_string(packet.sender)
-        self.logger.debug(f"process radio for address {formatted_address}")
+        # self.logger.debug(f"process radio for address {formatted_address}")
         if sender_address not in self.detected_equipments:
             self.detected_equipments.add(sender_address)
             self.logger.info(f"Detected new equipment with address {formatted_address}")
             # self.mqtt_publish(f"{self.topic_prefix}gateway/detected_equipments", list(self.detected_equipments))
-        self.logger.debug(f"received: {packet}")
+        # self.logger.debug(f"received: {packet}")
         # Check if new device has been detected and add it to known equipment
-        if self.enocean.learned_equipment:
+        if self.controller.learned_equipment:
             self.add_equipments()
 
         equipment = self.get_equipment(sender_address)
@@ -648,15 +653,15 @@ class Gateway:
     def run(self):
         """the main loop with blocking enocean packet receive handler"""
         # start endless loop for listening
-        while self.enocean.is_alive():
+        while self.controller.is_alive():
             # Loop to empty the queue...
             try:
                 # get next packet
                 if platform.system() == "Windows":
                     # only timeout on Windows for KeyboardInterrupt checking
-                    packet = self.enocean.receive.get(block=True, timeout=1)
+                    packet = self.controller.receive.get(block=True, timeout=1)
                 else:
-                    packet = self.enocean.receive.get(block=True)
+                    packet = self.controller.receive.get(block=True)
                 # check packet type
                 if packet.packet_type == PacketType.RADIO_ERP1:
                     self._handle_erp_packet(packet)
@@ -683,8 +688,8 @@ class Gateway:
             retain=True,
         )
         self.logger.info(
-            f"Close the enocean controller, get {self.enocean.crc_errors} crc errors during run"
+            f"Close the enocean controller, get {self.controller.crc_errors} crc errors during run"
         )
         self.logger.debug("Cleaning up")
-        self.enocean.stop()
+        self.controller.stop()
         self._cleanup_mqtt()

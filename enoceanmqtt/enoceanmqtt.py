@@ -14,7 +14,7 @@ DISCOVERED_EQUIPMENTS_FILE = "../discovered.conf"
 
 conf = {
     "debug": False,
-    "config": ["/etc/gateway.conf", "../gateway.conf", "../equipments.conf", DISCOVERED_EQUIPMENTS_FILE],
+    "config": ["/etc/gateway.conf", "../gateway.conf", "../equipments.conf"],
     "logfile": "../gateway.log",
 }
 

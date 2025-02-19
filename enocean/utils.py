@@ -33,7 +33,7 @@ def to_hex_string(data):
     """Convert list of integers to a hex string, separated by ":" """
     if isinstance(data, int):
         return f"{data:X}"
-    return ":".join([f"{o:X}" for o in data])
+    return "".join([f"{o:X}".zfill(2) for o in data])
 
 
 def from_hex_string(hex_string):
@@ -41,12 +41,6 @@ def from_hex_string(hex_string):
     if len(reval) == 1:
         return reval[0]
     return reval
-
-
-def to_eep_hex_code(c):
-    if isinstance(c, str):
-        c = int(c, 16)
-    return hex(c)[2:].zfill(2)
 
 
 def address_to_bytes_list(a):

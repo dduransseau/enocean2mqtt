@@ -23,18 +23,6 @@ class PacketType(IntEnum):
     COMMAND_2_4 = 0x11
 
 
-# EnOceanSerialProtocol3.pdf / 18
-class ReturnCode(IntEnum):
-    OK = 0x00
-    ERROR = 0x01
-    NOT_SUPPORTED = 0x02
-    WRONG_PARAM = 0x03
-    OPERATION_DENIED = 0x04
-    RET_LOCK_SET = 0x05
-    RET_BUFFER_TO_SMALL = 0x06
-    RET_NO_FREE_BUFFER = 0x07
-
-
 # EnOceanSerialProtocol3.pdf / 20
 class EventCode(IntEnum):
     SA_RECLAIM_NOT_SUCCESSFUL = 0x01
@@ -80,9 +68,38 @@ class CommandCode(IntEnum):
     CO_SET_BAUDRATE = 0x24
     CO_GET_FREQUENCY_INFO = 0x25
     CO_GET_STEPCODE = 0x27
+    # 0x28 - 0x2d RESERVED
+    CO_WR_REMAN_CODE = 0x2e
+    CO_WR_STARTUP_DELAY = 0x2f
+    CO_WR_REMAN_REPEATING = 0x30
+    CO_RD_REMAN_REPEATING = 0x31
+    CO_SET_NOISETHRESHOLD = 0x32
     CO_GET_NOISETHRESHOLD = 0x33
+    # 0x34 - 0x35 RESERVED
+    CO_WR_RLC_SAVE_PERIOD = 0x36
+    CO_WR_RLC_LEGACY_MODE = 0x37
+    CO_WR_SECUREDEVICEV2_ADD = 0x38
+    CO_RD_SECUREDEVICEV2_BY_INDEX = 0x39
+    CO_WR_RSSITEST_MODE = 0x3a
+    CO_RD_RSSITEST_MODE = 0x3b
+    CO_WR_SECUREDEVICE_MAINTENANCEKEY = 0x3c
+    CO_RD_SECUREDEVICE_MAINTENANCEKEY = 0x3d
+    CO_WR_TRANSPARENT_MODE = 0x3e
     CO_RD_TRANSPARENT_MODE = 0x3F
+    CO_WR_TX_ONLY_MODE = 0x40
+    CO_RD_TX_ONLY_MODE = 0x41
 
+
+# EnOceanSerialProtocol3.pdf / 18
+class ReturnCode(IntEnum):
+    OK = 0x00
+    ERROR = 0x01
+    NOT_SUPPORTED = 0x02
+    WRONG_PARAM = 0x03
+    OPERATION_DENIED = 0x04
+    RET_LOCK_SET = 0x05
+    RET_BUFFER_TO_SMALL = 0x06
+    RET_NO_FREE_BUFFER = 0x07
 
 # EnOcean_Equipment_Profiles_EEP_V2.61_public.pdf / 8
 class RORG(IntEnum):
@@ -110,23 +127,9 @@ class DataFieldType(IntEnum):
     VALUE = 2
     ENUM = 3
 
-
-class SpecificShortcut(StrEnum):
-    UNIT = "UN"
-    MULTIPLIER = "SCM"
-    DIVISOR = "DIV"
-    COMMAND = "CMD"
-    LEARN_BIT = "LRNB"
-    HUMIDITY_AVAILABILITY = "HSN"
-    TEMPERATURE_AVAILABILITY = "TSN"
-    HUMIDITY = "HUM"
-    TEMPERATURE = "TMP"
-
-
-AVAILABILITY_FIELD_MAPPING = {
-    SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
-    SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE,
-}
+class ErpStatusHashType(IntEnum):
+    CHECKSUM = 0
+    CRC = 1
 
 
 class FieldSetName(StrEnum):
@@ -216,6 +219,10 @@ class DB6:
     BIT_6 = -55
     BIT_7 = -56
 
+class RadioDirection(IntEnum):
+    FROM = 0
+    TO = 1
+
 
 RESPONSE_REPEATER_MODE = {0: "OFF", 1: "ON", 2: "SELECTIVE"}
 
@@ -235,6 +242,13 @@ RESPONSE_FREQUENCY_PROTOCOL = {
     1: "ERP2",
     16: "802.15.4",
     48: "Long Range",
+}
+
+ERP1_STATUS_REPEATER_LEVEL = {
+    0: "Original Telegram",
+    1: "One Hop Repeated Telegram",
+    2: "Two Hop Repeated Telegram",
+    15: "Telegram shall not be repeated",
 }
 
 MANUFACTURER_CODE = {

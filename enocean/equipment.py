@@ -2,7 +2,7 @@
 import logging
 
 from enocean.protocol.eep import EepLibrary
-
+from enocean.utils import to_hex_string
 
 class Equipment(object):
     """Representation of device/sensor as EnOcean use the term Equipement"""
@@ -26,4 +26,4 @@ class Equipment(object):
         return self.profile.code
 
     def __str__(self) -> str:
-        return f"equipment {self.address} eep {self.eep_code}"
+        return f"equipment {to_hex_string(self.address)} eep {self.eep_code}"

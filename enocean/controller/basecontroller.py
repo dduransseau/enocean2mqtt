@@ -27,7 +27,7 @@ class BaseController(threading.Thread):
     logger = logging.getLogger("enocean.controller.controller")
 
     def __init__(self, callback=None, teach_in=True, timestamp=False):
-        super(BaseController, self).__init__()
+        super().__init__()
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
         # Input buffer
@@ -166,21 +166,23 @@ class BaseController(threading.Thread):
                 app_version=self.app_version,
                 api_version=self.api_version,
                 app_description=self.app_description,
-                id=hex(self._chip_id)[2:].upper(),
+                id=to_hex_string(self._chip_id),
             )
         # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
         self.send_common_command(CommandCode.CO_RD_VERSION)
         # Loop over 5 times, to make sure we catch the response.
         # Thanks to timeout, shouldn't take more than a second.
         # Unfortunately, all other messages received during this time are ignored.
-        for i in range(0, 5):
-            if self._chip_id:
-                return dict(
-                    app_version=self.app_version,
-                    api_version=self.api_version,
-                    app_description=self.app_description,
-                    id=hex(self._chip_id)[2:].upper(),
-                )
+        # for i in range(0, 5):
+        #     if self._chip_id:
+        #         return dict(
+        #             app_version=self.app_version,
+        #             api_version=self.api_version,
+        #             app_description=self.app_description,
+        #             id=to_hex_string(self._chip_id),
+        #         )
+        #     time.sleep(self._wait_time*10)
+        while not self._chip_id:
             time.sleep(self._wait_time*10)
         return True
 
@@ -214,13 +216,14 @@ class BaseController(threading.Thread):
         if command_id == CommandCode.CO_RD_VERSION:
             self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
             self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
-            self._chip_id = int.from_bytes(packet.response_data[8:12])
-            self._chip_version = int.from_bytes(packet.response_data[12:16])
+            self._chip_id = packet.response_data[8:12]
+            # self._chip_version = packet.response_data[12:16]
+            self._chip_version = ".".join([str(b) for b in packet.response_data[12:16]])
             self.app_description = "".join(
                 [chr(c) for c in packet.response_data[16:] if c]
             )
             self.logger.debug(
-                f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={self._chip_id}"
+                f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={to_hex_string(self._chip_id)}"
                 f" chip_version={self._chip_version}"
             )
         elif command_id == CommandCode.CO_RD_IDBASE:

@@ -4,11 +4,12 @@ from enum import StrEnum
 from pathlib import Path
 from xml.etree import ElementTree
 
-from enocean.utils import to_eep_hex_code, from_hex_string
+from enocean.utils import from_hex_string
 from enocean.protocol.constants import DataFieldType, FieldSetName
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("enocean.protocol.eep")
+
 
 class SpecificShortcut(StrEnum):
     UNIT = "UN"
@@ -26,6 +27,7 @@ AVAILABILITY_FIELD_MAPPING = {
     SpecificShortcut.HUMIDITY_AVAILABILITY: SpecificShortcut.HUMIDITY,
     SpecificShortcut.TEMPERATURE_AVAILABILITY: SpecificShortcut.TEMPERATURE,
 }
+
 
 def parse_number_value(v):
     if v.startswith("0x"):
@@ -156,8 +158,6 @@ class DataValue(BaseDataElt):
     def set_value(self, data, bitarray):
         """set given numeric value to target field in bitarray"""
         # derive raw value
-        # TODO : Confirm method
-        # value = (data - self.scale_min) / (self.range_max - self.range_min) * (self.scale_max - self.scale_min) + self.range_min
         value = self.process_value(data)
         return self._set_raw(int(value), bitarray)
 
@@ -417,7 +417,7 @@ class Profile:
     def __init__(self, elt, rorg=None, func=None):
         self.rorg = rorg
         self.func = func
-        self.type = elt.get("type")
+        self.type = int(elt.get("type", 0), 16)
         self.description = elt.get("description", "")
         if len(elt.findall("command")) > 1:
             raise ValueError("More then 1 command for profile")
@@ -436,11 +436,7 @@ class Profile:
 
     @property
     def code(self):
-        return (
-            f"{to_eep_hex_code(self.rorg)}"
-            f"-{to_eep_hex_code(self.func)}"
-            f"-{to_eep_hex_code(self.type)}"
-        ).upper()
+        return f"{self.rorg:X}-{self.func:X}-{self.type:X}"
 
     def __str__(self):
         txt = f"Profile {self.code} about {self.description}"
@@ -448,7 +444,7 @@ class Profile:
             txt += f" with {len(self.commands)} commands"
         return txt
 
-    def get_message_form(self, command=None, direction=None):
+    def get_telegram_form(self, command=None, direction=None):
         # if command and direction:
         #     # Must confirm this limitation
         #     self.logger.warning("Command and Direction are specified but only one at a time should be use")
@@ -467,7 +463,7 @@ class Profile:
             command_item = None
             command_shortcut = None
         profile_data = self.datas.get((command, direction))
-        return Message(
+        return Telegram(
             profile_data,
             command=command_item,
             command_shortcut=command_shortcut,
@@ -475,8 +471,8 @@ class Profile:
         )
 
 
-class Message:
-    logger = logging.getLogger("enocean.protocol.eep.message")
+class Telegram:
+    logger = logging.getLogger("enocean.protocol.eep.telegram")
 
     def __init__(
         self, profile_data, command=None, command_shortcut=None, direction=None
@@ -596,7 +592,7 @@ class Message:
 class EepLibraryLoader:
     """Class that is used to load the EEP file one time and avoid to load it each time EepLibrary is called"""
 
-    logger = logging.getLogger("enocean.protocol.eep_library")
+    logger = logging.getLogger("enocean.protocol.eep.library")
 
     def __init__(self, filepath=None):
         try:
