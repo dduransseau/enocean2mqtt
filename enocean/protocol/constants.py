@@ -219,9 +219,19 @@ class DB6:
     BIT_6 = -55
     BIT_7 = -56
 
-class RadioDirection(IntEnum):
-    FROM = 0
-    TO = 1
+
+class UteTeachInQueryRequestType(IntEnum):
+    REGISTRATION = 0b00
+    DELETION = 0b01
+    NOT_SPECIFIED = 0b10
+    NOT_USED = 0b11
+
+
+class UteTeachInResponseRequestType(IntEnum):
+    REFUSED_GENERAL = 0b00
+    ACCEPTED_REGISTRATION = 0b01
+    ACCEPTED_DELETION = 0b10
+    REFUSED_EEP_NOT_SUPPORTED = 0b11
 
 
 RESPONSE_REPEATER_MODE = {0: "OFF", 1: "ON", 2: "SELECTIVE"}

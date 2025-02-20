@@ -14,8 +14,7 @@ from enocean.protocol.constants import (
     RESPONSE_REPEATER_LEVEL,
 )
 from enocean.protocol import crc8
-from enocean.utils import to_hex_string, combine_hex
-from enocean.equipment import Equipment
+from enocean.utils import to_hex_string
 
 
 class BaseController(threading.Thread):
@@ -24,7 +23,7 @@ class BaseController(threading.Thread):
     Not to be used directly, only serves as base class for SerialCommunicator etc.
     """
 
-    logger = logging.getLogger("enocean.controller.controller")
+    logger = logging.getLogger("enocean.controller")
 
     def __init__(self, callback=None, teach_in=True, timestamp=False):
         super().__init__()
@@ -49,11 +48,19 @@ class BaseController(threading.Thread):
         self.frame_timestamp = timestamp
         self.app_version = None
         self.api_version = None
-        self._chip_id = None
+        self.chip_id = None
         self._chip_version = None
         self.app_description = None
         self.crc_errors = 0
         self._wait_time = 0.01
+
+    @property
+    def address(self):
+        """ Referring to EnOcean documentation (EURID-v1.2.pdf)
+        EURID should be use as address, base id can be used for dev purpose"""
+        # return self.base_id
+        return self.chip_id
+
 
     def send(self, packet):
         # TODO: Evaluate this and raise Exception if relevant
@@ -112,15 +119,14 @@ class BaseController(threading.Thread):
                 packet.received = time.time()
             if isinstance(packet, UTETeachInPacket):
                 if self.teach_in:
-                    response_packet = packet.create_response_packet(self.base_id)
+                    response_packet = packet.create_response_packet(self.address)
                     self.logger.info("Sending response to UTE teach-in.")
                     self.send(response_packet)
                 else:
                     self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
-                self.logger.info(f"Received UTE teach-in packet from {to_hex_string(packet.sender)} "
-                                 f" EEP: {packet.equipment_eep_label}")
-                self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.equipment_eep_rorg,
-                                                     variant=packet.equipment_eep_type, func=packet.equipment_eep_func))
+                # TODO: Check if already known
+                # self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.equipment_eep_rorg,
+                #                                      variant=packet.equipment_eep_type, func=packet.equipment_eep_func))
             elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                 self.parse_common_command_response(packet)
                 return  # Bypass packet emit to avoid to log internal command
@@ -161,12 +167,12 @@ class BaseController(threading.Thread):
 
     @property
     def controller_info_details(self):
-        if self._chip_id:
+        if self.chip_id:
             return dict(
                 app_version=self.app_version,
                 api_version=self.api_version,
                 app_description=self.app_description,
-                id=to_hex_string(self._chip_id),
+                id=to_hex_string(self.chip_id),
             )
         # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
         self.send_common_command(CommandCode.CO_RD_VERSION)
@@ -182,7 +188,7 @@ class BaseController(threading.Thread):
         #             id=to_hex_string(self._chip_id),
         #         )
         #     time.sleep(self._wait_time*10)
-        while not self._chip_id:
+        while not self.chip_id:
             time.sleep(self._wait_time*10)
         return True
 
@@ -216,14 +222,14 @@ class BaseController(threading.Thread):
         if command_id == CommandCode.CO_RD_VERSION:
             self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
             self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
-            self._chip_id = packet.response_data[8:12]
+            self.chip_id = packet.response_data[8:12]
             # self._chip_version = packet.response_data[12:16]
             self._chip_version = ".".join([str(b) for b in packet.response_data[12:16]])
             self.app_description = "".join(
                 [chr(c) for c in packet.response_data[16:] if c]
             )
             self.logger.debug(
-                f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={to_hex_string(self._chip_id)}"
+                f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={to_hex_string(self.chip_id)}"
                 f" chip_version={self._chip_version}"
             )
         elif command_id == CommandCode.CO_RD_IDBASE:

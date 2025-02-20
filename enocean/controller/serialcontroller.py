@@ -5,13 +5,14 @@ import serial
 
 from enocean.controller.basecontroller import BaseController, FrameIncompleteError
 
+
 class SerialController(BaseController):
     """Serial port communicator class for EnOcean radio"""
 
-    # logger = logging.getLogger("enocean.controller.SerialController")
+    logger = logging.getLogger("enocean.controller.serial")
 
     def __init__(self, port="/dev/ttyAMA0", baudrate=57600, timeout=0, **kwargs):
-        super(SerialController, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         # Initialize serial port
         self.__port = port
         self.__baudrate = baudrate

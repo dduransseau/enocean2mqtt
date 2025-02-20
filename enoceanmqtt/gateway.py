@@ -221,7 +221,7 @@ class Gateway:
 
     @property
     def controller_address(self):
-        return self.controller.base_id
+        return self.controller.address
 
     @property
     def controller_info(self):
@@ -230,19 +230,6 @@ class Gateway:
     def _publish_gateway_adapter_details(self):
         # Wait that enocean communicator is initialized before publishing teach in mode
         self.controller.init_adapter()
-        # self.controller_address = self.controller.base_id
-        # self.controller_info = self.controller.controller_info_details
-        # for i in range(10):
-        #     if self.controller_address is None:
-        #         try:
-        #             self.enocean.init_adapter()
-        #             self.controller_address = self.enocean.base_id
-        #             self.controller_info = self.enocean.controller_info_details
-        #         except TimeoutError:
-        #             self.logger.error("Unable to retrieve adapter information in time")
-        #     elif self.controller_address and self.controller_info:
-        #         break
-        #     time.sleep(0.01)
         try:
             teach_in = "ON" if self.controller.teach_in else "OFF"
             self.mqtt_publish(
@@ -571,8 +558,8 @@ class Gateway:
             # do we have specific data to send?
             if data:
                 # override with specific data settings
-                self.logger.debug(f"packet with message {packet.message}")
-                packet = packet.build_message(data)
+                self.logger.debug(f"packet with telegram {packet.telegram}")
+                packet = packet.build_telegram(data)
             else:
                 # what to do if we have no data to send yet?
                 self.logger.warning(f"sending only default data as answer to {equipment.name}")

@@ -8,10 +8,10 @@ from enocean.controller.basecontroller import BaseController
 class TCPControler(BaseController):
     """Socket communicator class for EnOcean radio"""
 
-    logger = logging.getLogger("enocean.controller.TCPControler")
+    logger = logging.getLogger("enocean.controller.tcp")
 
     def __init__(self, host="", port=9637):
-        super(TCPControler, self).__init__()
+        super().__init__()
         self.host = host
         self.port = port
 
