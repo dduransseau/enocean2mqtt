@@ -1,10 +1,23 @@
 # -*- encoding: utf-8 -*-
 
 
-def get_bit(byte, bit):
-    """Get bit value from byte"""
-    return (byte >> bit) & 0x01
+# def get_bit(byte, bit):
+#     """Get bit value from byte"""
+#     return (byte >> bit) & 0x01
 
+
+def set_bit(byte_array, bit_pos, value):
+    byte_index = bit_pos // 8
+    bit_index = bit_pos % 8
+    if value:
+        byte_array[byte_index] |= (1 << bit_index)
+    else:
+        byte_array[byte_index] &= ~(1 << bit_index)
+
+def get_bit(byte_array, bit_pos):
+    byte_index = bit_pos // 8
+    bit_index = bit_pos % 8
+    return (byte_array[byte_index] >> bit_index) & 1
 
 def combine_hex(data):
     """Combine list of integer values to one big integer"""

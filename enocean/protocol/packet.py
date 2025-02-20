@@ -92,7 +92,6 @@ class Packet:
             - Packet -object (if message was valid, else None)
         """
         try:
-            frame = list(frame)  # Convert bytearray to list to easily manage index
             data_len = (frame[1] << 8) | frame[2]
             # opt_len = frame[3] # Optional len, not use for now
             packet_type = frame[4]
@@ -125,9 +124,9 @@ class Packet:
             else:
                 packet = RadioPacket(data, opt_data)
         elif packet_type == PacketType.RESPONSE:
-            packet = ResponsePacket(packet_type, data, opt_data)
+            packet = ResponsePacket(data, opt_data)
         elif packet_type == PacketType.EVENT:
-            packet = EventPacket(packet_type, data, opt_data)
+            packet = EventPacket(data, opt_data)
         else:
             Packet.logger.warning(f"Received unsupported packet type: {packet_type}")
             packet = Packet(packet_type, data, opt_data)
@@ -170,12 +169,14 @@ class RadioPacket(Packet):
     DEFAULT_SECURITY_LEVEL = 0
     DEFAULT_SUB_TEL_NUM = 3
 
-    def __init__(self, data=None, optional=None, status=0):
+    def __init__(self, data=None, optional=None, status=0, telegram=None):
         # If no optional data is passed on init, set default value for sending
         optional_data = optional or [self.DEFAULT_SUB_TEL_NUM] + self.DEFAULT_ADDRESS + [self.DEFAULT_RSSI] + [self.DEFAULT_SECURITY_LEVEL]
-        super().__init__(PacketType.RADIO_ERP1, data=data, optional=optional_data)
         self._status = status
-        self.learn = None
+        super().__init__(PacketType.RADIO_ERP1, data=data, optional=optional_data)
+        # Default to learn == True, as some devices don't have a learn button
+        self.learn = True
+        self.telegram = telegram
 
     def __str__(self):
         packet_str = super().__str__()
@@ -207,23 +208,22 @@ class RadioPacket(Packet):
 
         Packet.validate_address(sender)
 
-        packet = RadioPacket(data=[], optional=[])
-        packet.data = [equipment.rorg]
-        packet.telegram = equipment.profile.get_telegram_form(command=command, direction=direction)
+        data = [equipment.rorg]
+        telegram_form = equipment.profile.get_telegram_form(command=command, direction=direction)
 
         # Initialize data depending on the profile.
-        if packet.rorg in [RORG.RPS, RORG.BS1]:
-            packet.data.extend([0])
-        elif packet.rorg == RORG.BS4:
-            packet.data.extend([0, 0, 0, 0])
+        if equipment.rorg in [RORG.RPS, RORG.BS1]:
+            data.extend([0])
+        elif equipment.rorg == RORG.BS4:
+            data.extend([0, 0, 0, 0])
         else:  # For VLD extend the data variable len
             # Packet.logger.debug(f"Extend the size of packet by {packet.telegram.data_length} bits")
-            packet.data.extend([0] * int(packet.telegram.data_length))
-        packet.data.extend(sender)
-        packet.data.extend([0])  # Add status byte
-        Packet.logger.debug(f"Data length {len(packet.data)}")
+            data.extend([0] * int(telegram_form.data_length))
+        data.extend(sender)
+        data.extend([0])  # Add status byte
+        Packet.logger.debug(f"Data length {len(data)}")
+        packet = RadioPacket(data=data, optional=[], telegram=telegram_form)
         packet.destination = destination
-
         if packet.rorg in [RORG.BS1, RORG.BS4] and not learn:
             if packet.rorg == RORG.BS1:
                 packet.data[1] |= 1 << 3
@@ -281,9 +281,6 @@ class RadioPacket(Packet):
 
     def parse(self):
         """Parse data from Packet"""
-        # Default to learn == True, as some devices don't have a learn button
-        self.learn = True
-        # self.rorg = self.data[0]
         # Parse status from telegrams
         self._status = self.data[DB0.BIT_0]
         # if self.rorg in [RORG.RPS, RORG.BS1, RORG.BS4]:
@@ -322,8 +319,7 @@ class RadioPacket(Packet):
 
     @property
     def status(self):
-        status = ErpStatusByte(self._status)
-        return status
+        return ErpStatusByte(self._status)
 
     @property
     def _bit_status(self):
@@ -340,13 +336,11 @@ class RadioPacket(Packet):
             command_id = profile.commands.parse_raw(self._bit_data)
             return command_id if command_id else None
 
-    def __get_telegram_fields(self, profile, direction):
-        command_id = self.__get_command_id(profile)
-        return profile.get_telegram_form(command=command_id, direction=direction)
-
     def parse_telegram(self, profile, direction=1):
         """Parse EEP based on FUNC and TYPE"""
-        telegram_form = self.__get_telegram_fields(profile, direction)
+        #Get the command id based on profile
+        command_id = self.__get_command_id(profile)
+        telegram_form = profile.get_telegram_form(command=command_id, direction=direction)
         values = telegram_form.get_values(self._bit_data, self._bit_status)
         # self.logger.debug(f"Parsed data values {values}")
         return values
@@ -439,25 +433,45 @@ class UTETeachInPacket(RadioPacket):
 
 
 class ResponsePacket(Packet):
-    # response = 0
-    return_code = ReturnCode(0)
-    response_data = []
 
-    def parse(self):
-        # self.response = self.data[0]
-        self.return_code = ReturnCode(self.data[0])
-        self.response_data = self.data[1:]
-        return super().parse()
+    def __init__(self, data=None, optional=None):
+        # If no optional data is passed on init, set default value for sending
+        super().__init__(PacketType.EVENT, data=data, optional=optional)
+
+    @property
+    def return_code(self):
+        try:
+            return ReturnCode(self.data[0])
+        except IndexError:
+            return ReturnCode(1)
+
+    @property
+    def response_data(self):
+        try:
+            return self.data[1:]
+        except IndexError:
+            return []
 
 
 class EventPacket(Packet):
-    event_code = None
-    event_data = []
 
-    def parse(self):
-        self.event_code = EventCode(self.data[0])
-        self.event_data = self.data[1:]
-        return super().parse()
+    def __init__(self, data=None, optional=None):
+        # If no optional data is passed on init, set default value for sending
+        super().__init__(PacketType.EVENT, data=data, optional=optional)
+
+    @property
+    def event_code(self):
+        try:
+            return EventCode(self.data[0])
+        except IndexError:
+            return 0
+
+    @property
+    def event_data(self):
+        try:
+            return self.data[1:]
+        except IndexError:
+            return []
 
 
 class ErpStatusByte:
