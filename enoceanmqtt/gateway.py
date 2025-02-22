@@ -548,33 +548,33 @@ class Gateway:
             # update flags to acknowledge learn request
             packet.data[4] = 0xF0
         else:
-            # data packet received
-            # start with default data
             # Initialize packet with default_data if specified
             if equipment.default_data:
                 packet.data[1:5] = [
                     (equipment.default_data >> i * 8) & 0xFF for i in reversed(range(4))
                 ]
-            # do we have specific data to send?
             if data:
                 # override with specific data settings
-                self.logger.debug(f"packet with telegram {packet.telegram}")
+                self.logger.debug(f"packet with telegram {packet.function_group}")
                 packet = packet.build_telegram(data)
             else:
                 # what to do if we have no data to send yet?
                 self.logger.warning(f"sending only default data as answer to {equipment.name}")
         self.controller.send(packet)
 
-    def add_equipments(self, publish=True):
+    def register_new_equipments(self, publish=True):
         # Allow to add equipment live without config file if teach-in packet received with eep
         ignore = False if self.controller.teach_in else True
         for i in range(len(self.controller.learned_equipment)):
             new_equipment = self.controller.learned_equipment.pop()
-            equipment = Equipment(address=new_equipment.address, rorg=new_equipment.rorg, func=new_equipment.func,
-                                  type=new_equipment.variant, topic_prefix=self.topic_prefix, ignore=ignore)
-            self.equipments[new_equipment.address] = equipment
-            self.mqtt_subscribe(equipment.topic + "/req")
-            self.conf_manager.save_discovered_equipment(equipment)
+            if new_equipment.address not in self.equipments.keys():
+                equipment = Equipment(address=new_equipment.address, rorg=new_equipment.rorg, func=new_equipment.func,
+                                      type=new_equipment.variant, topic_prefix=self.topic_prefix, ignore=ignore)
+                self.equipments[new_equipment.address] = equipment
+                self.mqtt_subscribe(equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX)
+                self.conf_manager.save_discovered_equipment(equipment)
+            else:
+                self.logger.debug(f"New equipment already learned: {new_equipment.address}")
         if publish:
             self.mqtt_publish(
                 f"{self.topic_prefix}{self.GATEWAY_EQUIPMENTS_TOPIC}",
@@ -594,7 +594,7 @@ class Gateway:
         # self.logger.debug(f"received: {packet}")
         # Check if new device has been detected and add it to known equipment
         if self.controller.learned_equipment:
-            self.add_equipments()
+            self.register_new_equipments()
 
         equipment = self.get_equipment(sender_address)
         if not equipment:

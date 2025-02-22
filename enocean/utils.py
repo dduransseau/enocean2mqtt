@@ -5,6 +5,16 @@
 #     """Get bit value from byte"""
 #     return (byte >> bit) & 0x01
 
+def read_bits_from_byte(byte, offset, num_bits=1):
+    mask = (1 << num_bits) - 1
+    extracted_bits = (byte >> offset) & mask
+    return extracted_bits
+
+def write_bits_to_byte(byte, offset, value, num_bits=1):
+    mask = ((1 << num_bits) - 1) << offset
+    byte &= ~mask
+    byte |= (value << offset) & mask
+    return byte
 
 def set_bit(byte_array, bit_pos, value):
     byte_index = bit_pos // 8
@@ -14,10 +24,12 @@ def set_bit(byte_array, bit_pos, value):
     else:
         byte_array[byte_index] &= ~(1 << bit_index)
 
+
 def get_bit(byte_array, bit_pos):
     byte_index = bit_pos // 8
     bit_index = bit_pos % 8
     return (byte_array[byte_index] >> bit_index) & 1
+
 
 def combine_hex(data):
     """Combine list of integer values to one big integer"""

@@ -101,6 +101,7 @@ class ReturnCode(IntEnum):
     RET_BUFFER_TO_SMALL = 0x06
     RET_NO_FREE_BUFFER = 0x07
 
+
 # EnOcean_Equipment_Profiles_EEP_V2.61_public.pdf / 8
 class RORG(IntEnum):
     RPS = 0xF6
@@ -126,6 +127,7 @@ class DataFieldType(IntEnum):
     STATUS = 1
     VALUE = 2
     ENUM = 3
+
 
 class ErpStatusHashType(IntEnum):
     CHECKSUM = 0

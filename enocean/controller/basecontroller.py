@@ -25,7 +25,7 @@ class BaseController(threading.Thread):
 
     logger = logging.getLogger("enocean.controller")
 
-    def __init__(self, callback=None, teach_in=True, timestamp=False):
+    def __init__(self, teach_in=True, timestamp=False):
         super().__init__()
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
@@ -38,8 +38,6 @@ class BaseController(threading.Thread):
         self.receive = queue.Queue()
         self.command_queue = list()
         self.learned_equipment = set()
-        # Set the callback method
-        self.__callback = callback
         # Internal variable for the Base ID of the module.
         self._base_id = None
         # Should new messages be learned automatically? Defaults to True.
@@ -115,10 +113,12 @@ class BaseController(threading.Thread):
                 self._buffer = self._buffer[sync_byte_index:]
                 raise CrcMismatchError
             packet = Packet.parse_frame(frame)
+            # TODO: Check if this shouldn't happened after filter check
             if self.frame_timestamp:
                 packet.received = time.time()
             if isinstance(packet, UTETeachInPacket):
-                if self.teach_in:
+                # Check if destination address is not controller address, might append when repeater installed
+                if self.teach_in and self.address != packet.destination:
                     response_packet = packet.create_response_packet(self.address)
                     self.logger.info("Sending response to UTE teach-in.")
                     self.send(response_packet)
@@ -130,11 +130,8 @@ class BaseController(threading.Thread):
             elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
                 self.parse_common_command_response(packet)
                 return  # Bypass packet emit to avoid to log internal command
-            if self.__callback is None:
-                # Add received packet into receive queue
-                self.receive.put(packet)
-            else:
-                self.__callback(packet)
+            # Add received packet into receive queue
+            self.receive.put(packet)
             # self.logger.debug(packet)
         except (ValueError, IndexError):
             raise FrameIncompleteError
@@ -158,39 +155,27 @@ class BaseController(threading.Thread):
         # Thanks to timeout, shouldn't take more than a second.
         # Unfortunately, all other messages received during this time are ignored.
         while not self._base_id:
-            time.sleep(self._wait_time*10)
-        # for i in range(0, 5):
-        #     if self._base_id:
-        #         return self._base_id
-        #     time.sleep(0.1)
+            time.sleep(self._wait_time*5)
         return self._base_id
 
     @property
-    def controller_info_details(self):
-        if self.chip_id:
-            return dict(
+    def __controller_info(self):
+        return dict(
                 app_version=self.app_version,
                 api_version=self.api_version,
                 app_description=self.app_description,
                 id=to_hex_string(self.chip_id),
             )
+
+    @property
+    def controller_info_details(self):
+        if self.chip_id:
+            return self.__controller_info
         # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
         self.send_common_command(CommandCode.CO_RD_VERSION)
-        # Loop over 5 times, to make sure we catch the response.
-        # Thanks to timeout, shouldn't take more than a second.
-        # Unfortunately, all other messages received during this time are ignored.
-        # for i in range(0, 5):
-        #     if self._chip_id:
-        #         return dict(
-        #             app_version=self.app_version,
-        #             api_version=self.api_version,
-        #             app_description=self.app_description,
-        #             id=to_hex_string(self._chip_id),
-        #         )
-        #     time.sleep(self._wait_time*10)
         while not self.chip_id:
-            time.sleep(self._wait_time*10)
-        return True
+            time.sleep(self._wait_time*5)
+        return self.__controller_info
 
     @base_id.setter
     def base_id(self, base_id):
@@ -235,7 +220,7 @@ class BaseController(threading.Thread):
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.
             self._base_id = packet.response_data
-            self.logger.debug(f"Setup base ID as {to_hex_string(self._base_id)}")
+            self.logger.debug(f"Setup base ID as {to_hex_string(self._base_id)} remaining write {int(packet.optional[0])}")
         elif command_id == CommandCode.CO_GET_FREQUENCY_INFO:
             frequency = RESPONSE_FREQUENCY_FREQUENCY[packet.response_data[0]]
             protocol = RESPONSE_FREQUENCY_PROTOCOL[packet.response_data[1]]

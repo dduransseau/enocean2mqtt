@@ -7,6 +7,7 @@ from enocean.utils import (
     to_bitarray,
     from_bitarray,
     address_to_bytes_list,
+    read_bits_from_byte
 )
 from enocean.protocol import crc8
 from enocean.protocol.constants import (
@@ -41,6 +42,7 @@ class Packet:
     """
     Base class for ESP Packet.
     """
+    SYNC_BYTE = 0x55
 
     logger = logging.getLogger("enocean.protocol.packet")
 
@@ -149,7 +151,7 @@ class Packet:
         """Build Packet for sending to EnOcean controller"""
         data_length = len(self.data)
         ords = [
-            0x55,
+            self.SYNC_BYTE,
             (data_length >> 8) & 0xFF,
             data_length & 0xFF,
             len(self.optional),
@@ -168,15 +170,18 @@ class RadioPacket(Packet):
     DEFAULT_RSSI = 0xFF
     DEFAULT_SECURITY_LEVEL = 0
     DEFAULT_SUB_TEL_NUM = 3
+    DEFAULT_STATUS = 0
 
-    def __init__(self, data=None, optional=None, status=0, telegram=None):
+
+
+    def __init__(self, data=None, optional=None, function_group=None):
         # If no optional data is passed on init, set default value for sending
         optional_data = optional or [self.DEFAULT_SUB_TEL_NUM] + self.DEFAULT_ADDRESS + [self.DEFAULT_RSSI] + [self.DEFAULT_SECURITY_LEVEL]
-        self._status = status
+        # self._status = bytes(0)
         super().__init__(PacketType.RADIO_ERP1, data=data, optional=optional_data)
         # Default to learn == True, as some devices don't have a learn button
         self.learn = True
-        self.telegram = telegram
+        self.function_group = function_group
 
     def __str__(self):
         packet_str = super().__str__()
@@ -208,31 +213,40 @@ class RadioPacket(Packet):
 
         Packet.validate_address(sender)
 
-        data = [equipment.rorg]
-        telegram_form = equipment.profile.get_telegram_form(command=command, direction=direction)
+        data = bytearray([equipment.rorg])
+        function_group = equipment.profile.get_telegram_form(command=command, direction=direction)
 
         # Initialize data depending on the profile.
+        # set learn bit of 1BS or 4BS to 1 if not learn
         if equipment.rorg in [RORG.RPS, RORG.BS1]:
-            data.extend([0])
+            data.extend([0 if learn else 0 | 1 << 3])
         elif equipment.rorg == RORG.BS4:
-            data.extend([0, 0, 0, 0])
+            data.extend([0, 0, 0, 0 if learn else 0 | 1 << 3])
         else:  # For VLD extend the data variable len
             # Packet.logger.debug(f"Extend the size of packet by {packet.telegram.data_length} bits")
-            data.extend([0] * int(telegram_form.data_length))
+            data.extend(bytearray(1) * function_group.data_length)
         data.extend(sender)
-        data.extend([0])  # Add status byte
+        data.append(0)  # Add status byte
         Packet.logger.debug(f"Data length {len(data)}")
-        packet = RadioPacket(data=data, optional=[], telegram=telegram_form)
+        packet = RadioPacket(data=data, optional=[], function_group=function_group)
         packet.destination = destination
-        if packet.rorg in [RORG.BS1, RORG.BS4] and not learn:
-            if packet.rorg == RORG.BS1:
-                packet.data[1] |= 1 << 3
-            if packet.rorg == RORG.BS4:
-                packet.data[4] |= 1 << 3
-        packet.data[-1] = packet._status
         Packet.logger.debug(f"Packet data length {len(packet.data)} after set_eep")
         packet.parse()
         return packet
+
+    @property
+    def _status(self):
+        if self.data:
+            return self.data[-1]
+        else:
+            return self.DEFAULT_STATUS
+
+    @property
+    def data_payload(self):
+        try:
+            return self.data[1:-5]
+        except IndexError:
+            return bytearray()
 
     @property
     def destination(self):
@@ -243,10 +257,7 @@ class RadioPacket(Packet):
 
     @destination.setter
     def destination(self, value):
-        self.optional[1] = value[0]
-        self.optional[2] = value[1]
-        self.optional[3] = value[2]
-        self.optional[4] = value[3]
+        self.optional[1:5] = value[0:4]
 
     @property
     def sender(self):
@@ -282,7 +293,7 @@ class RadioPacket(Packet):
     def parse(self):
         """Parse data from Packet"""
         # Parse status from telegrams
-        self._status = self.data[DB0.BIT_0]
+        # self._status = self.data[DB0.BIT_0]
         # if self.rorg in [RORG.RPS, RORG.BS1, RORG.BS4]:
         #     # These telegram types should have repeater count in the last for bits of status.
         #     self.repeater_count = from_bitarray(self._bit_status[4:])
@@ -327,7 +338,10 @@ class RadioPacket(Packet):
 
     @_bit_status.setter
     def _bit_status(self, value):
-        self._status = from_bitarray(value)
+        if self.data:
+            self.data[-1] = from_bitarray(value)
+        else:
+            self.data[0] = from_bitarray(value)
 
     def __get_command_id(self, profile):
         """interpret packet to retrieve command id from VLD packets"""
@@ -346,7 +360,7 @@ class RadioPacket(Packet):
         return values
 
     def build_telegram(self, data):
-        self.telegram.set_values(self, data)
+        self.function_group.set_values(self, data)
         return Packet.parse_frame(self.build())
 
 
@@ -417,18 +431,18 @@ class UTETeachInPacket(RadioPacket):
         # - Always use bidirectional communication, set response code, set command identifier.
         # - Databytes 5 to 0 are copied from the original message
         # - Set sender id and status
-        self.logger.debug(f"Preparing UTE response for sender={to_hex_string(sender_id)} destination={to_hex_string(self.destination)} {to_hex_string(self.sender)}")
-        data = (
-            [self.rorg]
-            + [from_bitarray([True, False] + to_bitarray(response, width=2) + [False, False, False, True])]
-            + self.data[2:8]
-            + sender_id
-            + [0]
-        )
+        # Docs: EnOcean-Equipment-Profiles-3-1.pdf
+        self.logger.debug(f"Preparing UTE response sender={to_hex_string(sender_id)} destination={to_hex_string(self.destination)} destination={to_hex_string(self.sender)}")
 
-        # Always use 0x03 to indicate sending, attach sender ID, dBm, and security level
-        optional = [0x03] + self.sender + [0xFF, 0x00]
-        response_packet = UTETeachInPacket(data=data, optional=optional)
+        data = bytearray(13)
+        data[0] = self.rorg
+        data[1] = 0b10000001 | (response << 4)
+        data[2:8] = self.data[2:8]
+        data[8:12] = sender_id
+        data[12] = 0
+
+        response_packet = UTETeachInPacket(data=data)
+        response_packet.destination = self.sender
         return response_packet
 
 
@@ -436,7 +450,7 @@ class ResponsePacket(Packet):
 
     def __init__(self, data=None, optional=None):
         # If no optional data is passed on init, set default value for sending
-        super().__init__(PacketType.EVENT, data=data, optional=optional)
+        super().__init__(PacketType.RESPONSE, data=data, optional=optional)
 
     @property
     def return_code(self):
@@ -477,13 +491,14 @@ class EventPacket(Packet):
 class ErpStatusByte:
 
     def __init__(self, b):
-        bit_array = to_bitarray(b)
-        self.hash_type = "CRC" if bit_array[0] else "Checksum"
-        self.rfu = int(bit_array[1])
-        self.ptm_generation = "PTM 21X" if bit_array[2] else "other"
-        self.ptm_identified = bit_array[3]
-        self.repeater_info = from_bitarray(bit_array[4:])
+        # print("ErpStatus passed byte:", b, type(b), bin(b))
+        # print(self, read_bits_from_byte(b, 5), read_bits_from_byte(b, 4), read_bits_from_byte(b, 0, 4))
+        self.hash_type = "CRC" if read_bits_from_byte(b, 7) else "Checksum"
+        self.rfu = int(read_bits_from_byte(b, 6))
+        self.ptm_generation = "PTM 21X" if read_bits_from_byte(b, 5) else "other"
+        self.ptm_identified = read_bits_from_byte(b, 4)
+        self.repeater_info = read_bits_from_byte(b, 0, 4)
 
     def __str__(self):
         return (f"status:hash type={self.hash_type}, rfu={self.rfu}, ptm generation={self.ptm_generation}, "
-                f"ptm identified={self.ptm_identified}, repeater={self.repeater_info}")
+                f"ptm pressed={self.ptm_identified}, repeater={self.repeater_info}")

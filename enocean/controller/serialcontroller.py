@@ -24,8 +24,8 @@ class SerialController(BaseController):
         )
         self.__ser.read_until(b"\55")
         while not self._stop_flag.is_set():
-            # If there's messages in transmit queue send them
             try:
+                # If there's messages in transmit queue send them
                 while not self.transmit.empty():
                     packet = self.transmit.get(block=False)
                     self.logger.debug(f"Sending: {packet}")
@@ -34,7 +34,7 @@ class SerialController(BaseController):
                 self._buffer.extend(self.__ser.read())
             except serial.SerialException:
                 self.logger.error(
-                    f"Serial port exception! (device disconnected or multiple access on port {self.__port} ?)"
+                    f"Serial port exception! (device disconnected or multiple access on port {self.__ser.name} ?)"
                 )
                 self.stop()
             try:

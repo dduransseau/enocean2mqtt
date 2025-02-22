@@ -463,7 +463,7 @@ class Profile:
             command_item = None
             command_shortcut = None
         profile_data = self.datas.get((command, direction))
-        return Telegram(
+        return TelegramFunctionGroup(
             profile_data,
             command=command_item,
             command_shortcut=command_shortcut,
@@ -471,8 +471,8 @@ class Profile:
         )
 
 
-class Telegram:
-    logger = logging.getLogger("enocean.protocol.eep.telegram")
+class TelegramFunctionGroup:
+    logger = logging.getLogger("enocean.protocol.eep.functiongroup")
 
     def __init__(
         self, profile_data, command=None, command_shortcut=None, direction=None
@@ -495,7 +495,7 @@ class Telegram:
 
     @property
     def data_length(self):
-        return self.profile_data.bytes
+        return int(self.profile_data.bytes)
 
     def get_values(self, bitarray, status, global_process=True):
         """Get keys and values from bitarray"""
