@@ -106,7 +106,6 @@ class Packet:
         if packet_type == PacketType.RADIO_ERP1:
             # Need to handle UTE Teach-in here, as it's a separate packet type...
             if data[0] == RORG.UTE:
-                Packet.logger.warning(f"Received UTE packet data={data} opt={opt_data}")
                 packet = UTETeachInPacket(data=data, optional=opt_data)
             else:
                 packet = RadioPacket(data=data, optional=opt_data)
@@ -116,7 +115,7 @@ class Packet:
             packet = EventPacket(data=data, optional=opt_data)
         else:
             Packet.logger.warning(f"Received unsupported packet type: {packet_type}")
-            packet = Packet(data=data, optional=opt_data)
+            packet = Packet(packet_type, data=data, optional=opt_data)
         # Packet.logger.debug(f"Parsed packet {packet}")
         packet.parse()
         return packet
@@ -279,41 +278,20 @@ class RadioPacket(Packet):
         # parse learn bit and FUNC/TYPE, if applicable
         if self.rorg == RORG.BS1:
             self.learn = not read_bits_from_byte(self.data[1], 3)
-            # self.learn = not self._bit_data[DB0.BIT_3]
         elif self.rorg == RORG.BS4:
             self.learn = not read_bits_from_byte(self.data[4], 3)
-            # self.learn = not self._bit_data[DB0.BIT_3]
-            # print("Learn bit V1", not read_bits_from_byte(self.data[4], 3), "v2", not self._bit_data[DB0.BIT_3])
             if self.learn:
-                # contain_eep = self._bit_data[DB0.BIT_7]
                 contain_eep = read_bits_from_byte(self.data[4], 7)
                 if contain_eep:
                     # Get rorg_func and rorg_type from an unidirectional learn packet
-                    # func = from_bitarray(
-                    #     self._bit_data[DB3.BIT_7 : DB3.BIT_1]
-                    # )
-                    # variant = from_bitarray(
-                    #     self._bit_data[DB3.BIT_1 : DB2.BIT_2]
-                    # )
-                    # rorg_manufacturer = from_bitarray(
-                    #     self._bit_data[DB2.BIT_2 : DB0.BIT_7]
-                    # )
-
                     func = (self.data[1] >> 2) % 0b111111
                     variant = ((self.data[1] << 8) | self.data[2]) >> 3 & 0b1111111
-                    # print("Var2 inter:", bin((self.data[1] << 8) | self.data[2]))
                     man_id = ((self.data[2] << 8) | self.data[3]) & 0b11111111111
-                    # print("data:", bin(self.data[1]), func, bin(func), func2, bin(func2))
-                    # assert func == func2
-                    # print("data:", bin(self.data[1]), bin(self.data[2]), variant, bin(variant), variant2, bin(variant2))
-                    # assert variant == variant2
-                    # assert rorg_manufacturer == man_id
-
                     self.logger.info(
                         f"Received BS4 learn packet from {combine_hex(self.sender)} "
                         f"manufacturer={MANUFACTURER_CODE.get(man_id, man_id)}"
                         f" EEP={self.rorg:X}-{func:X}-{variant:X}"
-                    )  # noqa: E501
+                    )
         elif self.rorg == RORG.VLD or self.rorg == RORG.RPS:
             self.learn = False
         elif self.rorg == RORG.SIGNAL:
@@ -357,7 +335,7 @@ class RadioPacket(Packet):
         """interpret packet to retrieve command id from VLD packets"""
         if profile.commands:
             # self.logger.debug(f"Get command id in packet : {self.data}")
-            command_id = profile.commands.parse_raw(self._bit_data)
+            command_id = profile.commands.parse_raw(self.data[1:5])
             return command_id if command_id else None
 
     def parse_telegram(self, profile, direction=1):
@@ -365,7 +343,7 @@ class RadioPacket(Packet):
         #Get the command id based on profile
         command_id = self.__get_command_id(profile)
         telegram_form = profile.get_telegram_form(command=command_id, direction=direction)
-        values = telegram_form.get_values(self._bit_data, self._bit_status)
+        values = telegram_form.get_values(self.data[1:-5], self.data[-1])
         # self.logger.debug(f"Parsed data values {values}")
         return values
 
@@ -518,6 +496,7 @@ class ErpStatusByte:
     def __init__(self, b):
         # print("ErpStatus passed byte:", b, type(b), bin(b))
         # print(self, read_bits_from_byte(b, 5), read_bits_from_byte(b, 4), read_bits_from_byte(b, 0, 4))
+        self.value = b
         self.hash_type = "CRC" if read_bits_from_byte(b, 7) else "Checksum"
         self.rfu = int(read_bits_from_byte(b, 6))
         self.ptm_generation = "PTM 21X" if read_bits_from_byte(b, 5) else "other"
@@ -527,3 +506,6 @@ class ErpStatusByte:
     def __str__(self):
         return (f"status:hash type={self.hash_type}, rfu={self.rfu}, ptm generation={self.ptm_generation}, "
                 f"ptm pressed={self.ptm_identified}, repeater={self.repeater_info}")
+
+    def __repr__(self):
+        return self.value

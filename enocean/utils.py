@@ -1,9 +1,23 @@
-# -*- encoding: utf-8 -*-
 
-
-# def get_bit(byte, bit):
-#     """Get bit value from byte"""
-#     return (byte >> bit) & 0x01
+def get_bits_from_bytearray(data: bytearray, start_bit: int, num_bits: int) -> int:
+    reversed_index_bit = len(data) * 8 - start_bit
+    start_bit = reversed_index_bit - num_bits
+    # Define the first byte we should target to read bits
+    start_byte = (len(data) - 1) - (start_bit // 8)
+    end_byte = (len(data) - 1) - ((start_bit + num_bits - 1) // 8)
+    result = None
+    for i in range(start_byte, end_byte - 1 if end_byte > 0 else -1, -1):
+        if result is None:
+            result = data[i]
+        else:
+            result = (data[i] << 8) | result
+    # Calculate the number of bits to shift
+    start_bit_in_byte = start_bit % 8
+    # Shift to align starting bit and mask off unwanted bits
+    result = result >> start_bit_in_byte
+    mask = (1 << num_bits) - 1
+    result = result & mask
+    return result
 
 def read_bits_from_byte(byte, offset, num_bits=1):
     mask = (1 << num_bits) - 1
@@ -23,13 +37,6 @@ def set_bit(byte_array, bit_pos, value):
         byte_array[byte_index] |= (1 << bit_index)
     else:
         byte_array[byte_index] &= ~(1 << bit_index)
-
-
-def get_bit(byte_array, bit_pos):
-    byte_index = bit_pos // 8
-    bit_index = bit_pos % 8
-    return (byte_array[byte_index] >> bit_index) & 1
-
 
 def combine_hex(data):
     """Combine list of integer values to one big integer"""
