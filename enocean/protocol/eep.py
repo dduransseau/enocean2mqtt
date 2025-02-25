@@ -4,7 +4,7 @@ from enum import StrEnum
 from pathlib import Path
 from xml.etree import ElementTree
 
-from enocean.utils import from_hex_string, get_bits_from_bytearray
+from enocean.utils import from_hex_string, get_bits_from_bytearray, get_bits_from_byte, set_bits_in_bytearray, set_bits_to_byte
 from enocean.protocol.constants import DataFieldType, FieldSetName
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -70,11 +70,7 @@ class BaseDataElt:
 
     def _set_raw(self, raw_value, bitarray):
         """put value into bit array"""
-        size = self.size
-        for digit in range(self.size):
-            bitarray[self.offset + digit] = (
-                raw_value >> (size - digit - 1)
-            ) & 0x01 != 0
+        set_bits_in_bytearray(bitarray, self.offset, self.size, raw_value)
         return bitarray
 
 
@@ -88,7 +84,7 @@ class DataStatus(BaseDataElt):
 
     def parse(self, user_payload, status):
         """Get boolean value, based on the data in XML"""
-        self._raw_value = self.parse_raw(status)
+        self._raw_value = get_bits_from_byte(status, self.offset)
         return {
             FieldSetName.DESCRIPTION: self.description,
             FieldSetName.SHORTCUT: self.shortcut,
@@ -98,10 +94,12 @@ class DataStatus(BaseDataElt):
             FieldSetName.TYPE: DataFieldType.STATUS,
         }
 
-    def set_value(self, data, bitarray):
-        """set given value to target bit in bitarray"""
-        bitarray[self.offset] = data
-        return bitarray
+    def set_value(self, bit, b):
+        """
+        bit: value of bit to change
+        b: byte to update
+        """
+        return set_bits_to_byte(b, self.offset, bit)
 
 
 class DataValue(BaseDataElt):
@@ -574,6 +572,20 @@ class TelegramFunctionGroup:
                 output.append(source.parse(user_payload, status))
         return output
 
+    # def set_values(self, packet, values):
+    #     """Update data based on data contained in properties
+    #     profile: Profile packet._bit_data, packet._bit_status
+    #     """
+    #     self.logger.debug(f"Set value for properties={values} to {self.profile_data}")
+    #     # self.logger.debug(f"Profile with selected command {self.profile.command_item} {self.profile.command_data}")
+    #
+    #     for shortcut, value in values.items():
+    #         target = self.profile_data.get(shortcut)
+    #         if isinstance(target, DataStatus):
+    #             packet._bit_status = target.set_value(value, packet._bit_data)
+    #         else:
+    #             packet._bit_data = target.set_value(value, packet._bit_data)
+
     def set_values(self, packet, values):
         """Update data based on data contained in properties
         profile: Profile packet._bit_data, packet._bit_status
@@ -584,9 +596,9 @@ class TelegramFunctionGroup:
         for shortcut, value in values.items():
             target = self.profile_data.get(shortcut)
             if isinstance(target, DataStatus):
-                packet._bit_status = target.set_value(value, packet._bit_data)
+                packet._status = target.set_value(value, packet._status)
             else:
-                packet._bit_data = target.set_value(value, packet._bit_data)
+                packet.data_payload = target.set_value(value, packet.data_payload)
 
 
 class EepLibraryLoader:

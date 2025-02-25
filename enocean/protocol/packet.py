@@ -4,10 +4,8 @@ import logging
 from enocean.utils import (
     combine_hex,
     to_hex_string,
-    to_bitarray,
-    from_bitarray,
     address_to_bytes_list,
-    read_bits_from_byte
+    get_bits_from_byte
 )
 from enocean.protocol import crc8
 from enocean.protocol.constants import (
@@ -224,12 +222,20 @@ class RadioPacket(Packet):
         else:
             return self.DEFAULT_STATUS
 
+    @_status.setter
+    def _status(self, b):
+        self.data[-1] = b
+
     @property
     def data_payload(self):
         try:
             return self.data[1:-5]
         except IndexError:
             return bytearray()
+
+    @data_payload.setter
+    def data_payload(self, payload):
+        self.data[1:-5] = payload
 
     @property
     def destination(self):
@@ -273,15 +279,19 @@ class RadioPacket(Packet):
         except IndexError:
             return None
 
+    @property
+    def status(self):
+        return ErpStatusByte(self._status)
+
     def parse(self):
         """Parse data from Packet"""
         # parse learn bit and FUNC/TYPE, if applicable
         if self.rorg == RORG.BS1:
-            self.learn = not read_bits_from_byte(self.data[1], 3)
+            self.learn = not get_bits_from_byte(self.data[1], 3)
         elif self.rorg == RORG.BS4:
-            self.learn = not read_bits_from_byte(self.data[4], 3)
+            self.learn = not get_bits_from_byte(self.data[4], 3)
             if self.learn:
-                contain_eep = read_bits_from_byte(self.data[4], 7)
+                contain_eep = get_bits_from_byte(self.data[4], 7)
                 if contain_eep:
                     # Get rorg_func and rorg_type from an unidirectional learn packet
                     func = (self.data[1] >> 2) % 0b111111
@@ -298,39 +308,6 @@ class RadioPacket(Packet):
             self.logger.warning(f"Received SIGNAL telegram: {self}")
         super().parse()
 
-    ## Method to parse ERP telegram from ESP packet
-
-    @property
-    def _bit_data(self):
-        # First and last 5 bits are always defined, so the data we're modifying is between them...
-        # TODO: This is valid for the packets we're currently manipulating.
-        # Needs the redefinition of Packet.data -> Packet.message.
-        # Packet.data would then only have the actual, documented data-bytes.
-        # Packet.message would contain the whole message.
-        # See discussion in issue #14
-        return to_bitarray(self.data[1 : len(self.data) - 5], (len(self.data) - 6) * 8)
-
-    @_bit_data.setter
-    def _bit_data(self, value):
-        # The same as getting the data, first and last 5 bits are ommitted, as they are defined...)
-        for byte in range(len(self.data) - 6):
-            self.data[byte + 1] = from_bitarray(value[byte * 8 : (byte + 1) * 8])
-
-    @property
-    def status(self):
-        return ErpStatusByte(self._status)
-
-    @property
-    def _bit_status(self):
-        return to_bitarray(self._status)
-
-    @_bit_status.setter
-    def _bit_status(self, value):
-        if self.data:
-            self.data[-1] = from_bitarray(value)
-        else:
-            self.data[0] = from_bitarray(value)
-
     def __get_command_id(self, profile):
         """interpret packet to retrieve command id from VLD packets"""
         if profile.commands:
@@ -343,7 +320,7 @@ class RadioPacket(Packet):
         #Get the command id based on profile
         command_id = self.__get_command_id(profile)
         telegram_form = profile.get_telegram_form(command=command_id, direction=direction)
-        values = telegram_form.get_values(self.data[1:-5], self.data[-1])
+        values = telegram_form.get_values(self.data_payload, self._status)
         # self.logger.debug(f"Parsed data values {values}")
         return values
 
@@ -395,9 +372,9 @@ class UTETeachInPacket(RadioPacket):
         # self.unidirectional = not self._bit_data[DB6.BIT_7]
         # self.response_expected = not self._bit_data[DB6.BIT_6]
         # self.request_type = from_bitarray(self._bit_data[DB6.BIT_5 : DB6.BIT_3])
-        self.unidirectional = not read_bits_from_byte(self.data[1], 7)
-        self.response_expected = not read_bits_from_byte(self.data[1], 6)
-        self.request_type = read_bits_from_byte(self.data[1], 4, 2)
+        self.unidirectional = not get_bits_from_byte(self.data[1], 7)
+        self.response_expected = not get_bits_from_byte(self.data[1], 6)
+        self.request_type = get_bits_from_byte(self.data[1], 4, 2)
         self.number_of_channels = self.data[2]
         # self.number_of_channels = from_bitarray(self._bit_data[8 : 16])
         # assert not self._bit_data[DB6.BIT_7] == self.unidirectional
@@ -497,11 +474,11 @@ class ErpStatusByte:
         # print("ErpStatus passed byte:", b, type(b), bin(b))
         # print(self, read_bits_from_byte(b, 5), read_bits_from_byte(b, 4), read_bits_from_byte(b, 0, 4))
         self.value = b
-        self.hash_type = "CRC" if read_bits_from_byte(b, 7) else "Checksum"
-        self.rfu = int(read_bits_from_byte(b, 6))
-        self.ptm_generation = "PTM 21X" if read_bits_from_byte(b, 5) else "other"
-        self.ptm_identified = read_bits_from_byte(b, 4)
-        self.repeater_info = read_bits_from_byte(b, 0, 4)
+        self.hash_type = "CRC" if get_bits_from_byte(b, 7) else "Checksum"
+        self.rfu = int(get_bits_from_byte(b, 6))
+        self.ptm_generation = "PTM 21X" if get_bits_from_byte(b, 5) else "other"
+        self.ptm_identified = get_bits_from_byte(b, 4)
+        self.repeater_info = get_bits_from_byte(b, 0, 4)
 
     def __str__(self):
         return (f"status:hash type={self.hash_type}, rfu={self.rfu}, ptm generation={self.ptm_generation}, "
