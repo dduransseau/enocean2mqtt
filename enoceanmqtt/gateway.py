@@ -378,7 +378,7 @@ class Gateway:
         # if self.CHANNEL_MESSAGE_KEY in mqtt_json.keys():
         #     topic += f"/{mqtt_json[self.CHANNEL_MESSAGE_KEY]}"
         #     del mqtt_json[self.CHANNEL_MESSAGE_KEY]
-        if channel:
+        if channel is not None:
             topic += f"/{channel}"
 
         # Publish packet data to MQTT
@@ -400,7 +400,7 @@ class Gateway:
         # retain = equipment.retain
         retain = True
         base_topic = equipment.topic
-        if channel:
+        if channel is not None:
             base_topic += f"/{channel}"
         for field in fields_list:
             self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}",
@@ -431,13 +431,14 @@ class Gateway:
                 if self.publish_timestamp:
                     message_payload[self.TIMESTAMP_MESSAGE_KEY] = int(packet.received)
                 if equipment.publish_rssi:
+                    self.mqtt_publish(f"{equipment.topic}/rssi", packet.dBm)
                     # Store RSSI
-                    try:
-                        message_payload[self.RSSI_MESSAGE_KEY] = packet.dBm
-                    except AttributeError:
-                        self.logger.warning(
-                            f"Unable to set RSSI value in packet {packet}"
-                        )
+                    # try:
+                    #     message_payload[self.RSSI_MESSAGE_KEY] = packet.dBm
+                    # except AttributeError:
+                    #     self.logger.warning(
+                    #         f"Unable to set RSSI value in packet {packet}"
+                    #     )
                 message_payload[self.RORG_MESSAGE_KEY] = packet.rorg
                 self.logger.debug(f"Publish message {message_payload}")
                 self._publish_mqtt_json(equipment, message_payload, channel=channel)

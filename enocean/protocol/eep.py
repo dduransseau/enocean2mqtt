@@ -4,7 +4,7 @@ from enum import StrEnum
 from pathlib import Path
 from xml.etree import ElementTree
 
-from enocean.utils import from_hex_string
+from enocean.utils import from_hex_string, get_bits_from_bytearray, get_bits_from_byte, set_bits_in_bytearray, set_bits_to_byte
 from enocean.protocol.constants import DataFieldType, FieldSetName
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -54,27 +54,23 @@ class BaseDataElt:
         self.unit = elt.get("unit") if elt.get("unit") else ""
         self._raw_value = None
 
-    def parse_raw(self, bitarray):
+    def parse_raw(self, user_payload):
         """Get raw data as integer, based on offset and size"""
-        # TODO: That could be improved and could be check since it raise error
-        # self.logger.debug(f"Parse raw data: {bitarray}")
-        result = 0
-        try:
-            # return int(''.join(['1' if digit else '0' for digit in bitarray[self.offset:self.offset + self.size]]), 2)
-            for bit in bitarray[self.offset : self.offset + self.size]:
-                result = (result << 1) | bit
-            self._raw_value = result
-            return result
-        except Exception:
-            return 0
+        # self.logger.debug(f"Parse raw data: {user_payload}")
+        return get_bits_from_bytearray(user_payload, self.offset, self.size)
+        # result = 0
+        # try:
+        #     # return int(''.join(['1' if digit else '0' for digit in bitarray[self.offset:self.offset + self.size]]), 2)
+        #     for bit in bitarray[self.offset : self.offset + self.size]:
+        #         result = (result << 1) | bit
+        #     self._raw_value = result
+        #     return result
+        # except Exception:
+        #     return 0
 
     def _set_raw(self, raw_value, bitarray):
         """put value into bit array"""
-        size = self.size
-        for digit in range(self.size):
-            bitarray[self.offset + digit] = (
-                raw_value >> (size - digit - 1)
-            ) & 0x01 != 0
+        set_bits_in_bytearray(bitarray, self.offset, self.size, raw_value)
         return bitarray
 
 
@@ -86,9 +82,9 @@ class DataStatus(BaseDataElt):
     def __str__(self) -> str:
         return f"Data status for {self.description}"
 
-    def parse(self, bitarray, status):
+    def parse(self, user_payload, status):
         """Get boolean value, based on the data in XML"""
-        self._raw_value = self.parse_raw(status)
+        self._raw_value = get_bits_from_byte(status, self.offset)
         return {
             FieldSetName.DESCRIPTION: self.description,
             FieldSetName.SHORTCUT: self.shortcut,
@@ -98,10 +94,12 @@ class DataStatus(BaseDataElt):
             FieldSetName.TYPE: DataFieldType.STATUS,
         }
 
-    def set_value(self, data, bitarray):
-        """set given value to target bit in bitarray"""
-        bitarray[self.offset] = data
-        return bitarray
+    def set_value(self, bit, b):
+        """
+        bit: value of bit to change
+        b: byte to update
+        """
+        return set_bits_to_byte(b, self.offset, bit)
 
 
 class DataValue(BaseDataElt):
@@ -143,8 +141,8 @@ class DataValue(BaseDataElt):
             self.multiplier * (val - self.range_min) + self.scale_min, self.ROUNDING
         )
 
-    def parse(self, bitarray, status):
-        self._raw_value = self.parse_raw(bitarray)
+    def parse(self, user_payload, status):
+        self._raw_value = self.parse_raw(user_payload)
 
         return {
             FieldSetName.DESCRIPTION: self.description,
@@ -289,8 +287,8 @@ class DataEnum(BaseDataElt):
                 if itemrange.description == description:
                     return itemrange
 
-    def parse(self, bitarray, status):
-        self._raw_value = self.parse_raw(bitarray)
+    def parse(self, user_payload, status):
+        self._raw_value = self.parse_raw(user_payload)
         # Find value description
         item = self.get(int(self._raw_value))
         # self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
@@ -497,8 +495,8 @@ class TelegramFunctionGroup:
     def data_length(self):
         return int(self.profile_data.bytes)
 
-    def get_values(self, bitarray, status, global_process=True):
-        """Get keys and values from bitarray"""
+    def get_values(self, user_payload, status, global_process=True):
+        """Get keys and values from user_payload"""
         output = []
         bypass_list = []
         # Calculate the values that have unit or operator (multiplier or divisor) in the message
@@ -511,20 +509,20 @@ class TelegramFunctionGroup:
             values_item = self.profile_data.values
             if operator_item:
                 bypass_list.append(operator_item)
-                operator = operator_item.parse(bitarray, status)
+                operator = operator_item.parse(user_payload, status)
                 if operator[FieldSetName.SHORTCUT] == SpecificShortcut.DIVISOR:
                     factor = 1 / float(operator[FieldSetName.VALUE])
                 elif operator[FieldSetName.SHORTCUT] == SpecificShortcut.MULTIPLIER:
                     factor = float(operator[FieldSetName.VALUE])
                 self.logger.debug(f"Defined factor for profile data is {factor}")
             if unit_item:
-                u = unit_item.parse(bitarray, status)
+                u = unit_item.parse(user_payload, status)
                 unit = u.get("value", "")
                 self.logger.debug(f"Defined unit for profile data is {unit}")
             for v_i in values_item:
                 bypass_list.append(v_i)
                 v_i.unit = unit
-                v = v_i.parse(bitarray, status)
+                v = v_i.parse(user_payload, status)
                 v[FieldSetName.VALUE] = v[FieldSetName.VALUE] * factor
                 output.append(v)
         # Remove fields for device that have unavailable sensor
@@ -532,7 +530,7 @@ class TelegramFunctionGroup:
             try:
                 self.logger.debug("Profile data has fields availability flags")
                 for flag in self.profile_data.availability_fields:
-                    availability_flag = flag.parse(bitarray, status)
+                    availability_flag = flag.parse(user_payload, status)
                     self.logger.debug(
                         f"Field availability flags to process {availability_flag}"
                     )
@@ -571,8 +569,22 @@ class TelegramFunctionGroup:
                     }
                 )
             else:
-                output.append(source.parse(bitarray, status))
+                output.append(source.parse(user_payload, status))
         return output
+
+    # def set_values(self, packet, values):
+    #     """Update data based on data contained in properties
+    #     profile: Profile packet._bit_data, packet._bit_status
+    #     """
+    #     self.logger.debug(f"Set value for properties={values} to {self.profile_data}")
+    #     # self.logger.debug(f"Profile with selected command {self.profile.command_item} {self.profile.command_data}")
+    #
+    #     for shortcut, value in values.items():
+    #         target = self.profile_data.get(shortcut)
+    #         if isinstance(target, DataStatus):
+    #             packet._bit_status = target.set_value(value, packet._bit_data)
+    #         else:
+    #             packet._bit_data = target.set_value(value, packet._bit_data)
 
     def set_values(self, packet, values):
         """Update data based on data contained in properties
@@ -584,9 +596,9 @@ class TelegramFunctionGroup:
         for shortcut, value in values.items():
             target = self.profile_data.get(shortcut)
             if isinstance(target, DataStatus):
-                packet._bit_status = target.set_value(value, packet._bit_data)
+                packet._status = target.set_value(value, packet._status)
             else:
-                packet._bit_data = target.set_value(value, packet._bit_data)
+                packet.data_payload = target.set_value(value, packet.data_payload)
 
 
 class EepLibraryLoader:

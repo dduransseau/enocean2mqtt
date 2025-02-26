@@ -117,11 +117,16 @@ class BaseController(threading.Thread):
             if self.frame_timestamp:
                 packet.received = time.time()
             if isinstance(packet, UTETeachInPacket):
-                # Check if destination address is not controller address, might append when repeater installed
-                if self.teach_in and self.address != packet.destination:
-                    response_packet = packet.create_response_packet(self.address)
-                    self.logger.info("Sending response to UTE teach-in.")
-                    self.send(response_packet)
+                if self.teach_in:
+                    # Check if destination address is not controller address, might append when repeater installed
+                    # If not detected it might cause loop by submitting request to itself
+                    if self.address != packet.destination:
+                        response_packet = packet.create_response_packet(self.address)
+                        self.logger.info("Sending response to UTE teach-in.")
+                        self.send(response_packet)
+                    else:
+                        self.logger.info("Received UTE teach-in packet from itself, "
+                                         "repeater might be involved, omit request")
                 else:
                     self.logger.debug("Received UTE teach-in packet, but teach_in is disabled.")
                 # TODO: Check if already known
