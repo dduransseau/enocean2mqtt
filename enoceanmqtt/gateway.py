@@ -1,6 +1,7 @@
 # Author: Damien Duransseau <damien@duransseau.net> based on Roman Morawek <roman.morawek@embyt.com> work
 """this class handles the enocean and mqtt interfaces"""
 
+import time
 import logging
 import queue
 import json
@@ -429,7 +430,13 @@ class Gateway:
                     channel = message_payload[self.CHANNEL_MESSAGE_KEY]
                 # Store receive date
                 if self.publish_timestamp:
-                    message_payload[self.TIMESTAMP_MESSAGE_KEY] = int(packet.received)
+                    if equipment.last_seen:
+                        self.logger.debug(f"Timeslot between last received from {equipment.address_label}: {packet.received-equipment.last_seen}s")
+                    equipment.last_seen = packet.received
+                    t = time.localtime(packet.received)
+                    t_str = time.strftime('%Y-%m-%dT%H:%M:%S', t)
+                    message_payload[self.TIMESTAMP_MESSAGE_KEY] = t_str
+                    self.mqtt_publish(f"{equipment.topic}/last_seen", t_str)
                 if equipment.publish_rssi:
                     self.mqtt_publish(f"{equipment.topic}/rssi", packet.dBm)
                     # Store RSSI
@@ -439,6 +446,12 @@ class Gateway:
                     #     self.logger.warning(
                     #         f"Unable to set RSSI value in packet {packet}"
                     #     )
+                try:
+                    equipment.repeated += packet.status.repeated
+                    message_payload["_repeated"] = packet.status.repeated
+                    self.mqtt_publish(f"{equipment.topic}/repeated", equipment.repeated)
+                except AttributeError:
+                    pass
                 message_payload[self.RORG_MESSAGE_KEY] = packet.rorg
                 self.logger.debug(f"Publish message {message_payload}")
                 self._publish_mqtt_json(equipment, message_payload, channel=channel)
@@ -590,7 +603,7 @@ class Gateway:
         # self.logger.debug(f"process radio for address {formatted_address}")
         if sender_address not in self.detected_equipments:
             self.detected_equipments.add(sender_address)
-            self.logger.info(f"Detected new equipment with address {formatted_address}")
+            self.logger.info(f"Detected equipment with address {formatted_address}")
             # self.mqtt_publish(f"{self.topic_prefix}gateway/detected_equipments", list(self.detected_equipments))
         # self.logger.debug(f"received: {packet}")
         # Check if new device has been detected and add it to known equipment

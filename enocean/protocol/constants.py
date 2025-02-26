@@ -16,8 +16,6 @@ class PacketType(IntEnum):
     SMART_ACK_COMMAND = 0x06
     REMOTE_MAN_COMMAND = 0x07
     RADIO_MESSAGE = 0x09
-    # RADIO_ADVANCED == RADIO_ERP2
-    # Kept for backwards compatibility reasons
     RADIO_ERP2 = 0x0A  # RADIO_ADVANCED
     RADIO_802_15_4 = 0x10
     COMMAND_2_4 = 0x11
@@ -112,7 +110,7 @@ class RORG(IntEnum):
     SM_LRN_REQ = 0xC6
     SM_LRN_ANS = 0xC7
     SEC = 0x30
-    SEC_ENCAPS = 0x31
+    SEC_ENCAP = 0x31
     DECRYPTED = 0x32
     SEC_CDM = 0x33
     SEC_TI = 0x35
@@ -143,85 +141,6 @@ class FieldSetName(StrEnum):
     UNIT = auto()
 
 
-# Data byte indexing
-# Starts from the end, so works on messages of all length.
-class DB0:
-    BIT_0 = -1
-    BIT_1 = -2
-    BIT_2 = -3
-    BIT_3 = -4
-    BIT_4 = -5
-    BIT_5 = -6
-    BIT_6 = -7
-    BIT_7 = -8
-
-
-class DB1:
-    BIT_0 = -9
-    BIT_1 = -10
-    BIT_2 = -11
-    BIT_3 = -12
-    BIT_4 = -13
-    BIT_5 = -14
-    BIT_6 = -15
-    BIT_7 = -16
-
-
-class DB2:
-    BIT_0 = -17
-    BIT_1 = -18
-    BIT_2 = -19
-    BIT_3 = -20
-    BIT_4 = -21
-    BIT_5 = -22
-    BIT_6 = -23
-    BIT_7 = -24
-
-
-class DB3:
-    BIT_0 = -25
-    BIT_1 = -26
-    BIT_2 = -27
-    BIT_3 = -28
-    BIT_4 = -29
-    BIT_5 = -30
-    BIT_6 = -31
-    BIT_7 = -32
-
-
-class DB4:
-    BIT_0 = -33
-    BIT_1 = -34
-    BIT_2 = -35
-    BIT_3 = -36
-    BIT_4 = -37
-    BIT_5 = -38
-    BIT_6 = -39
-    BIT_7 = -40
-
-
-class DB5:
-    BIT_0 = -41
-    BIT_1 = -42
-    BIT_2 = -43
-    BIT_3 = -44
-    BIT_4 = -45
-    BIT_5 = -46
-    BIT_6 = -47
-    BIT_7 = -48
-
-
-class DB6:
-    BIT_0 = -49
-    BIT_1 = -50
-    BIT_2 = -51
-    BIT_3 = -52
-    BIT_4 = -53
-    BIT_5 = -54
-    BIT_6 = -55
-    BIT_7 = -56
-
-
 class UteTeachInQueryRequestType(IntEnum):
     REGISTRATION = 0b00
     DELETION = 0b01
@@ -234,6 +153,11 @@ class UteTeachInResponseRequestType(IntEnum):
     ACCEPTED_REGISTRATION = 0b01
     ACCEPTED_DELETION = 0b10
     REFUSED_EEP_NOT_SUPPORTED = 0b11
+
+
+class Direction(IntEnum):
+    FROM: 0
+    TO: 1
 
 
 RESPONSE_REPEATER_MODE = {0: "OFF", 1: "ON", 2: "SELECTIVE"}

@@ -37,6 +37,8 @@ class Equipment(EnoceanEquipment):
         self.sender = kwargs.get("sender")
         self.direction = kwargs.get("direction")
         self.default_data = kwargs.get("default_data")
+        self.last_seen = None
+        self.repeated = 0
         # self.data = dict()
         # Allow to specify a topic different from name to allow blank
         if topic := kwargs.get("topic"):
@@ -52,6 +54,11 @@ class Equipment(EnoceanEquipment):
             return True if c.get(key, False) in ("true", "True", "1", 1) else False
 
     @property
+    def address_label(self):
+        return enocean.utils.to_hex_string(self.address)
+
+
+    @property
     def definition(self):
         return dict(
             eep=self.eep_code,
@@ -59,7 +66,7 @@ class Equipment(EnoceanEquipment):
             func=self.func,
             variant=self.variant,
             description=self.description,
-            address=enocean.utils.to_hex_string(self.address),
+            address=self.address_label,
             topic=self.topic,
             config=dict(
                 publish_rssi=self.publish_rssi,

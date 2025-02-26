@@ -15,11 +15,6 @@ from enocean.protocol.constants import (
     UteTeachInQueryRequestType,
     UteTeachInResponseRequestType,
     RORG,
-    DB0,
-    DB2,
-    DB3,
-    DB4,
-    DB6,
     MANUFACTURER_CODE
 )
 
@@ -251,7 +246,7 @@ class RadioPacket(Packet):
     @property
     def sender(self):
         try:
-            return self.data[DB0.BIT_4:DB0.BIT_0]
+            return self.data[-5:-1]
         except IndexError:
             return None
 
@@ -478,11 +473,11 @@ class ErpStatusByte:
         self.rfu = int(get_bits_from_byte(b, 6))
         self.ptm_generation = "PTM 21X" if get_bits_from_byte(b, 5) else "other"
         self.ptm_identified = get_bits_from_byte(b, 4)
-        self.repeater_info = get_bits_from_byte(b, 0, 4)
+        self.repeated = get_bits_from_byte(b, 0, 4)
 
     def __str__(self):
         return (f"status:hash type={self.hash_type}, rfu={self.rfu}, ptm generation={self.ptm_generation}, "
-                f"ptm pressed={self.ptm_identified}, repeater={self.repeater_info}")
+                f"ptm pressed={self.ptm_identified}, repeater={self.repeated}")
 
     def __repr__(self):
         return self.value
