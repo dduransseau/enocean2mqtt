@@ -19,4 +19,9 @@ Based on work of [kipe](https://github.com/kipe/enocean), [embyt](https://github
 - Support >= 3.8 (remove OrderedDict, use f-string, use PEP 572)
 - Replaced os module by pathlib
 - Added descriptions to metrics
+- Map unit to metrics
 - Compatibility with paho-mqtt>=2.0
+- Added equipment definition to facilitate EEP parsing 
+- Remove usage of bit list() (`_bitarray`), replaced by direct bytearray() manipulation, improve speed and drastically memory consumption
+- Publish technical metrics (rssi, last_seen, repeater)
+

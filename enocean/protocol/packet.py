@@ -15,12 +15,8 @@ from enocean.protocol.constants import (
     UteTeachInQueryRequestType,
     UteTeachInResponseRequestType,
     RORG,
-    DB0,
-    DB2,
-    DB3,
-    DB4,
-    DB6,
-    MANUFACTURER_CODE
+    MANUFACTURER_CODE,
+    Direction
 )
 
 
@@ -44,11 +40,8 @@ class Packet:
 
     logger = logging.getLogger("enocean.protocol.packet")
 
-    def __init__(self, packet_type, data=None, optional=None, data_length=0, optional_length=0):
-        self.data_length = data_length
-        self.optional_length = optional_length
+    def __init__(self, packet_type, data=None, optional=None):
         self.packet_type = packet_type
-        self.received = None
         self.data = data or []
         self.optional = optional or []
 
@@ -155,7 +148,7 @@ class RadioPacket(Packet):
     DEFAULT_STATUS = 0
 
 
-    def __init__(self, optional=None, function_group=None, **kwargs):
+    def __init__(self, optional=None, function_group=None, direction=None, **kwargs):
         # If no optional data is passed on init, set default value for sending
         optional_data = optional or [self.DEFAULT_SUB_TEL_NUM] + self.DEFAULT_ADDRESS + [self.DEFAULT_RSSI] + [self.DEFAULT_SECURITY_LEVEL]
         # self._status = bytes(0)
@@ -163,11 +156,12 @@ class RadioPacket(Packet):
         # Default to learn == True, as some devices don't have a learn button
         self.learn = True
         self.function_group = function_group
+        self.direction = direction
 
     def __str__(self):
         packet_str = super().__str__()
         return (f"{to_hex_string(self.sender)}->{to_hex_string(self.destination)} "
-                f"({self.dBm} dBm): {packet_str} status={self.status}")
+                f"({self.dBm} dBm): {packet_str} status:{self.status}")
 
     @classmethod
     def create_telegram(cls,
@@ -191,7 +185,6 @@ class RadioPacket(Packet):
                 Packet.logger.warning("Replacing destination with broadcast address.")
         else:
             Packet.validate_address(destination)
-
         Packet.validate_address(sender)
 
         data = bytearray([equipment.rorg])
@@ -209,8 +202,9 @@ class RadioPacket(Packet):
         data.extend(sender)
         data.append(0)  # Add status byte
         Packet.logger.debug(f"Data length {len(data)}")
-        packet = RadioPacket(data=data, optional=[], function_group=function_group)
+        packet = RadioPacket(data=data, function_group=function_group)
         packet.destination = destination
+        packet.direction = Direction.TO
         Packet.logger.debug(f"Packet data length {len(packet.data)} after set_eep")
         packet.parse()
         return packet
@@ -251,7 +245,7 @@ class RadioPacket(Packet):
     @property
     def sender(self):
         try:
-            return self.data[DB0.BIT_4:DB0.BIT_0]
+            return self.data[-5:-1]
         except IndexError:
             return None
 
@@ -306,20 +300,25 @@ class RadioPacket(Packet):
             self.learn = False
         elif self.rorg == RORG.SIGNAL:
             self.logger.warning(f"Received SIGNAL telegram: {self}")
+        elif self.rorg == RORG.MSC:
+            # Get the ManId from the 11 bits after RORG of the telegram
+            man_id = (((self.data[1] << 8) | self.data[2]) >> 5) & 0b11111111111
+            self.logger.info(f"Received MSC telegram from {combine_hex(self.sender)} "
+                             f"manufacturer={MANUFACTURER_CODE.get(man_id, man_id)}")
         super().parse()
 
     def __get_command_id(self, profile):
         """interpret packet to retrieve command id from VLD packets"""
         if profile.commands:
             # self.logger.debug(f"Get command id in packet : {self.data}")
-            command_id = profile.commands.parse_raw(self.data[1:5])
+            command_id = profile.commands.parse_raw(self.data_payload)
             return command_id if command_id else None
 
-    def parse_telegram(self, profile, direction=1):
+    def parse_telegram(self, profile):
         """Parse EEP based on FUNC and TYPE"""
         #Get the command id based on profile
         command_id = self.__get_command_id(profile)
-        telegram_form = profile.get_telegram_form(command=command_id, direction=direction)
+        telegram_form = profile.get_telegram_form(command=command_id, direction=self.direction)
         values = telegram_form.get_values(self.data_payload, self._status)
         # self.logger.debug(f"Parsed data values {values}")
         return values
@@ -333,21 +332,11 @@ class UTETeachInPacket(RadioPacket):
 
     REQUEST_TYPE = UteTeachInQueryRequestType
     RESPONSE_TYPE = UteTeachInResponseRequestType
-    # Request types
-    TEACH_IN = 0b00
-    DELETE = 0b01
-    NOT_SPECIFIC = 0b10
-
-    # Response types
-    NOT_ACCEPTED = [False, False]
-    TEACHIN_ACCEPTED = [False, True]
-    DELETE_ACCEPTED = [True, False]
-    EEP_NOT_SUPPORTED = [True, True]
 
     unidirectional = False
     response_expected = False
     number_of_channels = 0xFF
-    request_type = NOT_SPECIFIC
+    request_type = REQUEST_TYPE.NOT_SPECIFIED
     channel = None
 
     contains_eep = True
@@ -358,39 +347,24 @@ class UTETeachInPacket(RadioPacket):
 
     @property
     def teach_in(self):
-        return self.request_type != self.DELETE
+        return self.request_type != self.REQUEST_TYPE.DELETION
 
     @property
     def delete(self):
-        return self.request_type == self.DELETE
+        return self.request_type == self.REQUEST_TYPE.DELETION
 
     @property
     def eep_label(self):
         return f"{self.eep_rorg:X}-{self.eep_func:X}-{self.eep_type:X}"
 
     def parse(self):
-        # self.unidirectional = not self._bit_data[DB6.BIT_7]
-        # self.response_expected = not self._bit_data[DB6.BIT_6]
-        # self.request_type = from_bitarray(self._bit_data[DB6.BIT_5 : DB6.BIT_3])
         self.unidirectional = not get_bits_from_byte(self.data[1], 7)
         self.response_expected = not get_bits_from_byte(self.data[1], 6)
         self.request_type = get_bits_from_byte(self.data[1], 4, 2)
         self.number_of_channels = self.data[2]
-        # self.number_of_channels = from_bitarray(self._bit_data[8 : 16])
-        # assert not self._bit_data[DB6.BIT_7] == self.unidirectional
-        # assert not self._bit_data[DB6.BIT_6] == self.response_expected
-        # assert from_bitarray(self._bit_data[DB6.BIT_5 : DB6.BIT_3]) == read_bits_from_byte(self.data[1], 4, 2)
-        # assert from_bitarray(self._bit_data[8 : 16]) == self.number_of_channels
-
-        # man_id = from_bitarray(
-        #     self._bit_data[DB3.BIT_2 : DB2.BIT_7]
-        #     + self._bit_data[DB4.BIT_7 : DB3.BIT_7]
-        # )  # noqa: E501
 
         # Get the 11 bits on byte 3 and 4
         self.man_id = ((self.data[4] << 8) | self.data[3]) & 0b0000011111111111
-        # print(self.man_id, bin(self.man_id), man_id, bin(man_id), bin(self.data[4]), bin(self.data[3]), ((self.data[4] << 8) | self.data[3]))
-        # assert self.man_id == man_id
 
         self.channel = self.data[2]
         self.eep_rorg = self.data[7]
@@ -475,14 +449,19 @@ class ErpStatusByte:
         # print(self, read_bits_from_byte(b, 5), read_bits_from_byte(b, 4), read_bits_from_byte(b, 0, 4))
         self.value = b
         self.hash_type = "CRC" if get_bits_from_byte(b, 7) else "Checksum"
-        self.rfu = int(get_bits_from_byte(b, 6))
-        self.ptm_generation = "PTM 21X" if get_bits_from_byte(b, 5) else "other"
+        # self.rfu = int(get_bits_from_byte(b, 6))
+        self.is_ptm = get_bits_from_byte(b, 5)
+        self.ptm_generation = "PTM 21X" if self.is_ptm else "other"
         self.ptm_identified = get_bits_from_byte(b, 4)
-        self.repeater_info = get_bits_from_byte(b, 0, 4)
+        self.repeated = get_bits_from_byte(b, 0, 4)
 
     def __str__(self):
-        return (f"status:hash type={self.hash_type}, rfu={self.rfu}, ptm generation={self.ptm_generation}, "
-                f"ptm pressed={self.ptm_identified}, repeater={self.repeater_info}")
+        if self.is_ptm:
+            pressed = bool(self.ptm_identified)
+            return (f"hash type={self.hash_type}, ptm generation={self.ptm_generation}, "
+                    f"ptm pressed={pressed}, repeater={self.repeated}")
+        else:
+            return f"hash type={self.hash_type}, repeater level={self.repeated}"
 
     def __repr__(self):
         return self.value

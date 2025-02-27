@@ -89,7 +89,7 @@ class DataStatus(BaseDataElt):
             FieldSetName.DESCRIPTION: self.description,
             FieldSetName.SHORTCUT: self.shortcut,
             FieldSetName.UNIT: self.unit,
-            FieldSetName.VALUE: True if self._raw_value else False,
+            FieldSetName.VALUE: bool(self._raw_value),
             FieldSetName.RAW_VALUE: self._raw_value,
             FieldSetName.TYPE: DataFieldType.STATUS,
         }
@@ -376,7 +376,7 @@ class ProfileData:
 
     @property
     def has_value(self):
-        return True if len(self._data_value) else False
+        return bool(len(self._data_value))
 
     @property
     def has_global_operation(self):
@@ -537,7 +537,7 @@ class TelegramFunctionGroup:
                     if metric_shortcut := AVAILABILITY_FIELD_MAPPING.get(
                         availability_flag[FieldSetName.SHORTCUT]
                     ):
-                        if availability_flag[FieldSetName.VALUE] == "not available":
+                        if availability_flag[FieldSetName.RAW_VALUE] == 0:
                             metric_field = [
                                 v
                                 for v in self.profile_data.values

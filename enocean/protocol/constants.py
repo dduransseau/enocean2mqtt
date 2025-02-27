@@ -5,10 +5,7 @@ from enum import IntEnum, StrEnum, auto
 # EnOceanSerialProtocol3.pdf / 12
 class PacketType(IntEnum):
     RESERVED = 0x00
-    # RADIO == RADIO_ERP1
-    # Kept for backwards compatibility reasons, for example custom packet
-    # generation shouldn't be affected...
-    RADIO_ERP1 = 0x01  # ERP1
+    RADIO_ERP1 = 0x01  # ERP1 -> ASK
     RESPONSE = 0x02
     RADIO_SUB_TEL = 0x03
     EVENT = 0x04
@@ -16,9 +13,7 @@ class PacketType(IntEnum):
     SMART_ACK_COMMAND = 0x06
     REMOTE_MAN_COMMAND = 0x07
     RADIO_MESSAGE = 0x09
-    # RADIO_ADVANCED == RADIO_ERP2
-    # Kept for backwards compatibility reasons
-    RADIO_ERP2 = 0x0A  # RADIO_ADVANCED
+    RADIO_ERP2 = 0x0A  # RADIO_ADVANCED -> FSK
     RADIO_802_15_4 = 0x10
     COMMAND_2_4 = 0x11
 
@@ -108,11 +103,15 @@ class RORG(IntEnum):
     BS4 = 0xA5
     ADT = 0xA6
     SM_REC = 0xA7
+    GP_TI = 0xB0
+    GP_TR = 0xB1
+    GP_CD = 0xB2
+    GP_SD = 0xB3
     SYS_EX = 0xC5
     SM_LRN_REQ = 0xC6
     SM_LRN_ANS = 0xC7
     SEC = 0x30
-    SEC_ENCAPS = 0x31
+    SEC_ENCAP = 0x31
     DECRYPTED = 0x32
     SEC_CDM = 0x33
     SEC_TI = 0x35
@@ -143,85 +142,6 @@ class FieldSetName(StrEnum):
     UNIT = auto()
 
 
-# Data byte indexing
-# Starts from the end, so works on messages of all length.
-class DB0:
-    BIT_0 = -1
-    BIT_1 = -2
-    BIT_2 = -3
-    BIT_3 = -4
-    BIT_4 = -5
-    BIT_5 = -6
-    BIT_6 = -7
-    BIT_7 = -8
-
-
-class DB1:
-    BIT_0 = -9
-    BIT_1 = -10
-    BIT_2 = -11
-    BIT_3 = -12
-    BIT_4 = -13
-    BIT_5 = -14
-    BIT_6 = -15
-    BIT_7 = -16
-
-
-class DB2:
-    BIT_0 = -17
-    BIT_1 = -18
-    BIT_2 = -19
-    BIT_3 = -20
-    BIT_4 = -21
-    BIT_5 = -22
-    BIT_6 = -23
-    BIT_7 = -24
-
-
-class DB3:
-    BIT_0 = -25
-    BIT_1 = -26
-    BIT_2 = -27
-    BIT_3 = -28
-    BIT_4 = -29
-    BIT_5 = -30
-    BIT_6 = -31
-    BIT_7 = -32
-
-
-class DB4:
-    BIT_0 = -33
-    BIT_1 = -34
-    BIT_2 = -35
-    BIT_3 = -36
-    BIT_4 = -37
-    BIT_5 = -38
-    BIT_6 = -39
-    BIT_7 = -40
-
-
-class DB5:
-    BIT_0 = -41
-    BIT_1 = -42
-    BIT_2 = -43
-    BIT_3 = -44
-    BIT_4 = -45
-    BIT_5 = -46
-    BIT_6 = -47
-    BIT_7 = -48
-
-
-class DB6:
-    BIT_0 = -49
-    BIT_1 = -50
-    BIT_2 = -51
-    BIT_3 = -52
-    BIT_4 = -53
-    BIT_5 = -54
-    BIT_6 = -55
-    BIT_7 = -56
-
-
 class UteTeachInQueryRequestType(IntEnum):
     REGISTRATION = 0b00
     DELETION = 0b01
@@ -234,6 +154,11 @@ class UteTeachInResponseRequestType(IntEnum):
     ACCEPTED_REGISTRATION = 0b01
     ACCEPTED_DELETION = 0b10
     REFUSED_EEP_NOT_SUPPORTED = 0b11
+
+
+class Direction(IntEnum):
+    FROM = 1  # Outbound (device > controller)
+    TO = 2  # Inbound (controller > device)
 
 
 RESPONSE_REPEATER_MODE = {0: "OFF", 1: "ON", 2: "SELECTIVE"}
@@ -264,123 +189,124 @@ ERP1_STATUS_REPEATER_LEVEL = {
 }
 
 MANUFACTURER_CODE = {
-    0: 'Reserved',
-    1: 'Peha',
-    2: 'Thermokon',
-    3: 'Servodan',
-    4: 'Echoflex Solutions',
-    5: 'Awag Elektrotechnik Ag',  # previously Omnio Ag
-    6: 'Hardmeier Electronics',
-    7: 'Regulvar Inc',
-    8: 'Ad Hoc Electronics',
-    9: 'Distech Controls',
-    10: 'Kieback And Peter',
-    11: 'EnOcean',
-    12: 'Vicos Gmbh',  # previously Probare
-    13: 'Eltako',
-    14: 'Leviton',
-    15: 'Honeywell',
-    16: 'Spartan Peripheral Devices',
-    17: 'Siemens',
-    18: 'T Mac',
-    19: 'Reliable Controls Corporation',
-    20: 'Elsner Elektronik Gmbh',
-    21: 'Diehl Controls',
-    22: 'Bsc Computer',
-    23: 'S And S Regeltechnik Gmbh',
-    24: 'Masco Corporation',  # previously Zeno Controls
-    25: 'Intesis Software Sl',
-    26: 'Viessmann',
-    27: 'Lutuo Technology',
-    28: 'Can2Go',
-    29: 'Sauter',
-    30: 'Boot Up',
-    31: 'Osram Sylvania',
-    32: 'Unotech',
-    33: 'Delta Controls Inc',
-    34: 'Unitronic Ag',
-    35: 'Nanosense',
-    36: 'The S4 Group',
-    37: 'Veissmann Hausatomation Gmbh',  # previously Msr Solutions
-    38: 'GE',
-    39: 'Maico',
-    40: 'Ruskin Company',
-    41: 'Magnum Energy Solutions',
-    42: 'KMC Controls',
-    43: 'Ecologix Controls',
-    44: 'Trio 2 Sys',
-    45: 'Afriso Euro Index',
-    46: 'Waldmann Gmbh',
-    48: 'Nec Platforms Ltd',
-    49: 'Itec Corporation',
-    50: 'Simicx Co Ltd',
-    51: 'Permundo Gmbh',
-    52: 'Eurotronic Technology Gmbh',
-    53: 'Art Japan Co Ltd',
-    54: 'Tiansu Automation Control Syste Co Ltd',
-    55: 'Weinzierl Engineering Gmbh',
-    56: 'Gruppo Giordano Idea Spa',
-    57: 'Alphaeos Ag',
-    58: 'Tag Technologies',
-    59: 'Wattstopper',
-    60: 'Pressac Communications Ltd',
-    62: 'Giga Concept',
-    63: 'Sensortec',
-    64: 'Jaeger Direkt',
-    65: 'Air System Components Inc',
-    66: 'Ermine Corp',
-    67: 'Soda Gmbh',
-    68: 'Eke Automation',
-    69: 'Holter Regelarmutren',
-    70: 'ID RF',
-    71: 'Deuta Controls Gmbh',
-    72: 'Ewattch',
-    73: 'Micropelt',
-    74: 'Caleffi Spa',
-    75: 'Digital Concepts',
-    76: 'Emerson Climate Technologies',
-    77: 'Adee Electronic',
-    78: 'Altecon',
-    79: 'Nanjing Putian Telecommunications',
-    80: 'Terralux',
-    81: 'Menred',
-    82: 'Iexergy Gmbh',
-    83: 'Oventrop Gmbh',
-    84: 'Building Automation Products Inc',
-    85: 'Functional Devices Inc',
-    86: 'Ogga',
-    87: 'Itho Daalderop',
-    88: 'Resol',
-    89: 'Advanced Devices',
-    90: 'Autani Lcc',
-    91: 'Dr Riedel Gmbh',
-    92: 'Hoppe Holding Ag',
-    93: 'Siegenia Aubi Kg',
-    94: 'Adeo Services',
-    95: 'Eimsig Efp Gmbh',
-    96: 'Vimar Spa',
-    97: 'Glen Dimlax Gmbh',
-    98: 'Pmdm Gmbh',
-    99: 'Hubbel Lightning',
-    100: 'Debflex',
-    101: 'Perifactory Sensorsystems',
-    102: 'Watty Corp',
-    103: 'Wago Kontakttechnik',
-    104: 'Kessel',
-    105: 'Aug Winkhaus',
-    106: 'Decelect',
-    107: 'Mst Industries',
-    108: 'Becker Antriebe',
-    109: 'Nexelec',
-    110: 'Wieland Electric',
-    111: 'Avidsen',
-    112: 'Cws Boco International',
-    113: 'Roto Frank',
-    114: 'Alm Contorls',
-    115: 'Tommaso Technologies',
-    116: 'Rehau',
-    117: 'Inaba Denki Sangyo Co Lt',
-    118: 'Hager Controls Sas',
-    255: 'Multiple',
-    2047: 'Multi-user (test purpose)'
+    0x0: "Reserved",
+    0x1: "Peha",
+    0x2: "Thermokon",
+    0x3: "Servodan",
+    0x4: "Echoflex Solutions",
+    0x5: "Awag Elektrotechnik Ag",  # previously Omnio Ag
+    0x6: "Hardmeier Electronics",
+    0x7: "Regulvar Inc",
+    0x8: "Ad Hoc Electronics",
+    0x9: "Distech Controls",
+    0xA: "Kieback And Peter",
+    0xB: "EnOcean",
+    0xC: "Vicos Gmbh",   # previously Probare
+    0xD: "Eltako",
+    0xE: "Leviton",
+    0xF: "Honeywell",
+    0x10: "Spartan Peripheral Devices",
+    0x11: "Siemens",
+    0x12: "T Mac",
+    0x13: "Reliable Controls Corporation",
+    0x14: "Elsner Elektronik Gmbh",
+    0x15: "Diehl Controls",
+    0x16: "Bsc Computer",
+    0x17: "S And S Regeltechnik Gmbh",
+    0x18: "Masco Corporation",  # previously Zeno Controls
+    0x19: "Intesis Software Sl",
+    0x1A: "Viessmann",
+    0x1B: "Lutuo Technology",
+    0x1C: "Can2Go",
+    0x1D: "Sauter",
+    0x1E: "Boot Up",
+    0x1F: "Osram Sylvania",
+    0x20: "Unotech",
+    0x21: "Delta Controls Inc",
+    0x22: "Unitronic Ag",
+    0x23: "Nanosense",
+    0x24: "The S4 Group",
+    0x25: "Veissmann Hausatomation Gmbh",  # previously Msr Solutions
+    0x26: "GE",
+    0x27: "Maico",
+    0x28: "Ruskin Company",
+    0x29: "Magnum Energy Solutions",
+    0x2A: "KMC Controls",
+    0x2B: "Ecologix Controls",
+    0x2C: "Trio 2 Sys",
+    0x2D: "Afriso Euro Index",
+    0x2E: "Waldmann Gmbh",
+    0x30: "Nec Platforms Ltd",
+    0x31: "Itec Corporation",
+    0x32: "Simicx Co Ltd",
+    0x33: "Permundo Gmbh",
+    0x34: "Eurotronic Technology Gmbh",
+    0x35: "Art Japan Co Ltd",
+    0x36: "Tiansu Automation Control Syste Co Ltd",
+    0x37: "Weinzierl Engineering Gmbh",
+    0x38: "Gruppo Giordano Idea Spa",
+    0x39: "Alphaeos Ag",
+    0x3A: "Tag Technologies",
+    0x3B: "Wattstopper",
+    0x3C: "Pressac Communications Ltd",
+    0x3E: "Giga Concept",
+    0x3F: "Sensortec",
+    0x40: "Jaeger Direkt",
+    0x41: "Air System Components Inc",
+    0x42: "Ermine Corp",
+    0x43: "Soda Gmbh",
+    0x44: "Eke Automation",
+    0x45: "Holter Regelarmutren",
+    0x46: "ID RF",
+    0x47: "Deuta Controls Gmbh",
+    0x48: "Ewattch",
+    0x49: "Micropelt",
+    0x4A: "Caleffi Spa",
+    0x4B: "Digital Concepts",
+    0x4C: "Emerson Climate Technologies",
+    0x4D: "Adee Electronic",
+    0x4E: "Altecon",
+    0x4F: "Nanjing Putian Telecommunications",
+    0x50: "Terralux",
+    0x51: "Menred",
+    0x52: "Iexergy Gmbh",
+    0x53: "Oventrop Gmbh",
+    0x54: "Building Automation Products Inc",
+    0x55: "Functional Devices Inc",
+    0x56: "Ogga",
+    0x57: "Itho Daalderop",
+    0x58: "Resol",
+    0x59: "Advanced Devices",
+    0x5A: "Autani Lcc",
+    0x5B: "Dr Riedel Gmbh",
+    0x5C: "Hoppe Holding Ag",
+    0x5D: "Siegenia Aubi Kg",
+    0x5E: "Adeo Services",
+    0x5F: "Eimsig Efp Gmbh",
+    0x60: "Vimar Spa",
+    0x61: "Glen Dimlax Gmbh",
+    0x62: "Pmdm Gmbh",
+    0x63: "Hubbel Lightning",
+    0x64: "Debflex",
+    0x65: "Perifactory Sensorsystems",
+    0x66: "Watty Corp",
+    0x67: "Wago Kontakttechnik",
+    0x68: "Kessel",
+    0x69: "Aug Winkhaus",
+    0x6A: "Decelect",
+    0x6B: "Mst Industries",
+    0x6C: "Becker Antriebe",
+    0x6D: "Nexelec",
+    0x6E: "Wieland Electric",
+    0x6F: "Avidsen",
+    0x70: "Cws Boco International",
+    0x71: "Roto Frank",
+    0x72: "Alm Contorls",
+    0x73: "Tommaso Technologies",
+    0x74: "Rehau",
+    0x75: "Inaba Denki Sangyo Co Lt",
+    0x76: "Hager Controls Sas",
+    0x79: "Ventilairsec",
+    0xFF: "Multiple",
+    0x7FF: "Multi-user (test purpose)"
 }
