@@ -4,10 +4,11 @@ import time
 
 import threading
 import queue
-from enocean.protocol.packet import Packet, UTETeachInPacket, ResponsePacket, FrameIncompleteError, CrcMismatchError
+from enocean.protocol.packet import Packet, RadioPacket, UTETeachInPacket, ResponsePacket, FrameIncompleteError, CrcMismatchError
 from enocean.protocol.constants import (
     PacketType,
     CommandCode,
+    Direction,
     RESPONSE_FREQUENCY_FREQUENCY,
     RESPONSE_FREQUENCY_PROTOCOL,
     RESPONSE_REPEATER_MODE,
@@ -25,7 +26,7 @@ class BaseController(threading.Thread):
 
     logger = logging.getLogger("enocean.controller")
 
-    def __init__(self, teach_in=True, timestamp=False):
+    def __init__(self, teach_in=True, set_timestamp=False):
         super().__init__()
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
@@ -43,7 +44,7 @@ class BaseController(threading.Thread):
         # Should new messages be learned automatically? Defaults to True.
         # TODO: Not sure if we should use CO_WR_LEARNMODE??
         self.teach_in = teach_in
-        self.frame_timestamp = timestamp
+        self.set_timestamp = set_timestamp
         self.app_version = None
         self.api_version = None
         self.chip_id = None
@@ -114,8 +115,19 @@ class BaseController(threading.Thread):
                 raise CrcMismatchError
             packet = Packet.parse_frame(frame)
             # TODO: Check if this shouldn't happened after filter check
-            if self.frame_timestamp:
+            if self.set_timestamp:
                 packet.received = time.time()
+            if isinstance(packet, RadioPacket):
+                # Define direction of packed base on address
+                self.logger.debug(f"Compare sender address to gateway to check direction {packet.sender} {packet.destination}")
+                if packet.sender == self.address:
+                    self.logger.debug("Identified TO packet")
+                    direction = Direction.TO
+                else:
+                    self.logger.debug("Identified FROM packet")
+                    direction = Direction.FROM
+                packet.direction = direction
+            # Check if the packet is UTE Teach-in to send response back if learn enable
             if isinstance(packet, UTETeachInPacket):
                 if self.teach_in:
                     # Check if destination address is not controller address, might append when repeater installed

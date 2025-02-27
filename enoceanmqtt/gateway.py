@@ -76,7 +76,7 @@ class Gateway:
 
         # setup enocean connection
         self.controller = SerialController(
-            self.conf["enocean_port"], teach_in=False, timestamp=self.publish_timestamp
+            self.conf["enocean_port"], teach_in=False, set_timestamp=self.publish_timestamp
         )
         self.controller.start()
 
@@ -362,7 +362,6 @@ class Gateway:
                 )
                 return
         self._send_packet_to_esp(equipment, data=payload, command=command_id)
-        self.logger.debug("Clearing data buffer.")
 
     # =============================================================================================
     # ENOCEAN TO MQTT
@@ -418,7 +417,7 @@ class Gateway:
             # Handling received data packet
             self.logger.debug(f"process radio packet for sensor {equipment}")
             # Parse message based on fields definition (profile)
-            radio_telegram = packet.parse_telegram(equipment.profile, direction=equipment.direction)
+            radio_telegram = packet.parse_telegram(equipment.profile)
             if not radio_telegram:
                 self.logger.warning(
                     f"message not interpretable: {equipment.name} {packet}"
@@ -428,28 +427,24 @@ class Gateway:
                 message_payload = self.format_enocean_message(radio_telegram, equipment)
                 if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
                     channel = message_payload[self.CHANNEL_MESSAGE_KEY]
-                # Store receive date
-                if self.publish_timestamp:
-                    if equipment.last_seen:
-                        self.logger.debug(f"Timeslot between last received from {equipment.address_label}: {packet.received-equipment.last_seen}s")
+                if equipment.publish_rssi:
+                    self.mqtt_publish(f"{equipment.topic}/$rssi", packet.dBm)
+                try:
+                    # Debug purpose
+                    # if equipment.last_seen:
+                    #     delta = packet.received - equipment.last_seen
+                    #     self.logger.debug(f"Timeslot between last received from {equipment.address_label}: {delta}s")
                     equipment.last_seen = packet.received
                     t = time.localtime(packet.received)
                     t_str = time.strftime('%Y-%m-%dT%H:%M:%S', t)
                     message_payload[self.TIMESTAMP_MESSAGE_KEY] = t_str
-                    self.mqtt_publish(f"{equipment.topic}/last_seen", t_str)
-                if equipment.publish_rssi:
-                    self.mqtt_publish(f"{equipment.topic}/rssi", packet.dBm)
-                    # Store RSSI
-                    # try:
-                    #     message_payload[self.RSSI_MESSAGE_KEY] = packet.dBm
-                    # except AttributeError:
-                    #     self.logger.warning(
-                    #         f"Unable to set RSSI value in packet {packet}"
-                    #     )
+                    self.mqtt_publish(f"{equipment.topic}/$last_seen", t_str)
+                except AttributeError:
+                    self.logger.debug(f"Timestamp is not set for equipment {equipment}")
                 try:
                     equipment.repeated += packet.status.repeated
                     message_payload["_repeated"] = packet.status.repeated
-                    self.mqtt_publish(f"{equipment.topic}/repeated", equipment.repeated)
+                    self.mqtt_publish(f"{equipment.topic}/$repeated", equipment.repeated)
                 except AttributeError:
                     pass
                 message_payload[self.RORG_MESSAGE_KEY] = packet.rorg
