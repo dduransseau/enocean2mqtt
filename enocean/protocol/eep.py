@@ -7,7 +7,6 @@ from xml.etree import ElementTree
 from enocean.utils import from_hex_string, get_bits_from_bytearray, get_bits_from_byte, set_bits_in_bytearray, set_bits_to_byte
 from enocean.protocol.constants import DataFieldType, FieldSetName
 
-# logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("enocean.protocol.eep")
 
 
@@ -58,15 +57,6 @@ class BaseDataElt:
         """Get raw data as integer, based on offset and size"""
         # self.logger.debug(f"Parse raw data: {user_payload}")
         return get_bits_from_bytearray(user_payload, self.offset, self.size)
-        # result = 0
-        # try:
-        #     # return int(''.join(['1' if digit else '0' for digit in bitarray[self.offset:self.offset + self.size]]), 2)
-        #     for bit in bitarray[self.offset : self.offset + self.size]:
-        #         result = (result << 1) | bit
-        #     self._raw_value = result
-        #     return result
-        # except Exception:
-        #     return 0
 
     def _set_raw(self, raw_value, bitarray):
         """put value into bit array"""
@@ -460,7 +450,12 @@ class Profile:
         else:
             command_item = None
             command_shortcut = None
-        profile_data = self.datas.get((command, direction))
+        # Get the profile data that correspond to the telegram
+        try:
+            profile_data = self.datas[(command, direction)]
+        except KeyError:
+            # Handle case where direction is not defined in EEP
+            profile_data = self.datas.get((command, None))
         return TelegramFunctionGroup(
             profile_data,
             command=command_item,
@@ -478,9 +473,7 @@ class TelegramFunctionGroup:
         self.profile_data = profile_data
         self.command_item = command
         self.command_shortcut = command_shortcut
-        if (
-            command and not command_shortcut
-        ):  # Set command shortcut to default value if set
+        if command and not command_shortcut:  # Set command shortcut to default value if set
             self.command_shortcut = SpecificShortcut.COMMAND
         self.direction = direction
 
@@ -572,26 +565,10 @@ class TelegramFunctionGroup:
                 output.append(source.parse(user_payload, status))
         return output
 
-    # def set_values(self, packet, values):
-    #     """Update data based on data contained in properties
-    #     profile: Profile packet._bit_data, packet._bit_status
-    #     """
-    #     self.logger.debug(f"Set value for properties={values} to {self.profile_data}")
-    #     # self.logger.debug(f"Profile with selected command {self.profile.command_item} {self.profile.command_data}")
-    #
-    #     for shortcut, value in values.items():
-    #         target = self.profile_data.get(shortcut)
-    #         if isinstance(target, DataStatus):
-    #             packet._bit_status = target.set_value(value, packet._bit_data)
-    #         else:
-    #             packet._bit_data = target.set_value(value, packet._bit_data)
-
     def set_values(self, packet, values):
         """Update data based on data contained in properties
-        profile: Profile packet._bit_data, packet._bit_status
         """
         self.logger.debug(f"Set value for properties={values} to {self.profile_data}")
-        # self.logger.debug(f"Profile with selected command {self.profile.command_item} {self.profile.command_data}")
 
         for shortcut, value in values.items():
             target = self.profile_data.get(shortcut)
