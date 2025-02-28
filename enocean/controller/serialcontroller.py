@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 import time
 import logging
+
 import serial
 
 from enocean.controller.basecontroller import BaseController, FrameIncompleteError
@@ -16,7 +17,10 @@ class SerialController(BaseController):
         # Initialize serial port
         self.__port = port
         self.__baudrate = baudrate
-        self.__ser = serial.Serial(port, baudrate, timeout=timeout)
+        try:
+            self.__ser = serial.Serial(port, baudrate, timeout=timeout)
+        except serial.serialutil.SerialException:
+            raise RuntimeError("Controller is not available")
 
     def run(self):
         self.logger.info(

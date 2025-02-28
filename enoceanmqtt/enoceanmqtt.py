@@ -146,22 +146,25 @@ def setup_logging(log_filename="", log_level=logging.INFO):
 
 
 def main():
-    """entry point if called as an executable"""
-    # logging.getLogger().setLevel(logging.DEBUG)
-    # Parse command line arguments
-    conf.update(parse_args())
-    config_manager = ConfigManager(conf)
-    # setup logger
-    setup_logging(config_manager.logging_file, config_manager.logging_level)
-    # load config file
-    config_manager.load_config_file()
-
-    # start working
-    com = Gateway(config_manager)
     try:
-        com.run()
-    except Exception as e:
-        logging.exception(e)
+        """entry point if called as an executable"""
+        # logging.getLogger().setLevel(logging.DEBUG)
+        # Parse command line arguments
+        conf.update(parse_args())
+        config_manager = ConfigManager(conf)
+        # setup logger
+        setup_logging(config_manager.logging_file, config_manager.logging_level)
+        # load config file
+        config_manager.load_config_file()
+
+        # start working
+        com = Gateway(config_manager)
+        try:
+            com.run()
+        except Exception as e:
+            logging.exception(e)
+    except RuntimeError:
+        logging.critical("Unable to connect to EnOcean controller, exit")
 
 
 # check for execution
