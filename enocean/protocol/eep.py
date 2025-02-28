@@ -5,7 +5,6 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from enocean.utils import from_hex_string, get_bits_from_bytearray, get_bits_from_byte, set_bits_in_bytearray, set_bits_to_byte
-from enocean.protocol.constants import DataFieldType, FieldSetName
 
 logger = logging.getLogger("enocean.protocol.eep")
 
@@ -39,6 +38,57 @@ def parse_number_value(v):
 
 class EEPLibraryInitError(Exception):
     """Error to init the EEP library is EEP.xml present ?"""
+
+
+class ProfileField:
+
+    def __init__(self, shortcut, raw_value, description, value=None, unit=None, status=False):
+        self.shortcut = shortcut
+        self.raw_value = raw_value
+        self.description: str = description
+        self._value = value
+        self.unit = unit
+        self.status = status
+
+    @property
+    def value(self):
+        if self._value:
+            return self._value
+        return self.raw_value
+
+    @value.setter
+    def value(self, val):
+        self._value = val
+
+    @property
+    def is_operator(self):
+        if self.shortcut in (SpecificShortcut.MULTIPLIER, SpecificShortcut.DIVISOR):
+            return True
+        return False
+
+    @property
+    def is_unit(self):
+        if self.shortcut == SpecificShortcut.UNIT:
+            return True
+        return False
+
+    @property
+    def is_command(self):
+        if self.shortcut == SpecificShortcut.COMMAND:
+            return True
+        return False
+
+    @property
+    def is_sensor_availability(self):
+        if self.shortcut in (SpecificShortcut.TEMPERATURE_AVAILABILITY, SpecificShortcut.HUMIDITY_AVAILABILITY):
+            return True
+        return False
+
+    @property
+    def is_internal(self):
+        if self.is_operator or self.is_unit or self.is_command or self.is_sensor_availability:
+            return True
+        return False
 
 
 class BaseDataElt:
@@ -75,14 +125,7 @@ class DataStatus(BaseDataElt):
     def parse(self, user_payload, status):
         """Get boolean value, based on the data in XML"""
         self._raw_value = get_bits_from_byte(status, self.offset)
-        return {
-            FieldSetName.DESCRIPTION: self.description,
-            FieldSetName.SHORTCUT: self.shortcut,
-            FieldSetName.UNIT: self.unit,
-            FieldSetName.VALUE: bool(self._raw_value),
-            FieldSetName.RAW_VALUE: self._raw_value,
-            FieldSetName.TYPE: DataFieldType.STATUS,
-        }
+        return ProfileField(self.shortcut, self._raw_value, self.description, value=bool(self._raw_value), unit=self.unit, status=True)
 
     def set_value(self, bit, b):
         """
@@ -133,15 +176,8 @@ class DataValue(BaseDataElt):
 
     def parse(self, user_payload, status):
         self._raw_value = self.parse_raw(user_payload)
-
-        return {
-            FieldSetName.DESCRIPTION: self.description,
-            FieldSetName.SHORTCUT: self.shortcut,
-            FieldSetName.UNIT: self.unit,
-            FieldSetName.VALUE: self.process_value(self._raw_value),
-            FieldSetName.RAW_VALUE: self._raw_value,
-            FieldSetName.TYPE: DataFieldType.VALUE,
-        }
+        return ProfileField(self.shortcut, self._raw_value, self.description,
+                            value=self.process_value(self._raw_value), unit=self.unit)
 
     def set_value(self, data, bitarray):
         """set given numeric value to target field in bitarray"""
@@ -283,14 +319,8 @@ class DataEnum(BaseDataElt):
         item = self.get(int(self._raw_value))
         # self.logger.debug(f"Found item {item} for value {self._raw_value} in enum {self.description}")
         value = item.parse(self._raw_value)
-        return {
-            FieldSetName.DESCRIPTION: self.description,
-            FieldSetName.SHORTCUT: self.shortcut,
-            FieldSetName.UNIT: self.unit,
-            FieldSetName.VALUE: value,
-            FieldSetName.RAW_VALUE: self._raw_value,
-            FieldSetName.TYPE: DataFieldType.ENUM,
-        }
+        return ProfileField(self.shortcut, self._raw_value, self.description, value=value,
+                            unit=self.unit)
 
     def set_value(self, val, bitarray):
         if isinstance(val, int):
@@ -346,10 +376,7 @@ class ProfileData:
                 self._operator_fields.append(d)
             elif d.shortcut == SpecificShortcut.UNIT:
                 self._unit_fields.append(d)
-            elif d.shortcut in (
-                SpecificShortcut.TEMPERATURE_AVAILABILITY,
-                SpecificShortcut.HUMIDITY_AVAILABILITY,
-            ):
+            elif d.shortcut in (SpecificShortcut.TEMPERATURE_AVAILABILITY, SpecificShortcut.HUMIDITY_AVAILABILITY):
                 self._availability_fields.append(d)
 
     def __str__(self):
@@ -503,20 +530,20 @@ class TelegramFunctionGroup:
             if operator_item:
                 bypass_list.append(operator_item)
                 operator = operator_item.parse(user_payload, status)
-                if operator[FieldSetName.SHORTCUT] == SpecificShortcut.DIVISOR:
-                    factor = 1 / float(operator[FieldSetName.VALUE])
-                elif operator[FieldSetName.SHORTCUT] == SpecificShortcut.MULTIPLIER:
-                    factor = float(operator[FieldSetName.VALUE])
+                if operator.shortcut == SpecificShortcut.DIVISOR:
+                    factor = 1 / float(operator.value)
+                elif operator.shortcut == SpecificShortcut.MULTIPLIER:
+                    factor = float(operator.value)
                 self.logger.debug(f"Defined factor for profile data is {factor}")
             if unit_item:
                 u = unit_item.parse(user_payload, status)
-                unit = u.get("value", "")
+                unit = u.value
                 self.logger.debug(f"Defined unit for profile data is {unit}")
             for v_i in values_item:
                 bypass_list.append(v_i)
                 v_i.unit = unit
                 v = v_i.parse(user_payload, status)
-                v[FieldSetName.VALUE] = v[FieldSetName.VALUE] * factor
+                v.value = v.value * factor
                 output.append(v)
         # Remove fields for device that have unavailable sensor
         if global_process and self.profile_data.availability_fields:
@@ -527,10 +554,8 @@ class TelegramFunctionGroup:
                     self.logger.debug(
                         f"Field availability flags to process {availability_flag}"
                     )
-                    if metric_shortcut := AVAILABILITY_FIELD_MAPPING.get(
-                        availability_flag[FieldSetName.SHORTCUT]
-                    ):
-                        if availability_flag[FieldSetName.RAW_VALUE] == 0:
+                    if metric_shortcut := AVAILABILITY_FIELD_MAPPING.get(availability_flag.shortcut):
+                        if availability_flag.raw_value == 0:
                             metric_field = [
                                 v
                                 for v in self.profile_data.values
@@ -552,15 +577,7 @@ class TelegramFunctionGroup:
                 self.logger.debug(f"Bypass {source} this it has already been handled")
                 continue
             if source.shortcut == "CMD":
-                output.append(
-                    {
-                        "description": "Command identifier",
-                        "value": self.command_item.description,
-                        "raw_value": self.command_item.value,
-                        "shortcut": SpecificShortcut.COMMAND,
-                        "type": DataFieldType.ENUM,
-                    }
-                )
+                output.append(ProfileField(SpecificShortcut.COMMAND, self.command_item.value, "Command identifier", value=self.command_item.description))
             else:
                 output.append(source.parse(user_payload, status))
         return output

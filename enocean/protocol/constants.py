@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-from enum import IntEnum, StrEnum, auto
+from enum import IntEnum
 
 
 # EnOceanSerialProtocol3.pdf / 12
@@ -122,25 +122,9 @@ class RORG(IntEnum):
     BS1 = 0xD5
 
 
-class DataFieldType(IntEnum):
-    STATUS = 1
-    VALUE = 2
-    ENUM = 3
-
-
 class ErpStatusHashType(IntEnum):
     CHECKSUM = 0
     CRC = 1
-
-
-class FieldSetName(StrEnum):
-    RAW_VALUE = auto()
-    VALUE = auto()
-    DESCRIPTION = auto()
-    SHORTCUT = auto()
-    TYPE = auto()
-    UNIT = auto()
-
 
 class UteTeachInQueryRequestType(IntEnum):
     REGISTRATION = 0b00

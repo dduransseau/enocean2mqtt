@@ -7,22 +7,29 @@ import queue
 import json
 import platform
 
-from enocean.controller.serialcontroller import SerialController
-from enocean.protocol.packet import RadioPacket
-from enocean.protocol.constants import (
-    PacketType,
-    FieldSetName,
-)
-from equipment import Equipment
+from enum import StrEnum, auto
+
 from enocean.utils import combine_hex, to_hex_string, address_to_bytes_list
+from enocean.controller import SerialController
+from enocean.protocol.packet import RadioPacket
+from enocean.protocol.constants import PacketType
+
+from equipment import Equipment
+
 import paho.mqtt.client as mqtt
+
+
+class FieldSetName(StrEnum):
+    RAW_VALUE = auto()
+    VALUE = auto()
+    DESCRIPTION = auto()
+    SHORTCUT = auto()
+    TYPE = auto()
+    UNIT = auto()
 
 
 class Gateway:
     """the main working class providing the MQTT interface to the enocean packet classes"""
-
-    mqtt_client = None
-    controller = None
 
     GATEWAY_TOPIC = "_gateway"
     TEACH_IN_TOPIC = f"{GATEWAY_TOPIC}/teach-in"
@@ -41,6 +48,7 @@ class Gateway:
     def __init__(self, config):
         self.conf_manager = config
         self.conf = self.conf_manager.global_config
+        self.process_metrics = self.conf.get("process_metrics", True)
         self.publish_timestamp = self.conf.get("publish_timestamp", True)
         self.publish_raw = self.get_config_boolean("publish_raw")
         self.publish_internal = self.get_config_boolean("publish_internal")
@@ -403,55 +411,55 @@ class Gateway:
         if channel is not None:
             base_topic += f"/{channel}"
         for field in fields_list:
-            self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}",
-                              field[FieldSetName.VALUE], retain=retain)
-            self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$name",
-                              field[FieldSetName.DESCRIPTION], retain=retain)
-            if field.get(FieldSetName.UNIT):
-                self.mqtt_publish(f"{base_topic}/{field[FieldSetName.SHORTCUT]}/$unit",
-                                  field[FieldSetName.UNIT], retain=retain)
+            self.mqtt_publish(f"{base_topic}/{field.shortcut}", field.value, retain=retain)
+            self.mqtt_publish(f"{base_topic}/{field.shortcut}/$name", field.description, retain=retain)
+            if field.unit:
+                self.mqtt_publish(f"{base_topic}/{field.shortcut}/$unit", field.unit, retain=retain)
 
     def _process_erp_packet(self, packet, equipment):
         """interpret radio packet, read properties and publish to MQTT"""
         if not packet.learn or equipment.log_learn:
-            # Handling received data packet
-            self.logger.debug(f"process radio packet for sensor {equipment}")
-            # Parse message based on fields definition (profile)
-            radio_telegram = packet.parse_telegram(equipment.profile)
-            if not radio_telegram:
-                self.logger.warning(
-                    f"message not interpretable: {equipment.name} {packet}"
-                )
-            else:
-                channel = None
-                message_payload = self.format_enocean_message(radio_telegram, equipment)
-                if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
-                    channel = message_payload[self.CHANNEL_MESSAGE_KEY]
-                if equipment.publish_rssi:
-                    self.mqtt_publish(f"{equipment.topic}/$rssi", packet.dBm)
-                try:
-                    # Debug purpose
-                    # if equipment.last_seen:
-                    #     delta = packet.received - equipment.last_seen
-                    #     self.logger.debug(f"Timeslot between last received from {equipment.address_label}: {delta}s")
-                    equipment.last_seen = packet.received
-                    t = time.localtime(packet.received)
-                    t_str = time.strftime('%Y-%m-%dT%H:%M:%S', t)
-                    message_payload[self.TIMESTAMP_MESSAGE_KEY] = t_str
-                    self.mqtt_publish(f"{equipment.topic}/$last_seen", t_str)
-                except AttributeError:
-                    self.logger.debug(f"Timestamp is not set for equipment {equipment}")
-                try:
-                    equipment.repeated += packet.status.repeated
-                    message_payload["_repeated"] = packet.status.repeated
-                    self.mqtt_publish(f"{equipment.topic}/$repeated", equipment.repeated)
-                except AttributeError:
-                    pass
-                message_payload[self.RORG_MESSAGE_KEY] = packet.rorg
-                self.logger.debug(f"Publish message {message_payload}")
-                self._publish_mqtt_json(equipment, message_payload, channel=channel)
-                if equipment.publish_flat:
-                    self._publish_mqtt_flat(equipment, radio_telegram, channel=channel)
+            try:
+                # Handling received data packet
+                self.logger.debug(f"process radio packet for sensor {equipment}")
+                # Parse message based on fields definition (profile)
+                radio_telegram = packet.parse_telegram(equipment.profile, process_metrics=self.process_metrics)
+                if not radio_telegram:
+                    self.logger.warning(
+                        f"message not interpretable: {equipment.name} {packet}"
+                    )
+                else:
+                    channel = None
+                    message_payload = self.format_enocean_message(radio_telegram, equipment)
+                    if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
+                        channel = message_payload[self.CHANNEL_MESSAGE_KEY]
+                    if equipment.publish_rssi:
+                        self.mqtt_publish(f"{equipment.topic}/$rssi", packet.dBm)
+                    try:
+                        # Debug purpose
+                        # if equipment.last_seen:
+                        #     delta = packet.received - equipment.last_seen
+                        #     self.logger.debug(f"Timeslot between last received from {equipment.address_label}: {delta}s")
+                        equipment.last_seen = packet.received
+                        t = time.localtime(packet.received)
+                        t_str = time.strftime('%Y-%m-%dT%H:%M:%S', t)
+                        message_payload[self.TIMESTAMP_MESSAGE_KEY] = t_str
+                        self.mqtt_publish(f"{equipment.topic}/$last_seen", t_str)
+                    except AttributeError:
+                        self.logger.debug(f"Timestamp is not set for equipment {equipment}")
+                    try:
+                        equipment.repeated += packet.status.repeated
+                        message_payload["_repeated"] = packet.status.repeated
+                        self.mqtt_publish(f"{equipment.topic}/$repeated", equipment.repeated)
+                    except AttributeError:
+                        pass
+                    message_payload[self.RORG_MESSAGE_KEY] = packet.rorg
+                    self.logger.debug(f"Publish message {message_payload}")
+                    self._publish_mqtt_json(equipment, message_payload, channel=channel)
+                    if equipment.publish_flat:
+                        self._publish_mqtt_flat(equipment, radio_telegram, channel=channel)
+            except Exception as e:
+                self.logger.error(f"Unable to process ERP packet, cause: {e}")
         elif packet.learn and not self.controller.teach_in:
             self.logger.info("Received teach-in packet but learn is not enabled")
         else:
@@ -480,19 +488,19 @@ class Gateway:
         for prop in parsed_message:
             # Remove not supported fields # TODO: might be improve
             if (
-                isinstance(prop[FieldSetName.VALUE], str)
-                and "not supported" in prop[FieldSetName.VALUE]
+                isinstance(prop.value, str)
+                and "not supported" in prop.value
             ):
                 continue
-            key = prop[property_key]
-            val = prop[value_key]
+            key = getattr(prop, property_key)
+            val = getattr(prop, value_key)
             message_payload[key] = val
             # Add unit of value fields
-            if unit := prop.get(FieldSetName.UNIT):
+            if unit := prop.unit:
                 message_payload[f"{key}|unit"] = unit
             # Set specific channel is set for this equipment and set it as internal value
-            if prop[FieldSetName.SHORTCUT] == equipment.channel:
-                message_payload[self.CHANNEL_MESSAGE_KEY] = prop[FieldSetName.VALUE]
+            if prop.shortcut == equipment.channel:
+                message_payload[self.CHANNEL_MESSAGE_KEY] = prop.value
         return message_payload
 
     def _reply_packet(self, packet, equipment):

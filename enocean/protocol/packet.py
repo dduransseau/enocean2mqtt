@@ -314,12 +314,12 @@ class RadioPacket(Packet):
             command_id = profile.commands.parse_raw(self.data_payload)
             return command_id if command_id else None
 
-    def parse_telegram(self, profile):
+    def parse_telegram(self, profile, process_metrics=True):
         """Parse EEP based on FUNC and TYPE"""
         #Get the command id based on profile
         command_id = self.__get_command_id(profile)
         telegram_form = profile.get_telegram_form(command=command_id, direction=self.direction)
-        values = telegram_form.get_values(self.data_payload, self._status)
+        values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics)
         # self.logger.debug(f"Parsed data values {values}")
         return values
 
