@@ -48,20 +48,6 @@ class Packet:
     def __str__(self):
         return f"{PacketType(self.packet_type).name} {[hex(o) for o in self.data]} {[hex(o) for o in self.optional]}"
 
-    # # COMMENTED OUT, AS NOTHING TOUCHES _bit_optional FOR NOW.
-    # # Thus, this is also untested.
-    # @property
-    # def _bit_optional(self):
-    #     return to_bitarray(self.optional, 8 * len(self.optional))
-
-    # @_bit_optional.setter
-    # def _bit_optional(self, value):
-    #     if self.rorg in [RORG.RPS, RORG.BS1]:
-    #         self.data[1] = from_bitarray(value)
-    #     if self.rorg == RORG.BS4:
-    #         for byte in range(4):
-    #             self.data[byte+1] =from_bitarray(value[byte*8:(byte+1)*8])
-
     @staticmethod
     def parse_frame(frame):
         """
@@ -147,10 +133,11 @@ class RadioPacket(Packet):
     DEFAULT_SUB_TEL_NUM = 3
     DEFAULT_STATUS = 0
 
+    DEFAULT_OPTIONAL = bytearray([DEFAULT_SUB_TEL_NUM, *DEFAULT_ADDRESS, DEFAULT_RSSI, DEFAULT_SECURITY_LEVEL])
 
     def __init__(self, optional=None, function_group=None, direction=None, **kwargs):
         # If no optional data is passed on init, set default value for sending
-        optional_data = optional or [self.DEFAULT_SUB_TEL_NUM] + self.DEFAULT_ADDRESS + [self.DEFAULT_RSSI] + [self.DEFAULT_SECURITY_LEVEL]
+        optional_data = optional or self.DEFAULT_OPTIONAL
         # self._status = bytes(0)
         super().__init__(PacketType.RADIO_ERP1, optional=optional_data, **kwargs)
         # Default to learn == True, as some devices don't have a learn button
@@ -277,6 +264,18 @@ class RadioPacket(Packet):
     def status(self):
         return ErpStatusByte(self._status)
 
+    @property
+    def is_broadcast(self):
+        if int.from_bytes(self.destination) == 4294967295:
+            return True
+        return False
+
+    @property
+    def is_base_id(self):
+        if 4286578688 <= int.from_bytes(self.destination) <= 4294967294:
+            return True
+        return False
+
     def parse(self):
         """Parse data from Packet"""
         # parse learn bit and FUNC/TYPE, if applicable
@@ -305,6 +304,8 @@ class RadioPacket(Packet):
             man_id = (((self.data[1] << 8) | self.data[2]) >> 5) & 0b11111111111
             self.logger.info(f"Received MSC telegram from {combine_hex(self.sender)} "
                              f"manufacturer={MANUFACTURER_CODE.get(man_id, man_id)}")
+        else:
+            self.logger.info(f"Received a packet with an unsuported RORG {RORG(self.rorg)}")
         super().parse()
 
     def __get_command_id(self, profile):
@@ -339,7 +340,7 @@ class UTETeachInPacket(RadioPacket):
     request_type = REQUEST_TYPE.NOT_SPECIFIED
     channel = None
 
-    contains_eep = True
+    contains_eep = True  # useful ?
 
     @property
     def bidirectional(self):
