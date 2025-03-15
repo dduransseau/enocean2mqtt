@@ -94,15 +94,6 @@ def set_bits_to_byte(byte, offset, value, num_bits=1):
     return byte
 
 
-def set_bit(byte_array, bit_pos, value):
-    byte_index = bit_pos // 8
-    bit_index = bit_pos % 8
-    if value:
-        byte_array[byte_index] |= (1 << bit_index)
-    else:
-        byte_array[byte_index] &= ~(1 << bit_index)
-
-
 def combine_hex(data):
     """Combine list of integer values to one big integer"""
     output = 0x00

@@ -6,14 +6,12 @@ import threading
 import queue
 from enocean.protocol.packet import (
     Packet,
-    RadioPacket,
-    UTETeachInPacket,
-    ResponsePacket,
     FrameIncompleteError,
     CrcMismatchError,
 )
 from enocean.protocol.constants import (
     PacketType,
+    RORG,
     CommandCode,
     Direction,
     RESPONSE_FREQUENCY_FREQUENCY,
@@ -57,6 +55,10 @@ class BaseController(threading.Thread):
         self.chip_id = None
         self._chip_version = None
         self.app_description = None
+        self.repeater_mode = None
+        self.repeater_level = None
+        self.protocol = None
+        self.frequency = None
         self.crc_errors = 0
         self._wait_time = 0.01
 
@@ -70,8 +72,8 @@ class BaseController(threading.Thread):
     def send(self, packet):
         # TODO: Evaluate this and raise Exception if relevant
         if not isinstance(packet, Packet):
-            self.logger.error("Object to send must be an instance of Packet")
-            return False
+            self.logger.error(f"Object to send must be an instance of Packet, received {type(packet)}")
+            raise ValueError("Object to send must be an instance of Packet")
         self.transmit.put(packet)
         return True
 
@@ -123,7 +125,7 @@ class BaseController(threading.Thread):
             # TODO: Check if this shouldn't happened after filter check
             if self.set_timestamp:
                 packet.received = time.time()
-            if isinstance(packet, RadioPacket):
+            if packet.packet_type == PacketType.RADIO_ERP1:
                 # Define direction of packed base on address
                 self.logger.debug(
                     f"Compare sender address to gateway to check direction {packet.sender} {packet.destination}"
@@ -135,33 +137,32 @@ class BaseController(threading.Thread):
                     self.logger.debug("Identified FROM packet")
                     direction = Direction.FROM
                 packet.direction = direction
-            # Check if the packet is UTE Teach-in to send response back if learn enable
-            if isinstance(packet, UTETeachInPacket):
-                if self.teach_in:
-                    # Check if destination address is not controller address, might append when repeater installed
-                    # If not detected it might cause loop by submitting request to itself
-                    if self.address != packet.destination:
-                        response_packet = packet.create_response_packet(self.address)
-                        self.logger.info("Sending response to UTE teach-in.")
-                        self.send(response_packet)
+                # Check if the packet is UTE Teach-in to send response back if learn enable
+                if packet.rorg == RORG.UTE:
+                    if self.teach_in:
+                        # Check if destination address is not controller address, might append when repeater installed
+                        # If not detected it might cause loop by submitting request to itself
+                        if self.address != packet.destination:
+                            response_packet = packet.create_response_packet(self.address)
+                            self.logger.info("Sending response to UTE teach-in.")
+                            self.send(response_packet)
+                        else:
+                            self.logger.info(
+                                "Received UTE teach-in packet from itself, probably caused by repeater, omit request"
+                            )
                     else:
-                        self.logger.info(
-                            "Received UTE teach-in packet from itself, "
-                            "repeater might be involved, omit request"
+                        self.logger.debug(
+                            "Received UTE teach-in packet, but teach_in is disabled."
                         )
-                else:
-                    self.logger.debug(
-                        "Received UTE teach-in packet, but teach_in is disabled."
-                    )
                 # TODO: Check if already known
                 # self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.equipment_eep_rorg,
                 #                                      variant=packet.equipment_eep_type, func=packet.equipment_eep_func))
-            elif isinstance(packet, ResponsePacket) and len(self.command_queue) > 0:
+                # Add received packet into receive queue
+                self.receive.put(packet)
+            elif packet.packet_type == PacketType.RESPONSE and self.command_queue:
                 self.parse_common_command_response(packet)
-                return  # Bypass packet emit to avoid to log internal command
-            # Add received packet into receive queue
-            self.receive.put(packet)
-            # self.logger.debug(packet)
+            elif packet.packet_type == PacketType.EVENT:
+                self.logger.warning(packet)
         except (ValueError, IndexError):
             raise FrameIncompleteError
         except CrcMismatchError:
@@ -178,8 +179,6 @@ class BaseController(threading.Thread):
         # Send COMMON_COMMAND 0x08, CO_RD_IDBASE request to the module
         self.send_common_command(CommandCode.CO_RD_IDBASE)
         # Loop over 5 times, to make sure we catch the response.
-        # Thanks to timeout, shouldn't take more than a second.
-        # Unfortunately, all other messages received during this time are ignored.
         while not self._base_id:
             time.sleep(self._wait_time * 5)
         return self._base_id
@@ -187,19 +186,24 @@ class BaseController(threading.Thread):
     @property
     def __controller_info(self):
         return dict(
+            id=to_hex_string(self.chip_id),
+            frequency= self.frequency,
+            protocol = self.protocol,
             app_version=self.app_version,
             api_version=self.api_version,
             app_description=self.app_description,
-            id=to_hex_string(self.chip_id),
         )
 
     @property
     def controller_info_details(self):
-        if self.chip_id:
+        if self.chip_id and self.frequency:
             return self.__controller_info
         # Send COMMON_COMMAND 0x03, CO_RD_VERSION request to the module
         self.send_common_command(CommandCode.CO_RD_VERSION)
         while not self.chip_id:
+            time.sleep(self._wait_time * 5)
+        self.send_common_command(CommandCode.CO_GET_FREQUENCY_INFO)
+        while not self.frequency:
             time.sleep(self._wait_time * 5)
         return self.__controller_info
 
@@ -210,21 +214,16 @@ class BaseController(threading.Thread):
 
     def init_adapter(self):
         for code in (
-            CommandCode.CO_RD_IDBASE,
             CommandCode.CO_RD_VERSION,
             CommandCode.CO_GET_FREQUENCY_INFO,
+            CommandCode.CO_RD_IDBASE,
             CommandCode.CO_GET_NOISETHRESHOLD,
             CommandCode.CO_RD_REPEATER,
         ):
             self.send_common_command(code)
-            time.sleep(self._wait_time)
-        self.logger.info(f"Controller info: base id {to_hex_string(self.base_id)}")
-        self.logger.info(f"Controller info: {self.controller_info_details}")
-        # for i in range(10):
-        #     if self._base_id and self._chip_id:
-        #         return True
-        #     time.sleep(0.1)
-        # raise TimeoutError("Unable get adapter information in time")
+            # time.sleep(self._wait_time)
+        # self.logger.info(f"Controller info: base id {to_hex_string(self.base_id)}")
+        # self.logger.info(f"Controller info: {self.controller_info_details}")
 
     def parse_common_command_response(self, packet):
         command_id = self.command_queue.pop(0)
@@ -233,14 +232,13 @@ class BaseController(threading.Thread):
             self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
             self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
             self.chip_id = packet.response_data[8:12]
-            # self._chip_version = packet.response_data[12:16]
             self._chip_version = ".".join([str(b) for b in packet.response_data[12:16]])
             self.app_description = "".join(
                 [chr(c) for c in packet.response_data[16:] if c]
             )
             self.logger.debug(
-                f"Device info: app_version={self.app_version} api_version={self.api_version} chip_id={to_hex_string(self.chip_id)}"
-                f" chip_version={self._chip_version}"
+                f"Device info: app_version={self.app_version} api_version={self.api_version} "
+                f"chip_id={to_hex_string(self.chip_id)} chip_version={self._chip_version}"
             )
         elif command_id == CommandCode.CO_RD_IDBASE:
             # Base ID is set in the response data.
@@ -249,16 +247,16 @@ class BaseController(threading.Thread):
                 f"Setup base ID as {to_hex_string(self._base_id)} remaining write {int(packet.optional[0])}"
             )
         elif command_id == CommandCode.CO_GET_FREQUENCY_INFO:
-            frequency = RESPONSE_FREQUENCY_FREQUENCY[packet.response_data[0]]
-            protocol = RESPONSE_FREQUENCY_PROTOCOL[packet.response_data[1]]
+            self.frequency = RESPONSE_FREQUENCY_FREQUENCY[packet.response_data[0]]
+            self.protocol = RESPONSE_FREQUENCY_PROTOCOL[packet.response_data[1]]
             self.logger.info(
-                f"Controller info: work on frequency {frequency} with protocol {protocol}"
+                f"Controller info: work on frequency {self.frequency} with protocol {self.protocol}"
             )
         elif command_id == CommandCode.CO_RD_REPEATER:
-            repeater_mode = RESPONSE_REPEATER_MODE[packet.response_data[0]]
-            repeater_level = RESPONSE_REPEATER_LEVEL[packet.response_data[1]]
+            self.repeater_mode = RESPONSE_REPEATER_MODE[packet.response_data[0]]
+            self.repeater_level = RESPONSE_REPEATER_LEVEL[packet.response_data[1]]
             self.logger.info(
-                f"Controller info: repeater mode={repeater_mode} repeater level={repeater_level}"
+                f"Controller info: repeater mode={self.repeater_mode} repeater level={self.repeater_level}"
             )
         elif command_id == CommandCode.CO_GET_NOISETHRESHOLD:
             noise_threshold = int.from_bytes(packet.response_data[0:4])

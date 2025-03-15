@@ -7,18 +7,18 @@ from enocean.utils import (
     address_to_bytes_list,
     get_bits_from_byte
 )
-from enocean.protocol import crc8
-from enocean.protocol.constants import (
+from . import crc8
+from .constants import (
     PacketType,
     ReturnCode,
     EventCode,
+    RORG,
+    Direction,
     UteTeachInQueryRequestType,
     UteTeachInResponseRequestType,
-    RORG,
     MANUFACTURER_CODE,
-    Direction
 )
-
+from .signal import SignalDefinitions
 
 class FrameParserError(Exception):
     """ Base error class for parser exception"""
@@ -59,11 +59,6 @@ class Packet:
             data_len = (frame[1] << 8) | frame[2]
             # opt_len = frame[3] # Optional len, not use for now
             packet_type = frame[4]
-            # Calculate packet header+crc =7
-            # packet_len = 7 + data_len + opt_len
-            # if len(frame) < packet_len:
-            #     Packet.logger.warning(f"Received frame is incomplete packet len should be {packet_len}, frame len is {len(frame)}")
-            #     return ParseResult.INCOMPLETE, None
 
             DATA_START = 6
             DATA_END = DATA_START + data_len  # header + checksum + data
@@ -141,9 +136,10 @@ class RadioPacket(Packet):
         # self._status = bytes(0)
         super().__init__(PacketType.RADIO_ERP1, optional=optional_data, **kwargs)
         # Default to learn == True, as some devices don't have a learn button
-        self.learn = True
+        self.learn = False
         self.function_group = function_group
         self.direction = direction
+        self.man_id = None
 
     def __str__(self):
         packet_str = super().__str__()
@@ -236,15 +232,16 @@ class RadioPacket(Packet):
         except IndexError:
             return None
 
-    # @sender.setter
-    # def sender(self, value):
-
     @property
     def rorg(self):
         try:
             return self.data[0]
         except IndexError:
             return None
+
+    @property
+    def is_eep(self):
+        return True if self.rorg in (RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD, RORG.MSC) else False
 
     @property
     def sub_tel_num(self):
@@ -266,15 +263,11 @@ class RadioPacket(Packet):
 
     @property
     def is_broadcast(self):
-        if int.from_bytes(self.destination) == 4294967295:
-            return True
-        return False
+        return True if int.from_bytes(self.destination) == 0xffffffff else False
 
     @property
     def is_base_id(self):
-        if 4286578688 <= int.from_bytes(self.destination) <= 4294967294:
-            return True
-        return False
+        return True if 0xff800000 <= int.from_bytes(self.destination) <= 0xfffffffe else False
 
     def parse(self):
         """Parse data from Packet"""
@@ -289,23 +282,25 @@ class RadioPacket(Packet):
                     # Get rorg_func and rorg_type from an unidirectional learn packet
                     func = (self.data[1] >> 2) % 0b111111
                     variant = ((self.data[1] << 8) | self.data[2]) >> 3 & 0b1111111
-                    man_id = ((self.data[2] << 8) | self.data[3]) & 0b11111111111
+                    self.man_id = ((self.data[2] << 8) | self.data[3]) & 0b11111111111
                     self.logger.info(
                         f"Received BS4 learn packet from {combine_hex(self.sender)} "
-                        f"manufacturer={MANUFACTURER_CODE.get(man_id, man_id)}"
-                        f" EEP={self.rorg:X}-{func:X}-{variant:X}"
+                        f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)} "
+                        f"EEP={self.rorg:X}-{func:X}-{variant:X}"
                     )
         elif self.rorg == RORG.VLD or self.rorg == RORG.RPS:
             self.learn = False
         elif self.rorg == RORG.SIGNAL:
-            self.logger.warning(f"Received SIGNAL telegram: {self}")
+            # self.logger.warning(f"Received SIGNAL telegram: {self}")
+            res = SignalMessage.decode(self.data_payload)
+            self.logger.info(f"Received signal message with content {res}")
         elif self.rorg == RORG.MSC:
             # Get the ManId from the 11 bits after RORG of the telegram
-            man_id = (((self.data[1] << 8) | self.data[2]) >> 5) & 0b11111111111
+            self.man_id = (((self.data[1] << 8) | self.data[2]) >> 5) & 0b11111111111
             self.logger.info(f"Received MSC telegram from {combine_hex(self.sender)} "
-                             f"manufacturer={MANUFACTURER_CODE.get(man_id, man_id)}")
+                             f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)}")
         else:
-            self.logger.info(f"Received a packet with an unsuported RORG {RORG(self.rorg)}")
+            self.logger.info(f"Received a packet with an unsupported RORG {RORG(self.rorg)}")
         super().parse()
 
     def __get_command_id(self, profile):
@@ -317,7 +312,7 @@ class RadioPacket(Packet):
 
     def parse_telegram(self, profile, process_metrics=True):
         """Parse EEP based on FUNC and TYPE"""
-        #Get the command id based on profile
+        # Get the command id based on profile
         command_id = self.__get_command_id(profile)
         telegram_form = profile.get_telegram_form(command=command_id, direction=self.direction)
         values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics)
@@ -329,6 +324,18 @@ class RadioPacket(Packet):
         return Packet.parse_frame(self.build())
 
 
+class SignalMessage:
+
+    @staticmethod
+    def decode(payload):
+        mid = payload[0]
+        try:
+            message_type = SignalDefinitions[mid]
+            return message_type.decode(payload)
+        except KeyError:
+            raise NotImplementedError(f"Signal type {mid} is not supported")
+
+
 class UTETeachInPacket(RadioPacket):
 
     REQUEST_TYPE = UteTeachInQueryRequestType
@@ -336,9 +343,8 @@ class UTETeachInPacket(RadioPacket):
 
     unidirectional = False
     response_expected = False
-    number_of_channels = 0xFF
     request_type = REQUEST_TYPE.NOT_SPECIFIED
-    channel = None
+    channels = 0xFF
 
     contains_eep = True  # useful ?
 
@@ -362,23 +368,22 @@ class UTETeachInPacket(RadioPacket):
         self.unidirectional = not get_bits_from_byte(self.data[1], 7)
         self.response_expected = not get_bits_from_byte(self.data[1], 6)
         self.request_type = get_bits_from_byte(self.data[1], 4, 2)
-        self.number_of_channels = self.data[2]
 
         # Get the 11 bits on byte 3 and 4
         self.man_id = ((self.data[4] << 8) | self.data[3]) & 0b0000011111111111
 
-        self.channel = self.data[2]
+        self.channels = self.data[2]
         self.eep_rorg = self.data[7]
         self.eep_func = self.data[6]
         self.eep_type = self.data[5]
         if self.teach_in:
             self.learn = True
-        super().parse()
-        # self.logger.info(
-        #     f"Received UTE teach in packet from {to_hex_string(self.sender)} "
-        #     f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)} "
-        #     f"EEP={self.eep_label}"
-        # )
+        # super().parse()
+        self.logger.info(
+            f"Received UTE teach in packet from {to_hex_string(self.sender)} "
+            f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)} "
+            f"EEP={self.eep_label}"
+        )
 
     def create_response_packet(self, sender_id, response=RESPONSE_TYPE.ACCEPTED_REGISTRATION):
         # Create data:
@@ -441,6 +446,23 @@ class EventPacket(Packet):
             return self.data[1:]
         except IndexError:
             return []
+
+class SignalTelegram:
+
+    def __init__(self, packet):
+        self.packet = packet
+        self.rorg = RORG.SIGNAL
+        self.mid = self.packet.data_payload[0]
+
+
+    def parse_message(self):
+        if self.mid == 0x06:
+            energy = self.packet.data_payload[1]
+        elif self.mid == 0x07:
+            sw_version = ".".join([str(b) for b in self.packet.data_payload[1:5]])  # get_bits_from_byte(self.packet.data_payload, 8, num_bits=32)
+            hw_version = ".".join([str(b) for b in self.packet.data_payload[5:9]])  # get_bits_from_byte(self.packet.data_payload, 40, num_bits=32)
+
+
 
 
 class ErpStatusByte:

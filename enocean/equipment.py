@@ -4,8 +4,9 @@ import logging
 from enocean.protocol.eep import EepLibrary
 from enocean.utils import to_hex_string
 
+
 class Equipment(object):
-    """Representation of device/sensor as EnOcean use the term Equipement"""
+    """Representation of device/sensor as EnOcean use the term Equipment"""
 
     eep = EepLibrary()
     logger = logging.getLogger("enocean.protocol.equipment")

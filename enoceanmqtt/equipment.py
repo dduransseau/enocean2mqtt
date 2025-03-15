@@ -37,7 +37,9 @@ class Equipment(EnoceanEquipment):
         self.sender = kwargs.get("sender")
         self.direction = kwargs.get("direction")
         self.default_data = kwargs.get("default_data")
+        self.first_seen = None
         self.last_seen = None
+        self.rssi = None
         self.repeated = 0
         # self.data = dict()
         # Allow to specify a topic different from name to allow blank

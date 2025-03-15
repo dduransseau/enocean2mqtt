@@ -644,7 +644,7 @@ class EepLibrary:
             return cls.profiles[eep_rorg][rorg_func][rorg_type]
         except KeyError:
             cls.logger.warning(
-                f"Cannot find rorg {eep_rorg} func {rorg_func} type {rorg_type} in EEP"
+                f"Cannot find rorg {eep_rorg:X} func {rorg_func:X} type {rorg_type:X} in EEP"
             )
             raise NotImplementedError(
                 f"EEP {eep_rorg} func {rorg_func} type {rorg_type} is not supported"
