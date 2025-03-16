@@ -14,7 +14,7 @@ from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket
 from enocean.protocol.constants import PacketType
 
-from equipment import Equipment
+from .equipment import Equipment
 
 import paho.mqtt.client as mqtt
 
