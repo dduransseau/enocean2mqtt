@@ -42,11 +42,11 @@ class Packet:
 
     def __init__(self, packet_type, data=None, optional=None):
         self.packet_type = packet_type
-        self.data = data or []
-        self.optional = optional or []
+        self.data = data or bytearray()
+        self.optional = optional or bytearray()
 
     def __str__(self):
-        return f"{PacketType(self.packet_type).name} {[hex(o) for o in self.data]} {[hex(o) for o in self.optional]}"
+        return f"{PacketType(self.packet_type).name} {bytes(self.data)} {bytes(self.optional)}"
 
     @staticmethod
     def parse_frame(frame):
@@ -137,6 +137,7 @@ class RadioPacket(Packet):
         super().__init__(PacketType.RADIO_ERP1, optional=optional_data, **kwargs)
         # Default to learn == True, as some devices don't have a learn button
         self.learn = False
+        self.timestamp = None
         self.function_group = function_group
         self.direction = direction
         self.man_id = None
@@ -310,13 +311,20 @@ class RadioPacket(Packet):
             command_id = profile.commands.parse_raw(self.data_payload)
             return command_id if command_id else None
 
-    def parse_telegram(self, profile, process_metrics=True):
+    def parse_telegram(self, equipment, process_metrics=True):
         """Parse EEP based on FUNC and TYPE"""
-        # Get the command id based on profile
-        command_id = self.__get_command_id(profile)
-        telegram_form = profile.get_telegram_form(command=command_id, direction=self.direction)
-        values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics)
-        # self.logger.debug(f"Parsed data values {values}")
+        # set latest rssi value in equipment
+        equipment.rssi = self.dBm
+        equipment.last_seen = self.timestamp
+        if self.rorg != RORG.SIGNAL:
+            # Get the command id based on profile
+            command_id = self.__get_command_id(equipment.profile)
+            telegram_form = equipment.profile.get_telegram_form(command=command_id, direction=self.direction)
+            values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics)
+            self.logger.debug(f"Parsed data values {values}")
+        else:
+            res = SignalMessage.decode(self.data_payload)
+            values = res.fields
         return values
 
     def build_telegram(self, data):

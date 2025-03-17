@@ -124,11 +124,11 @@ class BaseController(threading.Thread):
             packet = Packet.parse_frame(frame)
             # TODO: Check if this shouldn't happened after filter check
             if self.set_timestamp:
-                packet.received = time.time()
+                packet.timestamp = time.time()
             if packet.packet_type == PacketType.RADIO_ERP1:
                 # Define direction of packed base on address
                 self.logger.debug(
-                    f"Compare sender address to gateway to check direction {packet.sender} {packet.destination}"
+                    f"Compare sender address to gateway to check direction {bytes(packet.sender)} {bytes(packet.destination)}"
                 )
                 if packet.sender == self.address:
                     self.logger.debug("Identified TO packet")

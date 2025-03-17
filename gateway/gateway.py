@@ -422,10 +422,10 @@ class Gateway:
                 # Handling received data packet
                 self.logger.debug(f"process radio packet for sensor {equipment}")
                 # Parse message based on fields definition (profile)
+                radio_telegram = packet.parse_telegram(
+                    equipment, process_metrics=self.process_metrics
+                )
                 if packet.is_eep:
-                    radio_telegram = packet.parse_telegram(
-                        equipment.profile, process_metrics=self.process_metrics
-                    )
                     if not radio_telegram:
                         self.logger.warning(
                             f"message not interpretable: {equipment.name} {packet}"
@@ -435,8 +435,6 @@ class Gateway:
                         message_payload = self.format_enocean_message(
                             radio_telegram, equipment
                         )
-                        # set latest rssi value in equipment
-                        equipment.rssi = packet.dBm
                         # Get channel if present in telegram to split into sub-topics
                         if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
                             channel = message_payload[self.CHANNEL_MESSAGE_KEY]
@@ -445,11 +443,9 @@ class Gateway:
                         try:
                             # Debug purpose
                             # if equipment.last_seen:
-                            #     delta = packet.received - equipment.last_seen
-                            #     self.logger.debug(f"Timeslot between last received from {equipment.address_label}: {delta}s")
-                            equipment.last_seen = packet.received
-                            t = time.localtime(packet.received)
-                            t_str = time.strftime("%Y-%m-%dT%H:%M:%S", t)
+                            #     delta = packet.timestamp - equipment.last_seen
+                            #     self.logger.debug(f"Timeslot between last timestamp from {equipment.address_label}: {delta}s")
+                            t_str = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(packet.timestamp))
                             message_payload[self.TIMESTAMP_MESSAGE_KEY] = t_str
                             self.mqtt_publish(f"{equipment.topic}/{self.LAST_SEEN_TOPIC_KEY}", t_str)
                         except AttributeError:
@@ -471,6 +467,13 @@ class Gateway:
                             self._publish_mqtt_flat(
                                 equipment, radio_telegram, channel=channel
                             )
+                else:
+                    self.logger.info("Publish signal stats")
+                    for k, v in radio_telegram.items():
+                        self.mqtt_publish(
+                            f"{equipment.topic}/${k}", v, retain=True
+                        )
+
             except Exception as e:
                 self.logger.error(f"Unable to process ERP packet, cause: {e}")
         elif packet.learn and not self.controller.teach_in:
@@ -635,7 +638,7 @@ class Gateway:
             if sender_address not in self.detected_equipments:
                 self.detected_equipments.add(sender_address)
                 self.logger.info(f"Detected known equipment with address {formatted_address}")
-                equipment.first_seen = packet.received
+                equipment.first_seen = packet.timestamp
                 # self.mqtt_publish(f"{self.topic_prefix}gateway/detected_equipments", list(self.detected_equipments))
             # self.logger.debug(f"received: {packet}")
         except UnknownEquipment:

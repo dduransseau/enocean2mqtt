@@ -451,7 +451,7 @@ class Profile:
 
     @property
     def code(self):
-        return f"{self.rorg:X}-{self.func:X}-{self.type:X}"
+        return f"{self.rorg:02X}-{self.func:02X}-{self.type:02X}"
 
     def __str__(self):
         txt = f"Profile {self.code} about {self.description}"

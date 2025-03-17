@@ -126,6 +126,7 @@ class ErpStatusHashType(IntEnum):
     CHECKSUM = 0
     CRC = 1
 
+
 class UteTeachInQueryRequestType(IntEnum):
     REGISTRATION = 0b00
     DELETION = 0b01
