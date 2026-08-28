@@ -6,12 +6,13 @@ import logging
 import queue
 import json
 import platform
+import threading
 
 from enum import StrEnum, auto
 
 from enocean.utils import combine_hex, to_hex_string, address_to_bytes_list
 from enocean.controller.serialcontroller import SerialController
-from enocean.protocol.packet import RadioPacket
+from enocean.protocol.packet import RadioPacket, FrameBuildError
 from enocean.protocol.constants import PacketType
 
 from .equipment import Equipment
@@ -60,6 +61,7 @@ class Gateway:
         self.publish_timestamp = self.conf.get("publish_timestamp", True)
         self.publish_raw = self.get_config_boolean("publish_raw")
         self.publish_internal = self.get_config_boolean("publish_internal")
+        self.logger.info(f"publish_internal={self.publish_internal!r} (type={type(self.publish_internal)})")
         self.publish_response_status = self.get_config_boolean(
             "publish_response_status"
         )
@@ -71,9 +73,10 @@ class Gateway:
             topic_prefix = ""
         self.topic_prefix = topic_prefix
         self.logger.info(
-            f"Init communicator with sensors: {self.conf_manager.equipments}, "
+            f"Init communicator with sensors: {[eq['name'] for eq in self.conf_manager.equipments]}, "
             f"publish timestamp: {self.publish_timestamp}"
         )
+        self._equipments_lock = threading.RLock() # Lock to avoid that equipment list is modified while processing a packet
         self.equipments = dict()
         # Define set() of detected address received by the gateway
         self.detected_equipments = set()
@@ -154,11 +157,9 @@ class Gateway:
 
     @property
     def equipments_definition_list(self):
-        equipments_definition_list = list()
         # listen to enocean send requests
-        for equipment in self.equipments.values():
-            equipments_definition_list.append(equipment.definition)
-        return equipments_definition_list
+        with self._equipments_lock:
+            return [equipment.definition for equipment in self.equipments.values()]
 
     def get_config_boolean(self, key):
         return (
@@ -168,19 +169,21 @@ class Gateway:
         )
 
     def get_equipment_by_topic(self, topic):
-        for equipment in self.equipments.values():
-            if f"{equipment.topic}/" in topic:
-                return equipment
+        with self._equipments_lock:
+            for equipment in self.equipments.values():
+                if mqtt.topic_matches_sub(f"{equipment.topic}/#", topic):
+                    return equipment
 
     def get_equipment(self, address):
         """Try to get the equipment based on id (can be address or name)"""
-        if equipment := self.equipments.get(address):
-            return equipment
-        # if equipment not found by id, lookup by name
-        for equipment in self.equipments.values():
-            if address == equipment.name:
+        with self._equipments_lock:
+            if equipment := self.equipments.get(address):
                 return equipment
-        self.logger.debug(f"Unable to find equipment with key {address:X}")
+            # if equipment not found by id, lookup by name
+            for equipment in self.equipments.values():
+                if address == equipment.name:
+                    return equipment
+        self.logger.debug(f"Unable to find equipment with key {address}")
         raise UnknownEquipment
 
     def setup_devices_list(self, force=False):
@@ -189,14 +192,16 @@ class Gateway:
         """
         if force:
             self.conf_manager.load_config_file(omit_global=True)
+        new_equipments = dict()
         for s in self.conf_manager.equipments:
             address = s.get("address")
             try:
                 s["topic_prefix"] = self.topic_prefix
-                equipment = Equipment(**s)
-                self.equipments[address] = equipment
+                new_equipments[address] = Equipment(**s)
             except NotImplementedError:
                 self.logger.warning(f"Unable to setup device {address}")
+        with self._equipments_lock:
+            self.equipments = new_equipments
 
     # =============================================================================================
     # MQTT CLIENT
@@ -216,17 +221,17 @@ class Gateway:
         self.message_processed = mid
 
     def _on_connect(self, mqtt_client, userdata, flags, reason_code, properties):
-        if reason_code == 0:
+        if reason_code != 0:
+            self.logger.error(f"error connecting to MQTT broker: {reason_code}")
+            return
+        try:
             self.logger.info("successfully connected to MQTT broker.")
             self.logger.debug(f"subscribe to root req topic: {self.topic_prefix}req")
             self.mqtt_subscribe(f"{self.topic_prefix}req")
             self.mqtt_subscribe(f"{self.topic_prefix}learn")
             self.mqtt_subscribe(f"{self.topic_prefix}reload")
             # listen to enocean send requests
-            for equipment in self.equipments.values():
-                self.mqtt_subscribe(
-                    equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX
-                )
+            self._subscribe_to_equipments_requests()
             if self.publish_internal:
                 self.mqtt_publish(
                     f"{self.topic_prefix}{self.GATEWAY_STATUS_TOPIC}",
@@ -239,8 +244,14 @@ class Gateway:
                     retain=True,
                 )
                 self._publish_gateway_adapter_details()
-        else:
-            self.logger.error(f"error connecting to MQTT broker: {reason_code}")
+        except Exception:
+            self.logger.exception("Unhandled error while processing MQTT on_connect")
+
+    def _subscribe_to_equipments_requests(self):
+        with self._equipments_lock:
+            equipments_snapshot = list(self.equipments.values())
+            for equipment in equipments_snapshot:
+                self.mqtt_subscribe(equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX)
 
     @property
     def controller_address(self):
@@ -252,6 +263,7 @@ class Gateway:
 
     def _publish_gateway_adapter_details(self):
         # Wait that enocean communicator is initialized before publishing teach in mode
+        self.logger.info("Initializing EnOcean adapter and publish to MQTT")
         self.controller.init_adapter()
         try:
             teach_in = "ON" if self.controller.teach_in else "OFF"
@@ -326,6 +338,7 @@ class Gateway:
             retain=True,
         )
         self.logger.debug(f"New equipments list {self.equipments}")
+        self._subscribe_to_equipments_requests()
 
     # =============================================================================================
     # MQTT TO ENOCEAN
@@ -366,7 +379,8 @@ class Gateway:
         )  # Get the command shortcut used by the device (commonly "CMD")
         if command_shortcut:
             # Check MQTT message sets the command field and set the command id
-            if command_id := payload.get(command_shortcut):
+            command_id = payload.get(command_shortcut)
+            if command_id is not None:
                 self.logger.debug(
                     f"retrieved command id from MQTT message: {hex(command_id)}"
                 )
@@ -375,7 +389,12 @@ class Gateway:
                     f"command field {command_shortcut} must be set in MQTT message!"
                 )
                 return
-        self._send_packet_to_esp(equipment, data=payload, command=command_id)
+        try:
+            self._send_packet_to_esp(equipment, data=payload, command=command_id)
+        except FrameBuildError:
+            self.logger.warning(
+                f"unable to build packet for {equipment.address_label} with data {payload}"
+            )
 
     # =============================================================================================
     # ENOCEAN TO MQTT
@@ -567,7 +586,7 @@ class Gateway:
                 learn=is_learn,
             )
             self.logger.debug(f"Packet built: {packet.data}")
-        except (ValueError, NotImplemented) as err:
+        except (ValueError, NotImplementedError) as err:
             self.logger.error(f"cannot create radio packet: {err}")
             return
 
@@ -585,9 +604,13 @@ class Gateway:
                     (equipment.default_data >> i * 8) & 0xFF for i in reversed(range(4))
                 ]
             if data:
-                # override with specific data settings
-                self.logger.debug(f"packet with telegram {packet.function_group}")
-                packet = packet.build_telegram(data)
+                try:
+                    # override with specific data settings
+                    self.logger.debug(f"packet with telegram {packet.function_group}")
+                    packet = packet.build_telegram(data)
+                except FrameBuildError:
+                    # self.logger.warning(f"unable to build packet")
+                    raise
             else:
                 # what to do if we have no data to send yet?
                 self.logger.warning(
@@ -600,18 +623,21 @@ class Gateway:
         ignore = False if self.controller.teach_in else True
         for i in range(len(self.controller.learned_equipment)):
             new_equipment = self.controller.learned_equipment.pop()
-            if new_equipment.address not in self.equipments.keys():
-                equipment = Equipment(
-                    address=new_equipment.address,
-                    rorg=new_equipment.rorg,
-                    func=new_equipment.func,
-                    type=new_equipment.variant,
-                    topic_prefix=self.topic_prefix,
-                    ignore=ignore,
-                )
-                self.equipments[new_equipment.address] = equipment
+            with self._equipments_lock:
+                already_known = new_equipment.address in self.equipments
+                if not already_known:
+                    equipment = Equipment(
+                        address=new_equipment.address,
+                        rorg=new_equipment.rorg,
+                        func=new_equipment.func,
+                        type=new_equipment.variant,
+                        topic_prefix=self.topic_prefix,
+                        ignore=ignore,
+                    )
+                    self.equipments[new_equipment.address] = equipment
+            if not already_known:
                 self.mqtt_subscribe(
-                    equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX
+                    f"{equipment.topic}{self.EQUIPMENT_REQUEST_TOPIC_SUFFIX}"
                 )
                 self.conf_manager.save_discovered_equipment(equipment)
             else:
