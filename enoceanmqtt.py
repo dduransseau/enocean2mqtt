@@ -2,7 +2,9 @@
 # Author: Damien Duransseau <damien@duransseau.net>
 """this is the main entry point, which sets up the Communicator class"""
 import logging
+import os
 import sys
+import tempfile
 import copy
 import argparse
 from pathlib import Path
@@ -74,18 +76,23 @@ class ConfigManager:
                         if "mqtt_prefix" in self.global_config
                         else "enocean/"
                     )
-                    new_sens = {"name": mqtt_prefix + section}
+                    equipment_config = {"name": section}
+                    # equipment_config = {"name": mqtt_prefix + section}
                     for key in config_parser[section]:
                         try:
-                            # new_sens[key] = config_parser[section][key]
+                            # equipment_config[key] = config_parser[section][key]
                             if key in ("address", "rorg", "func", "type"):
-                                new_sens[key] = int(config_parser[section][key], 16)
+                                equipment_config[key] = int(config_parser[section][key], 16)
                             else:
-                                new_sens[key] = config_parser[section][key]
+                                equipment_config[key] = config_parser[section][key]
                         except KeyError:
-                            new_sens[key] = None
-                    self.equipments.append(new_sens)
-                    logger.debug("Created sensor: %s", new_sens)
+                            equipment_config[key] = None
+                        except ValueError:
+                            logger.error(
+                                f"Invalid value for {key} in section {section}: {config_parser[section][key]}"
+                            )
+                    self.equipments.append(equipment_config)
+                    logger.debug("Created sensor: %s", equipment_config)
         if not omit_global:
             logging_global_config = copy.deepcopy(self.global_config)
             if "mqtt_pwd" in logging_global_config:
@@ -94,21 +101,38 @@ class ConfigManager:
         # self.save_equipment()
 
     def save_discovered_equipment(self, equipment):
-        config = ConfigParser(
-            inline_comment_prefixes=("#", ";"), interpolation=None
-        )
-        config.read(DISCOVERED_EQUIPMENTS_FILE)
+        if self._discovered_config is None:
+            self._discovered_config = ConfigParser(
+                inline_comment_prefixes=("#", ";"), interpolation=None
+            )
+            self._discovered_config.read(DISCOVERED_EQUIPMENTS_FILE)
+        config = self._discovered_config
+        address = str(equipment.address)
+
         try:
-            address = str(equipment.address)
             config.add_section(address)
-            config.set(address, "address", f"{hex(equipment.address)}")
-            config.set(address, "rorg", f"{hex(equipment.rorg)}")
-            config.set(address, "func", f"{hex(equipment.func)}")
-            config.set(address, "type", f"{hex(equipment.variant)}")
         except DuplicateSectionError:
             pass
-        with open(Path(DISCOVERED_EQUIPMENTS_FILE), "wt", encoding="utf-8") as config_file:
-            config.write(config_file)
+
+        config.set(address, "address", f"{hex(equipment.address)}")
+        config.set(address, "rorg", f"{hex(equipment.rorg)}")
+        config.set(address, "func", f"{hex(equipment.func)}")
+        config.set(address, "type", f"{hex(equipment.variant)}")
+
+        # Create a temporary file in the same directory as the target file
+        target = Path(DISCOVERED_EQUIPMENTS_FILE)
+        fd, tmp_path = tempfile.mkstemp(
+            dir=target.parent or ".", prefix=target.name + ".", suffix=".tmp"
+        )
+        try:
+            with os.fdopen(fd, "wt", encoding="utf-8") as tmp_file:
+                config.write(tmp_file)
+                tmp_file.flush()
+                os.fsync(tmp_file.fileno())
+            os.replace(tmp_path, target)
+        except Exception:
+            os.unlink(tmp_path)
+            raise
 
 
 def parse_args():
@@ -146,8 +170,8 @@ def setup_logging(log_filename="", log_level=logging.INFO):
 
 
 def main():
+    """entry point if called as an executable"""
     try:
-        """entry point if called as an executable"""
         # logging.getLogger().setLevel(logging.DEBUG)
         # Parse command line arguments
         conf.update(parse_args())
@@ -159,12 +183,13 @@ def main():
 
         # start working
         com = Gateway(config_manager)
-        try:
-            com.run()
-        except Exception as e:
-            logging.exception(e)
+        com.run()
     except RuntimeError:
         logging.critical("Unable to connect to EnOcean controller, exit")
+        sys.exit(1)
+    except Exception as e:
+        logging.exception(e)
+        sys.exit(1)
 
 
 # check for execution
