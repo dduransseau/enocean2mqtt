@@ -27,6 +27,8 @@ class FrameParserError(Exception):
 class FrameIncompleteError(FrameParserError):
     """ Frame is not complete """
 
+class FrameBuildError(Exception):
+    """ Base error class for builder exception"""
 
 class CrcMismatchError(FrameParserError):
     """ Frame is corrupted, CRC mismatch"""
@@ -76,8 +78,9 @@ class Packet:
             # If the fields don't exist, message is incomplete
             raise FrameIncompleteError()
         if packet_type == PacketType.RADIO_ERP1:
-            # Need to handle UTE Teach-in here, as it's a separate packet type...
+            # Need to handle UTE Teach-in here, as it's a separate packet type
             if data[0] == RORG.UTE:
+                # Packet.logger.info(f"Received UTE teach in packet: {frame}")
                 packet = UTETeachInPacket(data=data, optional=opt_data)
             else:
                 packet = RadioPacket(data=data, optional=opt_data)
@@ -206,10 +209,9 @@ class RadioPacket(Packet):
 
     @property
     def data_payload(self):
-        try:
-            return self.data[1:-5]
-        except IndexError:
+        if len(self.data) < 6:
             return bytearray()
+        return self.data[1:-5]
 
     @data_payload.setter
     def data_payload(self, payload):
@@ -328,8 +330,11 @@ class RadioPacket(Packet):
         return values
 
     def build_telegram(self, data):
-        self.function_group.set_values(self, data)
-        return Packet.parse_frame(self.build())
+        try:
+            self.function_group.set_values(self, data)
+            return Packet.parse_frame(self.build())
+        except (AttributeError, ValueError):
+            raise FrameBuildError
 
 
 class SignalMessage:
@@ -472,7 +477,6 @@ class SignalTelegram:
 
 
 
-
 class ErpStatusByte:
 
     def __init__(self, b):
@@ -495,4 +499,4 @@ class ErpStatusByte:
             return f"hash type={self.hash_type}, repeater level={self.repeated}"
 
     def __repr__(self):
-        return self.value
+        return str(self.value)

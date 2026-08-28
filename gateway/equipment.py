@@ -14,8 +14,8 @@ class Equipment(EnoceanEquipment):
         variant = int(kwargs.get("variant", 0)) or int(kwargs.get("type"))
         self.name = kwargs.get("name", str(address)) # Default set equipment address as name is none is set
         topic_prefix = kwargs.get("topic_prefix")
-        if topic_prefix and self.name.startswith(topic_prefix):
-            self.name = self.name.replace(topic_prefix, "")
+        if topic_prefix:
+            self.name = self.name.removeprefix(topic_prefix)
         # self.logger.debug(f"Lookup profile for {rorg} {func} {type_}")
         super().__init__(address=address, rorg=rorg, func=func, variant=variant)
         self.publish_raw = self.get_config_boolean(kwargs, "publish_raw", default=False)

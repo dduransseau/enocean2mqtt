@@ -205,12 +205,12 @@ class DataEnumItem:
 class DataEnumRangeItem:
     def __init__(self, elt):
         self.description = elt.get("description", "")
-        range = elt.find("range")
+        _range = elt.find("range")
         scale = elt.find("scale")
         self.multiplier = 1
-        if range and scale:
-            self.range_min = parse_number_value(range.find("min").text)
-            self.range_max = parse_number_value(range.find("max").text)
+        if _range is not None and scale is not None:
+            self.range_min = parse_number_value(_range.find("min").text)
+            self.range_max = parse_number_value(_range.find("max").text)
             self.scale_min = parse_number_value(scale.find("min").text)
             self.scale_max = parse_number_value(scale.find("max").text)
             self.start = self.scale_min
@@ -463,15 +463,15 @@ class Profile:
         # if command and direction:
         #     # Must confirm this limitation
         #     self.logger.warning("Command and Direction are specified but only one at a time should be use")
-        if command and not self.commands:
+        if command is not None and not self.commands:
             self.logger.error("A command is specified but not supported by profile")
             # raise ValueError("A command is specified but not supported by profile")
-        elif self.commands and not command:
+        elif self.commands and command is None:
             raise ValueError(
                 "Command not specified but profile support multiple commands"
             )
             # self.logger.warning("Command is not specified but the profile support multiples commands")
-        if self.commands and command:
+        if self.commands and command is not None:
             command_item = self.commands.get(val=command)
             command_shortcut = self.commands.shortcut
         else:
@@ -604,6 +604,8 @@ class EepLibraryLoader:
         try:
             # TODO manage to check validity of the file
             eep_path = filepath or Path(__file__).parent.joinpath("EEP.xml")
+            if not eep_path.exists():
+                raise EEPLibraryInitError(f"EEP file not found at {eep_path}")
             self.logger.info(f"load EEP xml file: {eep_path}")
             self.profiles = self.load_xml(eep_path)
             self.logger.debug("EEP loaded")
@@ -635,13 +637,23 @@ class EepLibraryLoader:
 
 class EepLibrary:
     logger = logging.getLogger("enocean.protocol.eep")
+    _profiles = None
 
-    profiles = EepLibraryLoader().profiles
+    @classmethod
+    def _ensure_loaded(cls):
+        if cls._profiles is None:
+            cls._profiles = EepLibraryLoader().profiles
+
+    @property
+    def profiles(self):
+        self._ensure_loaded()
+        return self._profiles
 
     @classmethod
     def get_eep(cls, eep_rorg, rorg_func, rorg_type):
+        cls._ensure_loaded()
         try:
-            return cls.profiles[eep_rorg][rorg_func][rorg_type]
+            return cls._profiles[eep_rorg][rorg_func][rorg_type]
         except KeyError:
             cls.logger.warning(
                 f"Cannot find rorg {eep_rorg:X} func {rorg_func:X} type {rorg_type:X} in EEP"
@@ -651,7 +663,10 @@ class EepLibrary:
             )
         except Exception as e:
             cls.logger.exception(e)
+            raise NotImplementedError(
+                f"EEP {eep_rorg} func {rorg_func} type {rorg_type} is not supported"
+            )
 
     @classmethod
     def load_library(cls):
-        cls.profiles = EepLibraryLoader().profiles
+        cls._profiles = EepLibraryLoader().profiles

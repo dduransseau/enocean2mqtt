@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from utils import get_bits_from_bytearray, get_bits_from_byte
+from enocean.utils import get_bits_from_bytearray, get_bits_from_byte
 
 
 @dataclass
