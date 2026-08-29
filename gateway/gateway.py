@@ -82,6 +82,9 @@ class Gateway:
         self.detected_equipments = set()
         # Set self.equipments based on sensors present in config_manager
         self.setup_devices_list()
+        self._mqtt_connected = False
+        self._mqtt_disconnected_since = time.time()
+        self._mqtt_connect_fail_count = 0
 
         self.message_processed = 0
         self.message_sent = 0
@@ -111,6 +114,7 @@ class Gateway:
         self.mqtt_client.on_connect = self._on_connect
         self.mqtt_client.on_disconnect = self._on_disconnect
         self.mqtt_client.on_message = self._on_mqtt_message
+        self.mqtt_client.on_connect_fail = self._on_connect_fail
         if "mqtt_user" in self.conf:
             self.logger.info(f"authenticating: {self.conf['mqtt_user']}")
             self.mqtt_client.username_pw_set(
@@ -224,6 +228,8 @@ class Gateway:
         if reason_code != 0:
             self.logger.error(f"error connecting to MQTT broker: {reason_code}")
             return
+        self._mqtt_connected = True
+        self._mqtt_connect_fail_count = 0
         try:
             self.logger.info("successfully connected to MQTT broker.")
             self.logger.debug(f"subscribe to root req topic: {self.topic_prefix}req")
@@ -246,6 +252,13 @@ class Gateway:
                 self._publish_gateway_adapter_details()
         except Exception:
             self.logger.exception("Unhandled error while processing MQTT on_connect")
+
+    def _on_connect_fail(self, mqtt_client, userdata):
+        self._mqtt_connect_fail_count += 1
+        self.logger.warning(
+            f"MQTT connection attempt failed (attempt #{self._mqtt_connect_fail_count}), "
+            f"disconnected since {time.time() - self._mqtt_disconnected_since:.0f}s"
+        )
 
     def _subscribe_to_equipments_requests(self):
         with self._equipments_lock:
@@ -280,6 +293,8 @@ class Gateway:
 
     def _on_disconnect(self, mqtt_client, userdata, flags, reason_code, properties):
         # callback for when the client disconnects from the MQTT server.
+        self._mqtt_connected = False
+        self._mqtt_disconnected_since = time.time()
         if reason_code == 0:
             self.logger.info("successfully disconnected from MQTT broker")
         else:
