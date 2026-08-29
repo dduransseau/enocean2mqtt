@@ -12,7 +12,7 @@ class SerialController(BaseController):
 
     logger = logging.getLogger("enocean.controller.serial")
 
-    def __init__(self, port="/dev/ttyAMA0", baudrate=57600, timeout=0, **kwargs):
+    def __init__(self, port="/dev/ttyAMA0", baudrate=57600, timeout=0.1, **kwargs):
         super().__init__(**kwargs)
         # Initialize serial port
         self.__port = port
@@ -35,16 +35,20 @@ class SerialController(BaseController):
                     self.logger.debug(f"Sending: {packet}")
                     self.__ser.write(bytearray(packet.build()))
                 # Read chars from serial port as hex numbers
-                self._buffer.extend(self.__ser.read())
+                pending = self.__ser.in_waiting
+                data = self.__ser.read(pending if pending else 1)
+                if data:
+                    self._buffer.extend(data)
             except serial.SerialException:
                 self.logger.error(
                     f"Serial port exception! (device disconnected or multiple access on port {self.__ser.name} ?)"
                 )
                 self.stop()
+                continue
             try:
                 self.read()
             except FrameIncompleteError:
-                time.sleep(self._wait_time)
+                pass
 
         self.__ser.close()
         self.logger.info("SerialCommunicator stopped")
