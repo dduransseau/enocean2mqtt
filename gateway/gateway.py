@@ -542,6 +542,9 @@ class Gateway:
             #     continue
             key = getattr(prop, property_key)
             val = getattr(prop, value_key)
+            # Log if telegram have duplicate key, should not append and EEP must be fix in that case
+            if key in message_payload: 
+                self.logger.warning(f"Duplicate key '{key}' in EEP fields for {equipment.name}, overwriting previous value")
             message_payload[key] = val
             # Add unit of value fields
             if unit := prop.unit:

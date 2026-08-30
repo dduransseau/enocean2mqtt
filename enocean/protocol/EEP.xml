@@ -2141,8 +2141,6 @@
      </enum>
     </data>
    </profile>
-  </profiles>
-  <profiles func="0x14" description="Multi Func Sensor">
    <profile type="0x05" description="Vibration/Tilt, Supply Voltage monitor">
     <data>
      <value shortcut="SVC" description="Supply Voltage" offset="0" size="8" unit="V">
@@ -10028,7 +10026,7 @@
    </profile>
   </profiles>
  </telegram>
- <telegram rorg="0xD1047" type="MSC" description="MSC Telegram Deuta Control">
+ <telegram rorg="0xD1" manufacturer="0x047" type="MSC" description="MSC Telegram Deuta Control">
   <profiles func="0x07" description="Occupancy Sensor">
    <profile type="0x01" description="Occupancy with Supply voltage monitor">
     <data>

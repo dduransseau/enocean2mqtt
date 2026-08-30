@@ -11,7 +11,8 @@ class Equipment(EnoceanEquipment):
         address = kwargs["address"]
         rorg = int(kwargs.get("rorg"))
         func = int(kwargs.get("func"))
-        variant = int(kwargs.get("variant", 0)) or int(kwargs.get("type"))
+        variant = kwargs.get("variant")
+        variant = int(variant) if variant is not None else int(kwargs.get("type"))
         self.name = kwargs.get("name", str(address)) # Default set equipment address as name is none is set
         topic_prefix = kwargs.get("topic_prefix")
         if topic_prefix:

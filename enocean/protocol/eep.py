@@ -153,20 +153,22 @@ class DataValue(BaseDataElt):
 
     def __init__(self, elt):
         super().__init__(elt)
-        if r := elt.find("range"):
+        self.is_range = False
+        self.scale = False
+        if (r := elt.find("range")) is not None:
             self.is_range = True
             self.range_min = parse_number_value(r.find("min").text)
             self.range_max = parse_number_value(r.find("max").text)
-        if s := elt.find("scale"):
+        if (s := elt.find("scale")) is not None:
             self.scale = True
             self.scale_min = parse_number_value(s.find("min").text)
             self.scale_max = parse_number_value(s.find("max").text)
-        try:
-            self.multiplier = (self.scale_max - self.scale_min) / (
-                self.range_max - self.range_min
-            )
-        except Exception:
+        if self.is_range and self.scale:
+            self.multiplier = (self.scale_max - self.scale_min) / (self.range_max - self.range_min)
+        else:
             self.multiplier = 1
+            self.range_min = getattr(self, "range_min", 0)
+            self.scale_min = getattr(self, "scale_min", 0)
 
     def process_value(self, val):
         # p8 EEP profile documentation
@@ -269,33 +271,24 @@ class DataEnum(BaseDataElt):
     @property
     def first(self):
         # Find the first valid value of enum
-        if not self.__first:
-            min = 256
-            for i in self.items.keys():
-                if i < min:
-                    min = i
-            for i in self.range_items:
-                if i.start < min:
-                    min = i.start
-            self.__first = min
+        if self.__first is None:
+            candidates = list(self.items.keys()) + [r.start for r in self.range_items]
+            self.__first = min(candidates) if candidates else None
         return self.__first
 
     @property
     def last(self):
         # Find the last valid value of enum
-        if not self.__last:
-            max = 0
-            for i in self.items.values():
-                if i.value > max:
-                    max = i.value
-            for i in self.range_items:
-                if i.end > max:
-                    max = i.end
-            self.__last = max
+        if self.__last is None:
+            candidates = list(self.items.keys()) + [r.end for r in self.range_items]
+            self.__last = max(candidates) if candidates else None
         return self.__last
 
     def __len__(self):
-        return self.last - self.first
+        try:
+            return self.last - self.first
+        except TypeError:
+            return 0
 
     def get(self, val=None, description=None):
         # self.logger.debug(f"Get enum item for value {val} and/or description {description}")
@@ -618,21 +611,22 @@ class EepLibraryLoader:
     def load_xml(file_path):
         tree = ElementTree.parse(file_path)
         tree_root = tree.getroot()
-        # TODO: Use map() here
-        return {
-            from_hex_string(telegram.attrib["rorg"]): {
-                from_hex_string(function.attrib["func"]): {
-                    from_hex_string(profile.attrib["type"]): Profile(
-                        profile,
-                        rorg=from_hex_string(telegram.attrib["rorg"]),
-                        func=from_hex_string(function.attrib["func"]),
-                    )
-                    for profile in function.findall("profile")
-                }
-                for function in telegram.findall("profiles")
-            }
-            for telegram in tree_root.findall("telegram")
-        }
+        profiles = {}
+        for telegram in tree_root.findall("telegram"):
+            rorg = from_hex_string(telegram.attrib["rorg"])
+            rorg_dict = profiles.setdefault(rorg, {})
+            for function in telegram.findall("profiles"):
+                func = from_hex_string(function.attrib["func"])
+                func_dict = rorg_dict.setdefault(func, {})
+                for profile_elt in function.findall("profile"):
+                    type_ = from_hex_string(profile_elt.attrib["type"])
+                    if type_ in func_dict:
+                        logger.warning(
+                            f"Duplicate EEP profile rorg={rorg:X} func={func:X} "
+                            f"type={type_:X}, overwriting previous definition"
+                        )
+                    func_dict[type_] = Profile(profile_elt, rorg=rorg, func=func)
+        return profiles
 
 
 class EepLibrary:
