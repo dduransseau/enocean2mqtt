@@ -200,21 +200,12 @@ class BaseController(threading.Thread):
             # self.logger.warning(f"Check crc value for frame header for header={header} and crc={crc}")
             if crc8.calc(header) == received_crc_byte:
                 # Start of an ESP3 packet, get frame
-                # self.logger.warning("Header crc is valid !")
                 data_len = int.from_bytes(self._buffer[1:3])
                 opt_len = self._buffer[3]
                 # Calculate packet header(4)+crc (2*1) = 7
                 packet_len = 7 + data_len + opt_len
-                # self.logger.debug(
-                #     f"Packet {packet_type:0x} with data len {data_len} and optional len {opt_len} buffer len {len(self._buffer)}"
-                # )
                 if packet_len > len(self._buffer):
                     self.next_sync_byte = self.next_sync_byte + packet_len
-                    # self.logger.debug(
-                    #     f"Packet len {packet_len} is upper then buffer size={len(self._buffer)} "
-                    #     f"frame incomplete set sync byte after {self.next_sync_byte} "
-                    #     f"actual sync byte index={sync_byte_index}"
-                    # )
                     raise FrameIncompleteError
                 frame = self._buffer[0:packet_len]
                 self.next_sync_byte = 1

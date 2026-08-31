@@ -26,6 +26,29 @@ _LEARN_MODE_TYPE_LABELS = {
     3: "Not applicable",
 }
 
+_REQUEST_STATUS_UPDATE_LABELS = {
+    0: "EEP status",
+    1: "Energy status",
+    2: "Revision of device",
+    3: "RX channel quality",
+    4: "Energy delivery of the harvester",
+    5: "Date and Time",
+    6: "Request for secure setup",
+}
+
+_ENERGY_CHARGING_CAPABILITIES_LABELS = {
+    0: "very good",
+    1: "good",
+    2: "average",
+    3: "bad",
+    4: "very bad",
+}
+
+_DUTY_CYCLE_STATUS_LABELS = {
+    0: "TX Duty cycle limit exceeded",
+    1: "TX Duty cycle is available",
+}
+
 class SignalDecodeError(Exception):
     """Raised when a signal telegram cannot be decoded"""
 
@@ -46,15 +69,7 @@ class SignalDefinition:
 
 def _decode_request_status_update(payload):
     request_status_code = get_bits_from_bytearray(payload, 8, num_bits=8)
-    request_status = {
-        0: "EEP status",
-        1: "Energy status",
-        2: "Revision of device",
-        3: "RX channel quality",
-        4: "Energy delivery of the harvester",
-        5: "Date and Time",
-        6: "Request for secure setup",
-    }.get(request_status_code, "RESERVED")
+    request_status = _REQUEST_STATUS_UPDATE_LABELS.get(request_status_code, "RESERVED")
     return dict(request_status=request_status)
 
 def _decode_energy_status(payload):
@@ -95,21 +110,12 @@ def _decode_rx_channel_quality(payload):
 
 def _decode_duty_cycle_status(payload):
     status_flag_code = get_bits_from_bytearray(payload, 12, num_bits=4)
-    status_flag = {
-        0: "TX Duty cycle limit exceeded",
-        1: "TX Duty cycle is available",
-    }.get(status_flag_code, "reserved")
+    status_flag = _DUTY_CYCLE_STATUS_LABELS.get(status_flag_code, "RESERVED")
     return dict(status_flag=status_flag)
 
 def _decode_energy_delivery(payload):
     charging_capabilities_code = get_bits_from_bytearray(payload, 12, num_bits=4)
-    charging_capabilities = {
-        0: "very good",
-        1: "good",
-        2: "average",
-        3: "bad",
-        4: "very bad",
-    }.get(charging_capabilities_code, "reserved")
+    charging_capabilities = _ENERGY_CHARGING_CAPABILITIES_LABELS.get(charging_capabilities_code, "RESERVED")
     return dict(chargin_capabilities=charging_capabilities)
 
 
@@ -119,7 +125,7 @@ def _decode_backup_battery(payload):
         return dict(energy=f"{energy}%")
     elif energy == 255:
         return dict(energy="no backup battery")
-    return dict(energy="reserved")
+    return dict(energy="RESERVED")
 
 def _decode_learn_mode_status(payload):
     link_table_full = True if get_bits_from_bytearray(payload, 8, num_bits=1) else False
@@ -128,9 +134,9 @@ def _decode_learn_mode_status(payload):
         get_bits_from_bytearray(payload, 10, num_bits=2)
     )
     teach_result = _TEACH_RESULT_LABELS.get(
-        get_bits_from_bytearray(payload, 12, num_bits=4), "reserved"
+        get_bits_from_bytearray(payload, 12, num_bits=4), "RESERVED"
     )
-    
+
     remaining_timeout_raw = payload[2]  
     if remaining_timeout_raw == 0x00:
         remaining_timeout = "Not defined"
