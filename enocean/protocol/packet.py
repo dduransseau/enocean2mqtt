@@ -18,7 +18,7 @@ from .constants import (
     UteTeachInResponseRequestType,
     MANUFACTURER_CODE,
 )
-from .signal import SignalDefinitions
+from .signal import SignalMessage
 
 class FrameParserError(Exception):
     """ Base error class for parser exception"""
@@ -294,15 +294,21 @@ class RadioPacket(Packet):
             self.learn = False
         elif self.rorg == RORG.SIGNAL:
             # self.logger.warning(f"Received SIGNAL telegram: {self}")
-            res = SignalMessage.decode(self.data_payload)
-            self.logger.info(f"Received signal message with content {res}")
+            try:
+                res = SignalMessage.decode(self.data_payload)
+                self.logger.info(f"Received signal message with content {res}")
+            except NotImplementedError as e:
+                self.logger.warning(f"Received SIGNAL telegram with unimplemented MID {self.data_payload[0]}: {e}")
         elif self.rorg == RORG.MSC:
             # Get the ManId from the 11 bits after RORG of the telegram
             self.man_id = (((self.data[1] << 8) | self.data[2]) >> 5) & 0b11111111111
             self.logger.info(f"Received MSC telegram from {combine_hex(self.sender)} "
                              f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)}")
         else:
-            self.logger.info(f"Received a packet with an unsupported RORG {RORG(self.rorg)}")
+            try:
+                self.logger.info(f"Received a packet with an unsupported RORG: {RORG(self.rorg)}")
+            except ValueError:
+                self.logger.info(f"Received a packet with an unknown RORG: {self.rorg}")
         super().parse()
 
     def __get_command_id(self, profile):
@@ -334,18 +340,6 @@ class RadioPacket(Packet):
             return Packet.parse_frame(self.build())
         except (AttributeError, ValueError):
             raise FrameBuildError
-
-
-class SignalMessage:
-
-    @staticmethod
-    def decode(payload):
-        mid = payload[0]
-        try:
-            message_type = SignalDefinitions[mid]
-            return message_type.decode(payload)
-        except KeyError:
-            raise NotImplementedError(f"Signal type {mid} is not supported")
 
 
 class UTETeachInPacket(RadioPacket):
@@ -458,23 +452,6 @@ class EventPacket(Packet):
             return self.data[1:]
         except IndexError:
             return []
-
-class SignalTelegram:
-
-    def __init__(self, packet):
-        self.packet = packet
-        self.rorg = RORG.SIGNAL
-        self.mid = self.packet.data_payload[0]
-
-
-    def parse_message(self):
-        if self.mid == 0x06:
-            energy = self.packet.data_payload[1]
-        elif self.mid == 0x07:
-            sw_version = ".".join([str(b) for b in self.packet.data_payload[1:5]])  # get_bits_from_byte(self.packet.data_payload, 8, num_bits=32)
-            hw_version = ".".join([str(b) for b in self.packet.data_payload[5:9]])  # get_bits_from_byte(self.packet.data_payload, 40, num_bits=32)
-
-
 
 class ErpStatusByte:
 
