@@ -293,7 +293,7 @@ class RadioPacket(Packet):
         elif self.rorg == RORG.VLD or self.rorg == RORG.RPS:
             self.learn = False
         elif self.rorg == RORG.SIGNAL:
-            # self.logger.warning(f"Received SIGNAL telegram: {self}")
+            self.logger.debug(f"Received SIGNAL telegram: {self}")
             try:
                 res = SignalMessage.decode(self.data_payload)
                 self.logger.info(f"Received signal message with content {res}")
@@ -338,8 +338,10 @@ class RadioPacket(Packet):
         try:
             self.function_group.set_values(self, data)
             return Packet.parse_frame(self.build())
-        except (AttributeError, ValueError):
-            raise FrameBuildError
+        except AttributeError as e:
+            raise FrameBuildError(f"Missing attribute while building frame: {e}")
+        except ValueError as e:
+            raise FrameBuildError(e)
 
 
 class UTETeachInPacket(RadioPacket):

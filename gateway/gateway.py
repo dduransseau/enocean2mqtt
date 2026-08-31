@@ -36,11 +36,13 @@ class Gateway:
     """the main working class providing the MQTT interface to the enocean packet classes"""
 
     GATEWAY_TOPIC = "_gateway"
+    GATEWAY_ERROR_TOPIC = f"{GATEWAY_TOPIC}/error"
     TEACH_IN_TOPIC = f"{GATEWAY_TOPIC}/teach-in"
     ADAPTER_DETAILS_TOPIC = f"{GATEWAY_TOPIC}/adapter"
     GATEWAY_STATUS_TOPIC = f"{GATEWAY_TOPIC}/status"
     GATEWAY_EQUIPMENTS_TOPIC = f"{GATEWAY_TOPIC}/equipments"
     EQUIPMENT_REQUEST_TOPIC_SUFFIX = "/req"
+    EQUIPMENT_ERROR_TOPIC_SUFFIX = "/error"
     RSSI_TOPIC_KEY = "$rssi"
     LAST_SEEN_TOPIC_KEY = "$last_seen"
     REPEATER_TOPIC_KEY = "$repeated"
@@ -398,6 +400,11 @@ class Gateway:
                 self.logger.warning(
                     f"unable to get equipment topic={mqtt_topic} payload={mqtt_json_payload}"
                 )
+                self.mqtt_publish(
+                    f"{self.topic_prefix}{self.GATEWAY_ERROR_TOPIC}",
+                    {"error": "Unknown equipment", "topic": mqtt_topic, "payload": mqtt_json_payload},
+                    retain=False,
+                )
                 return None
         self.logger.debug(f"found {equipment} for message in topic {mqtt_topic}")
         # JSON payload shall be sent to '/req' topic
@@ -424,15 +431,19 @@ class Gateway:
                 )
             else:
                 self.logger.warning(
-                    f"command field {command_shortcut} must be set in MQTT message!"
+                    f"command field {command_shortcut} must be set in MQTT message"
+                )
+                self._publish_equipment_error(
+                    equipment, f"Missing required command field '{command_shortcut}'", payload
                 )
                 return
         try:
             self._send_packet_to_esp(equipment, data=payload, command=command_id)
-        except FrameBuildError:
+        except FrameBuildError as e:
             self.logger.warning(
-                f"unable to build packet for {equipment.address_label} with data {payload}"
+                f"unable to build packet for {equipment.address_label}, {e} with data {payload}"
             )
+            self._publish_equipment_error(equipment, str(e), payload)
 
     # =============================================================================================
     # ENOCEAN TO MQTT
@@ -471,6 +482,19 @@ class Gateway:
                 self.mqtt_publish(
                     f"{base_topic}/{field.shortcut}/$unit", field.unit, retain=retain
                 )
+    def _publish_equipment_error(self, equipment, message, payload=None):
+        """Publish equipment error message for invalid data"""
+        error_payload = {
+            "error": message,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        }
+        if payload is not None:
+            error_payload["payload"] = payload
+        self.mqtt_publish(
+            f"{equipment.topic}{self.EQUIPMENT_ERROR_TOPIC_SUFFIX}",
+            error_payload,
+            retain=False
+        )
 
     def _process_erp_packet(self, packet, equipment):
         """interpret radio packet, read properties and publish to MQTT"""

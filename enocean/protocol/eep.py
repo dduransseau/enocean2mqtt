@@ -318,13 +318,14 @@ class DataEnum(BaseDataElt):
     def set_value(self, val, bitarray):
         if isinstance(val, int):
             item = self.get(val)
-            value = val
         else:
             item = self.get(description=val)
-            value = item.value
-        if not item:
-            raise ValueError(f"Unable to find enum for {val}, might be out of Range")
-        self.logger.debug(f"Set value to {value}")
+        if item is None:
+            raise ValueError(
+                f"Invalid value {val!r} for field '{self.shortcut}' ({self.description}): "
+                f"not a recognized enum value or description"
+            )
+        value = val if isinstance(val, int) else item.value
         return self._set_raw(int(value), bitarray)
 
     def __str__(self) -> str:
