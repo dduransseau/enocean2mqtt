@@ -328,7 +328,7 @@ class Gateway:
 
     def _on_mqtt_message(self, mqtt_client, userdata, msg):
         # search for sensor
-        self.logger.info("received MQTT message: %s", msg.topic)
+        self.logger.debug("received MQTT message: %s", msg.topic)
         if msg.topic == f"{self.topic_prefix}learn":
             self.handle_learn_activation_request(msg)
         elif msg.topic == f"{self.topic_prefix}reload":
@@ -601,7 +601,7 @@ class Gateway:
     ):
         """triggers sending of an enocean packet"""
         # determine direction indicator
-        self.logger.info(f"send packet to device {equipment.name}")
+        self.logger.debug(f"send packet to device {equipment.name}")
         direction = equipment.direction
         if negate_direction:
             # we invert the direction in this reply

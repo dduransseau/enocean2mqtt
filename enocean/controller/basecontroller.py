@@ -256,7 +256,7 @@ class BaseController(threading.Thread):
             elif packet.packet_type == PacketType.RESPONSE and self.command_queue:
                 self.parse_common_command_response(packet)
             elif packet.packet_type == PacketType.RESPONSE:
-                self.logger.info(f"Received response packet: {packet}")
+                self.logger.debug(f"Received response packet: {packet}")
             elif packet.packet_type == PacketType.EVENT:
                 self.logger.warning(packet)
             else:
