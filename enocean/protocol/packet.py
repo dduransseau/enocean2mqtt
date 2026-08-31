@@ -136,7 +136,6 @@ class RadioPacket(Packet):
     def __init__(self, optional=None, function_group=None, direction=None, **kwargs):
         # If no optional data is passed on init, set default value for sending
         optional_data = optional or self.DEFAULT_OPTIONAL
-        # self._status = bytes(0)
         super().__init__(PacketType.RADIO_ERP1, optional=optional_data, **kwargs)
         # Default to learn == True, as some devices don't have a learn button
         self.learn = False

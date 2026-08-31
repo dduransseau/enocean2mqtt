@@ -47,6 +47,7 @@ class Gateway:
 
     # Use underscore so that it is unique and doesn't match a potential future EnOcean EEP field.
     TIMESTAMP_MESSAGE_KEY = "_timestamp"
+    REPEATED_MESSAGE_KEY = "_repeated"
     RSSI_MESSAGE_KEY = "_rssi"
     CHANNEL_MESSAGE_KEY = "_channel"
     RORG_MESSAGE_KEY = "_rorg"
@@ -158,6 +159,29 @@ class Gateway:
     def __del__(self):
         if self.controller is not None and self.controller.is_alive():
             self.controller.stop()
+
+    @staticmethod
+    def rssi_quality(dbm):
+        """
+        Based on example firmware EnOcean EO3100I (app_rssi.c) :
+        RADIO_TRHD_3=45, RADIO_TRHD_2=60, RADIO_TRHD_1=70, RADIO_TRHD_0=93
+        https://www.enocean.com/wp-content/uploads/redaktion/support/dolphin4-api/EO3100I_API_Documentation/app_rssi.html
+        return: str parmi "excellent", "good", "fair", "poor", "bad"
+        """
+        if dbm is None:
+            return None
+        magnitude = abs(dbm)
+
+        if magnitude < 45:
+            return "excellent"
+        elif magnitude < 60:
+            return "good"
+        elif magnitude < 70:
+            return "fair"
+        elif magnitude < 93:
+            return "poor"
+        else:
+            return "bad"
 
     @property
     def equipments_definition_list(self):
@@ -361,7 +385,6 @@ class Gateway:
 
     def _mqtt_message_json(self, mqtt_topic, mqtt_json_payload):
         # Handle received PUBLISH message from the MQTT server as a JSON payload.
-        # TODO: Define a elegant way to parse equipment topic and lookup on dict
         equipment = self.get_equipment_by_topic(mqtt_topic)
         # If the equipment is not specified in topic path, check if specified in payload
         if not equipment:
@@ -474,6 +497,8 @@ class Gateway:
                             channel = message_payload[self.CHANNEL_MESSAGE_KEY]
                         if equipment.publish_rssi:
                             self.mqtt_publish(f"{equipment.topic}/{self.RSSI_TOPIC_KEY}", packet.dBm)
+                            self.mqtt_publish(f"{equipment.topic}/{self.RSSI_TOPIC_KEY}/quality", self.rssi_quality(packet.dBm))
+                        message_payload[self.RSSI_MESSAGE_KEY] = packet.dBm
                         try:
                             # Debug purpose
                             # if equipment.last_seen:
@@ -488,7 +513,7 @@ class Gateway:
                             )
                         try:
                             equipment.repeated += packet.status.repeated
-                            message_payload["_repeated"] = packet.status.repeated
+                            message_payload[self.REPEATED_MESSAGE_KEY] = packet.status.repeated
                             self.mqtt_publish(
                                 f"{equipment.topic}/{self.REPEATER_TOPIC_KEY}", equipment.repeated
                             )

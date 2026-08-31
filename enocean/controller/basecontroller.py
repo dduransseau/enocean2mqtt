@@ -53,7 +53,6 @@ class BaseController(threading.Thread):
         # Internal variable for the Base ID of the module.
         self._base_id = None
         # Should new messages be learned automatically? Defaults to True.
-        # TODO: Not sure if we should use CO_WR_LEARNMODE??
         self.teach_in = teach_in
         self.set_timestamp = set_timestamp
         self.app_version = None
@@ -149,7 +148,6 @@ class BaseController(threading.Thread):
         )
 
     def send(self, packet):
-        # TODO: Evaluate this and raise Exception if relevant
         if not isinstance(packet, Packet):
             self.logger.error(f"Object to send must be an instance of Packet, received {type(packet)}")
             raise ValueError("Object to send must be an instance of Packet")
@@ -228,7 +226,6 @@ class BaseController(threading.Thread):
                 self._buffer = self._buffer[sync_byte_index:]
                 raise CrcMismatchError
             packet = Packet.parse_frame(frame)
-            # TODO: Check if this shouldn't happened after filter check
             if self.set_timestamp:
                 packet.timestamp = time.time()
             if packet.packet_type == PacketType.RADIO_ERP1:
@@ -293,7 +290,7 @@ class BaseController(threading.Thread):
     @property
     def __controller_info(self):
         return dict(
-            id=to_hex_string(self.chip_id),
+            EURID=to_hex_string(self.chip_id),
             frequency= self.frequency,
             protocol = self.protocol,
             app_version=self.app_version,
@@ -321,53 +318,27 @@ class BaseController(threading.Thread):
         for code in (
             CommandCode.CO_RD_VERSION,
             CommandCode.CO_GET_FREQUENCY_INFO,
-            CommandCode.CO_RD_IDBASE,
-            CommandCode.CO_GET_NOISETHRESHOLD,
-            CommandCode.CO_RD_REPEATER,
+            # CommandCode.CO_RD_IDBASE,
+            # CommandCode.CO_GET_NOISETHRESHOLD,
+            # CommandCode.CO_RD_REPEATER,
         ):
             self.send_common_command(code)
 
     def parse_common_command_response(self, packet):
-        command_id = self.command_queue.pop(0)
-        # self.logger.info(f"Get packet response for command {command_id} with data {packet.response_data}")
-        if command_id == CommandCode.CO_RD_VERSION:
-            self.app_version = ".".join([str(b) for b in packet.response_data[0:4]])
-            self.api_version = ".".join([str(b) for b in packet.response_data[4:8]])
-            self.chip_id = packet.response_data[8:12]
-            self._chip_version = ".".join([str(b) for b in packet.response_data[12:16]])
-            self.app_description = "".join(
-                [chr(c) for c in packet.response_data[16:] if c]
-            )
-            self.logger.debug(
-                f"Device info: app_version={self.app_version} api_version={self.api_version} "
-                f"chip_id={to_hex_string(self.chip_id)} chip_version={self._chip_version}"
-            )
-        elif command_id == CommandCode.CO_RD_IDBASE:
-            # Base ID is set in the response data.
-            self._base_id = packet.response_data
-            self.logger.debug(
-                f"Setup base ID as {to_hex_string(self._base_id)} remaining write {int(packet.optional[0])}"
-            )
-        elif command_id == CommandCode.CO_GET_FREQUENCY_INFO:
-            self.frequency = RESPONSE_FREQUENCY_FREQUENCY[packet.response_data[0]]
-            self.protocol = RESPONSE_FREQUENCY_PROTOCOL[packet.response_data[1]]
-            self.logger.info(
-                f"Controller info: work on frequency {self.frequency} with protocol {self.protocol}"
-            )
-        elif command_id == CommandCode.CO_RD_REPEATER:
-            self.repeater_mode = RESPONSE_REPEATER_MODE[packet.response_data[0]]
-            self.repeater_level = RESPONSE_REPEATER_LEVEL[packet.response_data[1]]
-            self.logger.info(
-                f"Controller info: repeater mode={self.repeater_mode} repeater level={self.repeater_level}"
-            )
-        elif command_id == CommandCode.CO_GET_NOISETHRESHOLD:
-            noise_threshold = int.from_bytes(packet.response_data[0:4])
-            self.logger.info(f"Controller info: noise threshold={noise_threshold}")
-        elif command_id == CommandCode.CO_RD_SYS_LOG:
-            self.logger.warning(
-                f"Controller log: {packet.response_data}\nOptional data: {packet.optional}"
-            )
-        else:
-            self.logger.debug(
-                f"Receive command response for command id {command_id} with content {packet.response_data}"
-            )
+        for index, command_id in enumerate(self.command_queue):
+            handler = self._response_handlers.get(command_id)
+            if handler is None:
+                self.logger.debug(f"Receive command response for command id {command_id} with content {packet.response_data}")
+                del self.command_queue[: index + 1]
+                return
+            try:
+                handler(packet)
+            except (ControllerResponseMismatch, IndexError, ValueError) as e:
+                self.logger.debug(f"Response does not match expected command {command_id}: {e}")
+                continue
+            else:
+                if index > 0:
+                    self.logger.warning(f"Resynchronized response queue, lost response for: {self.command_queue[:index]}")
+                del self.command_queue[: index + 1]
+                return
+        self.logger.warning(f"Unable to match RESPONSE to any pending command in queue: {self.command_queue}")
