@@ -256,7 +256,7 @@ class Gateway:
         self._mqtt_connected = True
         self._mqtt_connect_fail_count = 0
         try:
-            self.logger.info("successfully connected to MQTT broker.")
+            self.logger.info("Successfully connected to MQTT broker.")
             self.logger.debug(f"subscribe to root req topic: {self.topic_prefix}req")
             self.mqtt_subscribe(f"{self.topic_prefix}req")
             self.mqtt_subscribe(f"{self.topic_prefix}learn")

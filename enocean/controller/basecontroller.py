@@ -14,6 +14,7 @@ from enocean.protocol.constants import (
     RORG,
     CommandCode,
     Direction,
+    ReturnCode,
     RESPONSE_FREQUENCY_FREQUENCY,
     RESPONSE_FREQUENCY_PROTOCOL,
     RESPONSE_REPEATER_MODE,
@@ -36,6 +37,7 @@ class BaseController(threading.Thread):
 
     logger = logging.getLogger("enocean.controller")
     COMMAND_TIMEOUT = 1.0
+    SYNC_BYTE = b"\x55"
 
     def __init__(self, teach_in=True, set_timestamp=False):
         super().__init__()
@@ -69,12 +71,13 @@ class BaseController(threading.Thread):
         self._pending_commands_lock = threading.Lock()
         self._wait_time = 0.01
         self._response_handlers = {
-            CommandCode.CO_RD_VERSION: self._apply_version_response,
-            CommandCode.CO_RD_IDBASE: self._apply_idbase_response,
-            CommandCode.CO_GET_FREQUENCY_INFO: self._apply_frequency_response,
-            CommandCode.CO_RD_REPEATER: self._apply_repeater_response,
-            CommandCode.CO_GET_NOISETHRESHOLD: self._apply_noise_threshold_response,
-            CommandCode.CO_RD_SYS_LOG: self._apply_syslog_response,
+            CommandCode.CO_RD_VERSION: self._parse_version_response,
+            CommandCode.CO_RD_IDBASE: self._parse_idbase_response,
+            CommandCode.CO_GET_FREQUENCY_INFO: self._parse_frequency_response,
+            CommandCode.CO_RD_REPEATER: self._parse_repeater_response,
+            CommandCode.CO_GET_NOISETHRESHOLD: self._parse_noise_threshold_response,
+            CommandCode.CO_RD_SYS_LOG: self._parse_syslog_response,
+            CommandCode.CO_GET_STEPCODE: self._parse_stepcode_response,
         }
 
     @property
@@ -84,21 +87,22 @@ class BaseController(threading.Thread):
         # return self.base_id
         return self.chip_id
 
-    def _apply_version_response(self, packet):
+    def _parse_version_response(self, packet):
         response_data = packet.response_data
         if len(response_data) < 20:
             raise ControllerResponseMismatch("CO_RD_VERSION: unexpected response length")
         self.app_version = ".".join([str(b) for b in response_data[0:4]])
         self.api_version = ".".join([str(b) for b in response_data[4:8]])
         self.chip_id = response_data[8:12]
-        self._chip_version = ".".join([str(b) for b in response_data[12:16]])
+        self._chip_version = response_data[12:16]
+        # self._chip_version = ".".join([str(b) for b in response_data[12:16]])
         self.app_description = "".join([chr(c) for c in response_data[16:] if c])
         self.logger.debug(
             f"Device info: app_version={self.app_version} api_version={self.api_version} "
-            f"chip_id={to_hex_string(self.chip_id)} chip_version={self._chip_version}"
+            f"chip_id={to_hex_string(self.chip_id)} chip_version={to_hex_string(self._chip_version)}"
         )
 
-    def _apply_idbase_response(self, packet):
+    def _parse_idbase_response(self, packet):
         response_data = packet.response_data
         if len(response_data) < 4:
             raise ControllerResponseMismatch("CO_RD_IDBASE: unexpected response length")
@@ -107,7 +111,7 @@ class BaseController(threading.Thread):
             f"Setup base ID as {to_hex_string(self._base_id)} remaining write {int(packet.optional[0])}"
         )
 
-    def _apply_frequency_response(self, packet):
+    def _parse_frequency_response(self, packet):
         response_data = packet.response_data
         if len(response_data) < 2:
             raise ControllerResponseMismatch("CO_GET_FREQUENCY_INFO: unexpected response length")
@@ -121,7 +125,7 @@ class BaseController(threading.Thread):
             f"Controller info: work on frequency {self.frequency} with protocol {self.protocol}"
         )
 
-    def _apply_repeater_response(self, packet):
+    def _parse_repeater_response(self, packet):
         response_data = packet.response_data
         if len(response_data) < 2:
             raise ControllerResponseMismatch("CO_RD_REPEATER: unexpected response length")
@@ -135,16 +139,23 @@ class BaseController(threading.Thread):
             f"Controller info: repeater mode={self.repeater_mode} repeater level={self.repeater_level}"
         )
 
-    def _apply_noise_threshold_response(self, packet):
+    def _parse_noise_threshold_response(self, packet):
         response_data = packet.response_data
         if len(response_data) < 4:
             raise ControllerResponseMismatch("CO_GET_NOISETHRESHOLD: unexpected response length")
         noise_threshold = int.from_bytes(response_data[0:4])
         self.logger.info(f"Controller info: noise threshold={noise_threshold}")
 
-    def _apply_syslog_response(self, packet):
+    def _parse_syslog_response(self, packet):
         self.logger.warning(
             f"Controller log: {packet.response_data}\nOptional data: {packet.optional}"
+        )
+
+    def _parse_stepcode_response(self, packet):
+        step_code = hex(packet.response_data[0])
+        revision = hex(packet.response_data[1])
+        self.logger.info(
+            f"Controller stepcode: {step_code} revision: {revision}\nOptional data: {packet.optional}"
         )
 
     def send(self, packet):
@@ -154,18 +165,14 @@ class BaseController(threading.Thread):
         self.transmit.put(packet)
         return True
 
-    def send_common_command(self, code):
+    def send_common_command(self, code, data=None, optional_data=None):
         with self._pending_commands_lock:
             self._pending_commands[code] = time.time()
-        self.send(Packet(PacketType.COMMON_COMMAND, data=[code]))
+        data = [code] + data if data is not None else [code]
+        self.send(Packet(PacketType.COMMON_COMMAND, data=data, optional=optional_data))
         self.command_queue.append(code)
 
     def _request_and_wait(self, code, attr_name, timeout=None):
-        """
-        Envoie `code` seulement si aucune requête récente et toujours en attente
-        n'a déjà été envoyée, puis attend que `attr_name` soit renseigné.
-        Retourne True si la réponse est arrivée avant le timeout, False sinon.
-        """
         timeout = timeout if timeout is not None else self.COMMAND_TIMEOUT
         now = time.time()
         with self._pending_commands_lock:
@@ -192,7 +199,7 @@ class BaseController(threading.Thread):
         """Parses messages and puts them to receive queue"""
         try:
             # Look for next frame Sync Byte
-            sync_byte_index = self._buffer.find(b"\x55", self.next_sync_byte)
+            sync_byte_index = self._buffer.find(self.SYNC_BYTE, self.next_sync_byte)
             header = self._buffer[1:5]
             received_crc_byte = self._buffer[5]
             # self.logger.warning(f"Check crc value for frame header for header={header} and crc={crc}")
@@ -256,7 +263,7 @@ class BaseController(threading.Thread):
             elif packet.packet_type == PacketType.RESPONSE:
                 self.logger.debug(f"Received response packet: {packet}")
             elif packet.packet_type == PacketType.EVENT:
-                self.logger.warning(packet)
+                self.logger.info(f"Received EVENT packet: {packet}")
             else:
                 self.logger.info(f"Received packet type {packet.packet_type} {PacketType(packet.packet_type)}")
         except (ValueError, IndexError):
@@ -275,6 +282,11 @@ class BaseController(threading.Thread):
         if not self._request_and_wait(CommandCode.CO_RD_IDBASE, "_base_id"):
             raise ControllerTimeoutError("No response to CO_RD_IDBASE within timeout")
         return self._base_id
+
+    @base_id.setter
+    def base_id(self, base_id):
+        """Sets the Base ID manually, only for testing purposes."""
+        self._base_id = base_id
 
     @property
     def __controller_info(self):
@@ -297,11 +309,6 @@ class BaseController(threading.Thread):
             self.logger.warning("Controller info incomplete: frequency not received")
         return self.__controller_info
 
-    @base_id.setter
-    def base_id(self, base_id):
-        """Sets the Base ID manually, only for testing purposes."""
-        self._base_id = base_id
-
     def init_adapter(self):
         self.logger.info("Initializing EnOcean adapter")
         for code in (
@@ -310,24 +317,36 @@ class BaseController(threading.Thread):
             # CommandCode.CO_RD_IDBASE,
             # CommandCode.CO_GET_NOISETHRESHOLD,
             # CommandCode.CO_RD_REPEATER,
+            # CommandCode.CO_GET_STEPCODE,
         ):
             self.send_common_command(code)
 
     def parse_common_command_response(self, packet):
         for index, command_id in enumerate(self.command_queue):
-            handler = self._response_handlers.get(command_id)
-            if handler is None:
-                self.logger.debug(f"Receive command response for command id {command_id} with content {packet.response_data}")
+            if packet.return_code == ReturnCode.NOT_SUPPORTED:
+                self.logger.warning(
+                    f"Received Not Supported response for command {hex(command_id)}"
+                )
                 del self.command_queue[: index + 1]
                 return
-            try:
-                handler(packet)
-            except (ControllerResponseMismatch, IndexError, ValueError) as e:
-                self.logger.debug(f"Response does not match expected command {command_id}: {e}")
-                continue
+            elif packet.return_code == ReturnCode.OK:
+                handler = self._response_handlers.get(command_id)
+                if handler is None:
+                    self.logger.debug(f"Receive command response for command id {hex(command_id)} with content {packet.response_data}")
+                    del self.command_queue[: index + 1]
+                    return
+                try:
+                    handler(packet)
+                except (ControllerResponseMismatch, IndexError, ValueError) as e:
+                    self.logger.debug(f"Response does not match expected command {hex(command_id)}: {e}")
+                    continue
+                else:
+                    if index > 0:
+                        self.logger.warning(f"Resynchronized response queue, lost response for: {self.command_queue[:index]}")
+                    del self.command_queue[: index + 1]
+                    return
             else:
-                if index > 0:
-                    self.logger.warning(f"Resynchronized response queue, lost response for: {self.command_queue[:index]}")
+                self.logger.warning(f"Received error response for command {hex(command_id)}: {packet.return_code}")
                 del self.command_queue[: index + 1]
                 return
         self.logger.warning(f"Unable to match RESPONSE to any pending command in queue: {self.command_queue}")
