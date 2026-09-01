@@ -156,6 +156,9 @@ class Gateway:
             self.conf["mqtt_host"], port=mqtt_port, keepalive=mqtt_keepalive
         )
         self.mqtt_client.loop_start()
+        self.controller.init_adapter()
+        # self.controller.enable_repeater(enable=True, level=1)
+        # self.controller.disable_repeater()
 
     def __del__(self):
         if self.controller is not None and self.controller.is_alive():
@@ -301,8 +304,7 @@ class Gateway:
 
     def _publish_gateway_adapter_details(self):
         # Wait that enocean communicator is initialized before publishing teach in mode
-        self.logger.info("Initializing EnOcean adapter and publish to MQTT")
-        self.controller.init_adapter()
+        self.logger.info("Publish gateway details to MQTT")
         try:
             teach_in = "ON" if self.controller.teach_in else "OFF"
             self.mqtt_publish(

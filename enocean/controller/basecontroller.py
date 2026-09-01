@@ -168,7 +168,7 @@ class BaseController(threading.Thread):
     def send_common_command(self, code, data=None, optional_data=None):
         with self._pending_commands_lock:
             self._pending_commands[code] = time.time()
-        data = [code] + data if data is not None else [code]
+        data = bytes([code]) + data if data is not None else bytes([code])
         self.send(Packet(PacketType.COMMON_COMMAND, data=data, optional=optional_data))
         self.command_queue.append(code)
 
@@ -310,7 +310,7 @@ class BaseController(threading.Thread):
         return self.__controller_info
 
     def init_adapter(self):
-        self.logger.info("Initializing EnOcean adapter")
+        self.logger.info("Retrieving EnOcean adapter information")
         for code in (
             CommandCode.CO_RD_VERSION,
             CommandCode.CO_GET_FREQUENCY_INFO,
@@ -320,6 +320,25 @@ class BaseController(threading.Thread):
             # CommandCode.CO_GET_STEPCODE,
         ):
             self.send_common_command(code)
+
+    def enable_repeater(self, enable=True, level=1):
+        """Enable or disable repeater mode on the EnOcean adapter."""
+        if enable and (0 < level <= 2):
+            self.logger.info(f"Enabling repeater mode with level {level}.")
+            data = bytes([1, level])
+        elif not enable:
+            self.logger.info("Disabling repeater mode.")
+            data = bytes([0, 0])
+        else:
+            self.logger.warning(f"Invalid repeater level {level}. Must be 1 or 2 when enabling, or 0 when disabling. Defaulting to level 1.")
+            data = bytes([1, 1])
+        self.send_common_command(CommandCode.CO_WR_REPEATER, data=data)
+        self.logger.debug(f"Sent command to {'enable' if enable else 'disable'} repeater mode.")
+        self.send_common_command(CommandCode.CO_RD_REPEATER)
+
+    def disable_repeater(self):
+        """Disable repeater mode on the EnOcean adapter."""
+        self.enable_repeater(enable=False)
 
     def parse_common_command_response(self, packet):
         for index, command_id in enumerate(self.command_queue):
