@@ -7,7 +7,7 @@ Configuration should be set into two files (`gateway.conf` and `equipments.conf`
 See configuration sample to see available parameters.
 
 Teach-in can be enabled/disabled by sending "ON"/"OFF" to `<gateway_topic>/learn`
-Send enocean command by publishing MQTT json command to `<gateway_topic>/<equipment_name>/req` or `<gateway_topic>/req` with <equipment_name> in the json payload.
+Send enocean command by publishing MQTT json command to `<gateway_topic>/<equipment_name>/req`.
 Command payload must be in format `{"<shortcut>": <value>}` ex: `{"CMD": 8, "PM": 2}`
 
 Based on work of [kipe](https://github.com/kipe/enocean), [embyt](https://github.com/embyt/enocean-mqtt), [mak-gitdev](https://github.com/mak-gitdev/enocean).
@@ -22,6 +22,7 @@ Based on work of [kipe](https://github.com/kipe/enocean), [embyt](https://github
 - Map unit to metrics
 - Compatibility with paho-mqtt>=2.0
 - Added equipment definition to facilitate EEP parsing 
-- Remove usage of bit list() (`_bitarray`), replaced by direct bytearray() manipulation, improve speed and drastically memory consumption
-- Publish technical metrics (rssi, last_seen, repeater)
+- Remove usage of bit list() (`_bitarray`), replaced by direct [bytearray()](https://docs.python.org/3/library/stdtypes.html#bytearray) manipulation, improve speed and reduce memory consumption
+- Publish technical metrics (rssi, last_seen, repeated)
+- [Signal telegram](https://www.enocean-alliance.org/wp-content/uploads/Signal-Telegram-V3.6.pdf) support
 
