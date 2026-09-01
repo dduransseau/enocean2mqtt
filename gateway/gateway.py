@@ -5,7 +5,6 @@ import time
 import logging
 import queue
 import json
-import platform
 import threading
 
 from enum import StrEnum, auto
@@ -771,11 +770,7 @@ class Gateway:
             # Loop to empty the queue...
             try:
                 # get next packet
-                if platform.system() == "Windows":
-                    # only timeout on Windows for KeyboardInterrupt checking
-                    packet = self.controller.receive.get(block=True, timeout=1)
-                else:
-                    packet = self.controller.receive.get(block=True)
+                packet = self.controller.receive.get(block=True, timeout=1)
                 # check packet type
                 if packet.packet_type == PacketType.RADIO_ERP1:
                     self._handle_erp_packet(packet)
@@ -791,7 +786,7 @@ class Gateway:
                     self.logger.warning(f"Received EVENT packet {packet}")
                 else:
                     self.logger.info(
-                        f"got unsupported packet: type={packet.packet_type} {packet}"
+                        f"received unsupported packet: type={packet.packet_type} {packet}"
                     )
                     continue
             except queue.Empty:
@@ -808,6 +803,5 @@ class Gateway:
         self.logger.info(
             f"Close the enocean controller, get {self.controller.crc_errors} crc errors during run"
         )
-        self.logger.debug("Cleaning up")
         self.controller.stop()
         self._cleanup_mqtt()

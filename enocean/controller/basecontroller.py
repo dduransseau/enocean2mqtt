@@ -190,8 +190,6 @@ class BaseController(threading.Thread):
 
     def read(self):
         """Parses messages and puts them to receive queue"""
-        # Loop while we get new messages
-        # while True:
         try:
             # Look for next frame Sync Byte
             sync_byte_index = self._buffer.find(b"\x55", self.next_sync_byte)
