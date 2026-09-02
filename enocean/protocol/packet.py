@@ -159,6 +159,7 @@ class RadioPacket(Packet):
                         destination=None,
                         sender=None,
                         learn_data=None,
+                        default_data=None,
                         **kwargs,
                         ):
         Packet.logger.debug(f"Create packet for equipment profile {equipment.profile}")
@@ -173,9 +174,10 @@ class RadioPacket(Packet):
             else:
                 destination = cls.DEFAULT_ADDRESS
                 Packet.logger.warning("Replacing destination with broadcast address.")
-        else:
-            Packet.validate_address(destination)
-        Packet.validate_address(sender)
+        elif not Packet.validate_address(destination):
+            raise ValueError(f"Invalid destination address: {destination!r}")
+        if sender is None or (sender is not None and not Packet.validate_address(sender)):
+            raise ValueError(f"Invalid sender address: {sender!r}")
 
         data = bytearray([equipment.rorg])
         function_group = equipment.profile.get_telegram_form(command=command, direction=direction)
@@ -201,6 +203,9 @@ class RadioPacket(Packet):
             packet.data[1:5] = learn_data[1:5]
             # update flags to acknowledge learn request
             packet.data[4] = 0xF0
+        elif default_data:
+            # Initialize packet with default_data if specified
+            packet.data[1:5] = address_to_bytes_list(default_data)
 
         Packet.logger.debug(f"Packet data length {len(packet.data)} after set_eep")
         # packet.parse() # TODO: parse() should be called after the packet is built, not before
@@ -332,9 +337,6 @@ class RadioPacket(Packet):
 
     def parse_telegram(self, equipment, process_metrics=True):
         """Parse EEP based on FUNC and TYPE"""
-        # set latest rssi value in equipment
-        equipment.rssi = self.dBm
-        equipment.last_seen = self.timestamp
         if self.rorg == equipment.rorg:
             # Get the command id based on profile
             command_id = self.__get_command_id(equipment.profile)

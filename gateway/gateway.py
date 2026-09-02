@@ -505,6 +505,9 @@ class Gateway:
                 radio_telegram = packet.parse_telegram(
                     equipment, process_metrics=self.process_metrics
                 )
+                # set latest rssi value in equipment
+                equipment.rssi = radio_telegram.dBm
+                equipment.last_seen = radio_telegram.timestamp
                 if packet.is_eep:
                     if not radio_telegram:
                         self.logger.warning(
@@ -649,31 +652,24 @@ class Gateway:
                 command=command,
                 sender=sender,
                 learn_data=learn_data,
+                default_data=equipment.default_data,
             )
             self.logger.debug(f"packet built: {packet.data}")
         except (ValueError, NotImplementedError) as err:
             self.logger.error(f"cannot prepare radio packet: {err}")
             return
 
-        if learn_data is None: # if yes, already prepared in prepare_telegram
-            # Initialize packet with default_data if specified
-            if equipment.default_data:
-                packet.data[1:5] = [
-                    (equipment.default_data >> i * 8) & 0xFF for i in reversed(range(4))
-                ]
-            if data:
-                try:
-                    # override with specific data settings
-                    self.logger.debug(f"packet with telegram {packet.function_group}")
-                    packet.set_telegram_data(data)
-                except FrameBuildError:
-                    # self.logger.warning(f"unable to build packet")
-                    raise
-            else:
-                # what to do if we have no data to send yet?
-                self.logger.warning(
-                    f"sending only default data as answer to {equipment.name}"
-                )
+        if learn_data is None and data: # if yes, already prepared in prepare_telegram
+            try:
+                # override with specific data settings
+                self.logger.debug(f"packet with telegram {packet.function_group}")
+                packet.set_telegram_data(data)
+            except FrameBuildError:
+                # self.logger.warning(f"unable to build packet")
+                raise
+        elif learn_data is None:
+            # what to do if we have no data to send yet?
+            self.logger.warning(f"sending only default data as answer to {equipment.name}")
         self.controller.send(packet)
 
     def register_new_equipments(self, publish=True):
