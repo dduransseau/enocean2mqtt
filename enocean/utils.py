@@ -118,3 +118,25 @@ def from_hex_string(hex_string):
 
 def address_to_bytes_list(a):
     return [(a >> i * 8) & 0xFF for i in reversed(range(4))]
+
+def rssi_quality(dbm):
+    """
+    Based on example firmware EnOcean EO3100I (app_rssi.c) :
+    RADIO_TRHD_3=45, RADIO_TRHD_2=60, RADIO_TRHD_1=70, RADIO_TRHD_0=93
+    https://www.enocean.com/wp-content/uploads/redaktion/support/dolphin4-api/EO3100I_API_Documentation/app_rssi.html
+    return: str within "excellent", "good", "fair", "poor", "bad"
+    """
+    if dbm is None:
+        return None
+    magnitude = abs(dbm)
+
+    if magnitude < 45:
+        return "excellent"
+    elif magnitude < 60:
+        return "good"
+    elif magnitude < 70:
+        return "fair"
+    elif magnitude < 93:
+        return "poor"
+    else:
+        return "bad"

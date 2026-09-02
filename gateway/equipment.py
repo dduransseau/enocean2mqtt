@@ -26,6 +26,9 @@ class Equipment(EnoceanEquipment):
         self.publish_rssi = self.get_config_boolean(
             kwargs, "publish_rssi", default=True
         )
+        self.publish_rssi_quality = self.get_config_boolean(
+            kwargs, "publish_rssi_quality", default=False
+        )
         self.use_key_shortcut = self.get_config_boolean(
             kwargs, "use_key_shortcut", default=False
         )

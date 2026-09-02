@@ -5,7 +5,7 @@ from enocean.protocol.eep import EepLibrary
 from enocean.utils import to_hex_string
 
 
-class Equipment(object):
+class Equipment:
     """Representation of device/sensor as EnOcean use the term Equipment"""
 
     eep = EepLibrary()
@@ -17,6 +17,11 @@ class Equipment(object):
         self.func = func
         self.variant = variant
         self.profile = self.eep.get_eep(rorg, func, variant)
+
+    # For test purposes, allow to modify an equipment profile
+    # @property
+    # def profile(self):
+    #     return self.eep.get_eep(self.rorg, self.func, self.variant)
 
     @property
     def description(self):

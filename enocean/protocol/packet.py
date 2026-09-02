@@ -47,8 +47,10 @@ class Packet:
         self.data = data or bytearray()
         self.optional = optional or bytearray()
 
-    def __str__(self):
-        return f"{PacketType(self.packet_type).name} {bytes(self.data)} {bytes(self.optional)}"
+    def __str__(self): # DEBUG: print data and optional in hex format
+        data_dec = [hex(x) for x in self.data]
+        optional_dec = [hex(x) for x in self.optional]
+        return f"{PacketType(self.packet_type).name} data={data_dec} optional={optional_dec}"
 
     @staticmethod
     def parse_frame(frame):
@@ -150,7 +152,7 @@ class RadioPacket(Packet):
                 f"({self.dBm} dBm): {packet_str} status:{self.status}")
 
     @classmethod
-    def create_telegram(cls,
+    def prepare_telegram(cls,
                         equipment,
                         direction=None,
                         command=None,
@@ -192,7 +194,7 @@ class RadioPacket(Packet):
         packet.destination = destination
         packet.direction = Direction.TO
         Packet.logger.debug(f"Packet data length {len(packet.data)} after set_eep")
-        packet.parse()
+        # packet.parse() # TODO: parse() should be called after the packet is built, not before
         return packet
 
     @property
@@ -286,29 +288,30 @@ class RadioPacket(Packet):
                     variant = ((self.data[1] << 8) | self.data[2]) >> 3 & 0b1111111
                     self.man_id = ((self.data[2] << 8) | self.data[3]) & 0b11111111111
                     self.logger.info(
-                        f"Received BS4 learn packet from {combine_hex(self.sender)} "
+                        f"Parse BS4 learn packet from {combine_hex(self.sender)} "
                         f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)} "
                         f"EEP={self.rorg:X}-{func:X}-{variant:X}"
                     )
         elif self.rorg == RORG.VLD or self.rorg == RORG.RPS:
             self.learn = False
         elif self.rorg == RORG.SIGNAL:
-            self.logger.debug(f"Received SIGNAL telegram: {self}")
+            self.logger.debug(f"Parse SIGNAL telegram: {self}")
             try:
                 res = SignalMessage.decode(self.data_payload)
-                self.logger.info(f"Received signal message with content {res}")
+                self.logger.info(f"Parse signal message with content {res}")
             except NotImplementedError as e:
-                self.logger.warning(f"Received SIGNAL telegram with unimplemented MID {self.data_payload[0]}: {e}")
+                self.logger.warning(f"Parse SIGNAL telegram with unimplemented MID {self.data_payload[0]}: {e}")
         elif self.rorg == RORG.MSC:
             # Get the ManId from the 11 bits after RORG of the telegram
-            self.man_id = (((self.data[1] << 8) | self.data[2]) >> 5) & 0b11111111111
-            self.logger.info(f"Received MSC telegram from {combine_hex(self.sender)} "
+            self.man_id = ((self.data[1] << 8) | self.data[2]) & 0b11111111111
+            self.logger.info(f"Parse MSC telegram from {combine_hex(self.sender)} "
                              f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)}")
+            # print(self) # debug purposes
         else:
             try:
-                self.logger.info(f"Received a packet with an unsupported RORG: {RORG(self.rorg)}")
+                self.logger.info(f"Parse packet with an unsupported RORG: {RORG(self.rorg)}")
             except ValueError:
-                self.logger.info(f"Received a packet with an unknown RORG: {self.rorg}")
+                self.logger.warning(f"Parse packet with an unknown RORG: {self.rorg}")
         super().parse()
 
     def __get_command_id(self, profile):
@@ -323,13 +326,15 @@ class RadioPacket(Packet):
         # set latest rssi value in equipment
         equipment.rssi = self.dBm
         equipment.last_seen = self.timestamp
-        if self.rorg != RORG.SIGNAL:
+        if self.rorg == equipment.rorg:
             # Get the command id based on profile
             command_id = self.__get_command_id(equipment.profile)
             telegram_form = equipment.profile.get_telegram_form(command=command_id, direction=self.direction)
             values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics)
             self.logger.debug(f"Parsed data values {values}")
-        else:
+        elif self.rorg == RORG.MSC:
+            self.logger.warning(f"Received MSC telegram for equipment {equipment.address_label} with profile {equipment.profile}")
+        elif self.rorg == RORG.SIGNAL:
             res = SignalMessage.decode(self.data_payload)
             values = res.fields
         return values

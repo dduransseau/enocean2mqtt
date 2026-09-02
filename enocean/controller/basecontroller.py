@@ -78,6 +78,7 @@ class BaseController(threading.Thread):
             CommandCode.CO_GET_NOISETHRESHOLD: self._parse_noise_threshold_response,
             CommandCode.CO_RD_SYS_LOG: self._parse_syslog_response,
             CommandCode.CO_GET_STEPCODE: self._parse_stepcode_response,
+            CommandCode.CO_WR_BIST: self._parse_builtin_sef_test_response,
         }
 
     @property
@@ -147,16 +148,29 @@ class BaseController(threading.Thread):
         self.logger.info(f"Controller info: noise threshold={noise_threshold}")
 
     def _parse_syslog_response(self, packet):
-        self.logger.warning(
+        self.logger.info(
             f"Controller log: {packet.response_data}\nOptional data: {packet.optional}"
         )
 
     def _parse_stepcode_response(self, packet):
-        step_code = hex(packet.response_data[0])
-        revision = hex(packet.response_data[1])
+        response_data = packet.response_data
+        if len(response_data) < 2:
+            raise ControllerResponseMismatch("CO_GET_STEPCODE: unexpected response length")
+        step_code = hex(response_data[0])
+        revision = hex(response_data[1])
         self.logger.info(
             f"Controller stepcode: {step_code} revision: {revision}\nOptional data: {packet.optional}"
         )
+
+    def _parse_builtin_sef_test_response(self, packet):
+        response_data = packet.response_data
+        if len(response_data) < 1:
+            raise ControllerResponseMismatch("CO_WR_BIST: unexpected response length")
+        test_result = response_data[0]
+        if test_result == 0:
+            self.logger.info("Built-in self-test passed successfully.")
+        else:
+            self.logger.error(f"Built-in self-test failed with error code: {test_result}")
 
     def send(self, packet):
         if not isinstance(packet, Packet):
@@ -335,6 +349,22 @@ class BaseController(threading.Thread):
         self.send_common_command(CommandCode.CO_WR_REPEATER, data=data)
         self.logger.debug(f"Sent command to {'enable' if enable else 'disable'} repeater mode.")
         self.send_common_command(CommandCode.CO_RD_REPEATER)
+
+    def perform_builtin_self_test(self):
+        """Perform a built-in self-test on the EnOcean adapter."""
+        self.logger.info("Performing built-in self-test.")
+        self.send_common_command(CommandCode.CO_WR_BIST)
+
+    def get_controller_logs(self):
+        """Retrieve logs from the EnOcean controller."""
+        self.logger.info("Retrieving controller logs.")
+        self.send_common_command(CommandCode.CO_RD_SYS_LOG)
+
+    def perform_controller_reset(self, parameters=False):
+        """Perform a reset on the EnOcean controller."""
+        self.logger.info("Performing controller reset.")
+        optional_data = bytes([1]) if parameters else bytes([0])
+        self.send_common_command(CommandCode.CO_WR_RESET, data=optional_data)
 
     def disable_repeater(self):
         """Disable repeater mode on the EnOcean adapter."""
