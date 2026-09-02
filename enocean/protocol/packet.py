@@ -158,12 +158,14 @@ class RadioPacket(Packet):
                         command=None,
                         destination=None,
                         sender=None,
-                        learn=False,
+                        learn_data=None,
                         **kwargs,
                         ):
         Packet.logger.debug(f"Create packet for equipment profile {equipment.profile}")
         if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD, RORG.MSC]:
             raise NotImplementedError("RORG not supported by this function.")
+        
+        is_learn = learn_data is not None
 
         if destination is None:
             if equipment.address:
@@ -181,18 +183,25 @@ class RadioPacket(Packet):
         # Initialize data depending on the profile.
         # set learn bit of 1BS or 4BS to 1 if not learn
         if equipment.rorg in [RORG.RPS, RORG.BS1]:
-            data.extend([0 if learn else 0 | 1 << 3])
+            data.extend([0 if is_learn else 0 | 1 << 3])
         elif equipment.rorg == RORG.BS4:
-            data.extend([0, 0, 0, 0 if learn else 0 | 1 << 3])
+            data.extend([0, 0, 0, 0 if is_learn else 0 | 1 << 3])
         else:  # For VLD extend the data variable len
             # Packet.logger.debug(f"Extend the size of packet by {packet.telegram.data_length} bits")
             data.extend(bytearray(1) * function_group.data_length)
         data.extend(sender)
         data.append(0)  # Add status byte
-        Packet.logger.debug(f"Data length {len(data)}")
         packet = RadioPacket(data=data, function_group=function_group)
         packet.destination = destination
         packet.direction = Direction.TO
+
+        if is_learn:
+            # learn request received
+            # copy EEP and manufacturer ID
+            packet.data[1:5] = learn_data[1:5]
+            # update flags to acknowledge learn request
+            packet.data[4] = 0xF0
+
         Packet.logger.debug(f"Packet data length {len(packet.data)} after set_eep")
         # packet.parse() # TODO: parse() should be called after the packet is built, not before
         return packet
@@ -339,10 +348,10 @@ class RadioPacket(Packet):
             values = res.fields
         return values
 
-    def build_telegram(self, data):
+    def set_telegram_data(self, data):
         try:
             self.function_group.set_values(self, data)
-            return Packet.parse_frame(self.build())
+            # return Packet.parse_frame(self.build())
         except AttributeError as e:
             raise FrameBuildError(f"Missing attribute while building frame: {e}")
         except ValueError as e:

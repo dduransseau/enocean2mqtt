@@ -632,8 +632,6 @@ class Gateway:
             direction = 1 if direction == 2 else 2
         else:
             direction = None
-        # is this a response to a learn packet?
-        is_learn = learn_data is not None
 
         # Add possibility for the user to indicate a specific sender address
         # in sensor configuration using added 'sender' field.
@@ -650,21 +648,14 @@ class Gateway:
                 direction=direction,
                 command=command,
                 sender=sender,
-                learn=is_learn,
+                learn_data=learn_data,
             )
-            self.logger.debug(f"Packet built: {packet.data}")
+            self.logger.debug(f"packet built: {packet.data}")
         except (ValueError, NotImplementedError) as err:
             self.logger.error(f"cannot prepare radio packet: {err}")
             return
 
-        # assemble data based on packet type (learn / data)
-        if is_learn:
-            # learn request received
-            # copy EEP and manufacturer ID
-            packet.data[1:5] = learn_data[1:5]
-            # update flags to acknowledge learn request
-            packet.data[4] = 0xF0
-        else:
+        if learn_data is None: # if yes, already prepared in prepare_telegram
             # Initialize packet with default_data if specified
             if equipment.default_data:
                 packet.data[1:5] = [
@@ -674,7 +665,7 @@ class Gateway:
                 try:
                     # override with specific data settings
                     self.logger.debug(f"packet with telegram {packet.function_group}")
-                    packet = packet.build_telegram(data)
+                    packet.set_telegram_data(data)
                 except FrameBuildError:
                     # self.logger.warning(f"unable to build packet")
                     raise
