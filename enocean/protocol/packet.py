@@ -306,7 +306,7 @@ class RadioPacket(Packet):
             self.man_id = ((self.data[1] << 8) | self.data[2]) & 0b11111111111
             self.logger.info(f"Parse MSC telegram from {combine_hex(self.sender)} "
                              f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)}")
-            # print(self) # debug purposes
+            print(self) # debug purposes
         else:
             try:
                 self.logger.info(f"Parse packet with an unsupported RORG: {RORG(self.rorg)}")
@@ -334,6 +334,10 @@ class RadioPacket(Packet):
             self.logger.debug(f"Parsed data values {values}")
         elif self.rorg == RORG.MSC:
             self.logger.warning(f"Received MSC telegram for equipment {equipment.address_label} with profile {equipment.profile}")
+            command_id = self.__get_command_id(equipment.alternate_profile)
+            telegram_form = equipment.alternate_profile.get_telegram_form(command=command_id, direction=self.direction)
+            values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics)
+            self.logger.info(f"Parsed MSC data values {values}")
         elif self.rorg == RORG.SIGNAL:
             res = SignalMessage.decode(self.data_payload)
             values = res.fields

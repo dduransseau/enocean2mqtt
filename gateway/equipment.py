@@ -41,6 +41,8 @@ class Equipment(EnoceanEquipment):
         self.sender = kwargs.get("sender")
         self.direction = kwargs.get("direction")
         self.default_data = kwargs.get("default_data")
+        self.support_msc = kwargs.get("support_msc")
+        self.vendor_id = kwargs.get("vendor_id")
         self.first_seen = None
         self.last_seen = None
         self.rssi = None
@@ -82,3 +84,20 @@ class Equipment(EnoceanEquipment):
                 sender=self.sender
             ),
         )
+
+    @property
+    def alternate_profile(self):
+        """Return the MSC profile for the equipment if available"""
+        if self.support_msc:
+            return self.eep.get_eep(0xD1, 0x46, 0x00)
+
+    
+    def get_alternate_profile(self, rorg=None, func=None, variant=None):
+        """Return an alternate EEP profile for the equipment if available"""
+        return Equipment(address=self.address, rorg=rorg if rorg is not None else self.rorg, 
+                         func=func if func is not None else self.func, 
+                         variant=variant if variant is not None else self.variant)
+
+    # def get_alternate_profile(self):
+    #         """Return an alternate EEP profile for the equipment if available"""
+    #         return Equipment(address=self.address, rorg=0xD1, func=0x46, variant=0x00)

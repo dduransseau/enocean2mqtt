@@ -40,6 +40,7 @@ class Gateway:
     GATEWAY_STATUS_TOPIC = f"{GATEWAY_TOPIC}/status"
     GATEWAY_EQUIPMENTS_TOPIC = f"{GATEWAY_TOPIC}/equipments"
     EQUIPMENT_REQUEST_TOPIC_SUFFIX = "/cmd"
+    EQUIPMENT_CONFIG_TOPIC_SUFFIX = "/config"
     EQUIPMENT_ERROR_TOPIC_SUFFIX = "/error"
     RSSI_TOPIC_KEY = "$rssi"
     LAST_SEEN_TOPIC_KEY = "$last_seen"
@@ -285,6 +286,9 @@ class Gateway:
             equipments_snapshot = list(self.equipments.values())
             for equipment in equipments_snapshot:
                 self.mqtt_subscribe(equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX)
+                if equipment.support_msc:
+                    self.logger.info(f"Subscribe to MSC request for equipment {equipment.name} with topic {equipment.topic + self.EQUIPMENT_CONFIG_TOPIC_SUFFIX}")
+                    self.mqtt_subscribe(equipment.topic + self.EQUIPMENT_CONFIG_TOPIC_SUFFIX)
 
     def _publish_gateway_adapter_details(self):
         # Wait that enocean communicator is initialized before publishing teach in mode
@@ -371,11 +375,33 @@ class Gateway:
     def handle_controller_command_request(self, topic, payload):
         """Handle controller command request received from MQTT"""
         self.logger.info(f"Received controller command request: {topic} with payload {payload}")
+        # try:
+        #     base_id = self.controller.base_id
+        #     self.logger.info(f"Controller base id: {to_hex_string(base_id)}")
+        # except Exception as e:
+        #     self.logger.error(f"Error while executing controller command: {e}")
         try:
-            base_id = self.controller.base_id
-            self.logger.info(f"Controller base id: {to_hex_string(base_id)}")
-        except Exception as e:
-            self.logger.error(f"Error while executing controller command: {e}")
+            mqtt_payload = json.loads(payload)
+            equipment_name = mqtt_payload.get("equipment")
+            equipment = self.get_equipment(equipment_name)
+            if equipment:
+                # Force MSC rorg for test
+
+                msc_equipment = equipment.get_alternate_profile(rorg=0xD1, func=0x46, variant=0x00)
+                self.logger.info(f"Preparing packet to controller for equipment {msc_equipment} with {msc_equipment.profile}")
+                del mqtt_payload["equipment"]
+                # self._send_packet_to_esp(equipment, data=mqtt_payload, command=9)
+                self._send_packet_to_esp(msc_equipment, data=mqtt_payload, command=8)
+                self.logger.info(f"Sending packet to controller for equipment {msc_equipment.name} with {msc_equipment.profile}")
+            else:
+                self.logger.warning(f"Unable to find equipment {equipment_name} for controller command request")
+        except json.decoder.JSONDecodeError:
+            self.logger.warning(
+                f"Received message payload is not json type: {payload}"
+            )
+        except UnknownEquipment:
+            self.logger.warning(
+                f"Unable to find equipment for controller command request: {payload}")
         
 
     # =============================================================================================
@@ -552,9 +578,13 @@ class Gateway:
                                 equipment, radio_telegram, channel=channel
                             )
                     else:
+                        message_payload = self.format_enocean_message(
+                                                    radio_telegram, equipment
+                                                )
                         self.logger.warning(
-                            f"Received packet with rorg {hex(packet.rorg)} but expected {hex(equipment.rorg)} for {equipment.name}, publish raw data"
+                            f"Received packet with rorg {hex(packet.rorg)} but expected {hex(equipment.rorg)} for {equipment.name}"
                         )
+                        self._publish_mqtt_json(equipment, message_payload)
                 else:
                     self.logger.info("Publish signal stats")
                     for k, v in radio_telegram.items():

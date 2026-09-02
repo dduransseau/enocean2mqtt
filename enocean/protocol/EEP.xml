@@ -10121,6 +10121,54 @@
     </data>
    </profile>
   </profiles>
+  <profiles func="0x46" description="ID RF">
+      <profile type="0x00" description="Repeater">
+        <command description="Command Type" shortcut="CMD" offset="16" size="8">
+          <item description="Set repeater level" value="8" />
+          <item description="Get repeater status" value="9" />
+          <item description="Repeater status response" value="10" />
+        </command>
+        <data command="8" bits="5">
+          <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+            <item description="ID RF" value="70" />
+          </enum>
+          <enum description="Command Type" shortcut="CMD" offset="16" size="8">
+             <item description="Set repeater level" value="8" />
+             <item description="Get repeater status" value="9" />
+          </enum>
+          <enum description="Repeater status" shortcut="RS" offset="24" size="8">
+            <item description="Repeater disabled" value="0" />
+            <item description="Repeater enabled" value="1" />
+          </enum>
+          <enum description="Repeater level" shortcut="RL" offset="32" size="8">
+            <rangeitem description="Repeater level {value}" start="0" end="2" />
+          </enum>
+        </data>
+        <data command="9" bits="3">
+          <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+            <item description="ID RF" value="70" />
+          </enum>
+          <enum description="Command Type" shortcut="CMD" offset="16" size="8">
+             <item description="Set repeater level" value="8" />
+             <item description="Get repeater status" value="9" />
+          </enum>
+        </data>
+        <data command="10" bits="3">
+          <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+            <item description="ID RF" value="70" />
+          </enum>
+          <enum description="Command Type" shortcut="CMD" offset="16" size="8">
+             <item description="Set repeater level" value="8" />
+             <item description="Get repeater status" value="9" />
+          </enum>
+          <enum description="Repeater status" shortcut="RS" offset="24" size="8">
+            <item description="Repeater disabled" value="0" />
+            <item description="Repeater enabled (level 1)" value="1" />
+            <item description="Repeater enabled (level 2)" value="2" />
+          </enum>
+        </data>
+      </profile>
+    </profiles>
  </telegram>
  <telegram rorg="0xD5" type="1BS" description="1BS Telegram">
   <profiles func="0x00" description="Contacts and Switches">
