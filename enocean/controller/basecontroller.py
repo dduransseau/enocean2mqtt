@@ -32,7 +32,7 @@ class ControllerResponseMismatch(Exception):
 class BaseController(threading.Thread):
     """
     Communicator base-class for EnOcean.
-    Not to be used directly, only serves as base class for SerialCommunicator etc.
+    Not to be used directly, only serves as base class for SerialController etc.
     """
 
     logger = logging.getLogger("enocean.controller")
@@ -88,6 +88,8 @@ class BaseController(threading.Thread):
         # return self.base_id
         return self.chip_id
 
+    # ---- Response parsing methods for common commands ----
+
     def _parse_version_response(self, packet):
         response_data = packet.response_data
         if len(response_data) < 20:
@@ -98,8 +100,8 @@ class BaseController(threading.Thread):
         self._chip_version = response_data[12:16]
         # self._chip_version = ".".join([str(b) for b in response_data[12:16]])
         self.app_description = "".join([chr(c) for c in response_data[16:] if c])
-        self.logger.debug(
-            f"Device info: app_version={self.app_version} api_version={self.api_version} "
+        self.logger.info(
+            f"Controller info: app_version={self.app_version} api_version={self.api_version} "
             f"chip_id={to_hex_string(self.chip_id)} chip_version={to_hex_string(self._chip_version)}"
         )
 
@@ -108,8 +110,8 @@ class BaseController(threading.Thread):
         if len(response_data) < 4:
             raise ControllerResponseMismatch("CO_RD_IDBASE: unexpected response length")
         self._base_id = response_data
-        self.logger.debug(
-            f"Setup base ID as {to_hex_string(self._base_id)} remaining write {int(packet.optional[0])}"
+        self.logger.info(
+            f"Controller info: base ID set to {to_hex_string(self._base_id)} with {int(packet.optional[0])} remaining writes"
         )
 
     def _parse_frequency_response(self, packet):
@@ -171,6 +173,8 @@ class BaseController(threading.Thread):
             self.logger.info("Built-in self-test passed successfully.")
         else:
             self.logger.error(f"Built-in self-test failed with error code: {test_result}")
+
+    # --- Public methods for sending commands and packets ---
 
     def send(self, packet):
         if not isinstance(packet, Packet):

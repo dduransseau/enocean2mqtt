@@ -1,5 +1,14 @@
 # -*- encoding: utf-8 -*-
-from enum import IntEnum
+from enum import IntEnum, StrEnum, auto
+
+
+class FieldSetName(StrEnum):
+    RAW_VALUE = auto()
+    VALUE = auto()
+    DESCRIPTION = auto()
+    SHORTCUT = auto()
+    TYPE = auto()
+    UNIT = auto()
 
 
 # EnOceanSerialProtocol3.pdf / 12

@@ -234,10 +234,9 @@ class RadioPacket(Packet):
 
     @property
     def destination(self):
-        try:
-            return self.optional[1:5]
-        except IndexError:
+        if len(self.optional) < 5:
             return None
+        return self.optional[1:5]
 
     @destination.setter
     def destination(self, value):
@@ -245,10 +244,9 @@ class RadioPacket(Packet):
 
     @property
     def sender(self):
-        try:
-            return self.data[-5:-1]
-        except IndexError:
+        if len(self.data) < 5:
             return None
+        return self.data[-5:-1]
 
     @property
     def rorg(self):
@@ -260,6 +258,10 @@ class RadioPacket(Packet):
     @property
     def is_eep(self):
         return True if self.rorg in (RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD, RORG.MSC) else False
+
+    @property
+    def is_signal(self):
+        return True if self.rorg == RORG.SIGNAL else False
 
     @property
     def sub_tel_num(self):
@@ -348,6 +350,8 @@ class RadioPacket(Packet):
         elif self.rorg == RORG.SIGNAL:
             res = SignalMessage.decode(self.data_payload)
             values = res.fields
+        else:
+            self.logger.warning(f"Received packet with rorg {hex(self.rorg)} but expected {hex(equipment.rorg)} for {equipment.name}")
         return values
 
     def set_telegram_data(self, data):

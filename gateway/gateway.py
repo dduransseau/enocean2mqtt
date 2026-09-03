@@ -11,7 +11,7 @@ from enum import StrEnum, auto
 from enocean.utils import combine_hex, to_hex_string, address_to_bytes_list, rssi_quality
 from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket, FrameBuildError
-from enocean.protocol.constants import PacketType
+from enocean.protocol.constants import PacketType, FieldSetName
 
 from .equipment import Equipment
 
@@ -20,14 +20,6 @@ import paho.mqtt.client as mqtt
 
 class UnknownEquipment(Exception):
     """ Unable to find corresponding equipment"""
-
-class FieldSetName(StrEnum):
-    RAW_VALUE = auto()
-    VALUE = auto()
-    DESCRIPTION = auto()
-    SHORTCUT = auto()
-    TYPE = auto()
-    UNIT = auto()
 
 
 class Gateway:
@@ -81,8 +73,11 @@ class Gateway:
         self.LEARN_EQUIPMENT_TOPIC = f"{self.topic_prefix}learn"
         self.GATEWAY_COMMAND_TOPIC = f"{self.topic_prefix}cmd"
         self.logger.info(
-            f"Init communicator with sensors: {[eq['name'] for eq in self.conf_manager.equipments]}, "
+            f"Init gateway with {len(self.conf_manager.equipments)} sensors, "
             f"publish timestamp: {self.publish_timestamp}"
+        )
+        self.logger.debug(
+            f"sensors: {[eq['name'] for eq in self.conf_manager.equipments]}"
         )
         self._equipments_lock = threading.RLock() # Lock to avoid that equipment list is modified while processing a packet
         self.equipments = dict()
@@ -127,7 +122,7 @@ class Gateway:
         if "mqtt_user" in self.conf:
             self.logger.info(f"authenticating: {self.conf['mqtt_user']}")
             self.mqtt_client.username_pw_set(
-                self.conf["mqtt_user"], self.conf["mqtt_pwd"]
+                self.conf["mqtt_user"], self.conf.get("mqtt_pwd", "")
             )
         if self.get_config_boolean("mqtt_ssl"):
             self.logger.info("enabling SSL")
@@ -502,65 +497,54 @@ class Gateway:
                 # Handling received data packet
                 self.logger.debug(f"process radio packet for sensor {equipment}")
                 # Parse message based on fields definition (profile)
-                radio_telegram = packet.parse_telegram(
+                telegram = packet.parse_telegram(
                     equipment, process_metrics=self.process_metrics
                 )
+                if not telegram:
+                    self.logger.warning(f"message not interpretable: {equipment.name} {packet}")
+                    return
                 # set latest rssi value in equipment
-                equipment.rssi = radio_telegram.dBm
-                equipment.last_seen = radio_telegram.timestamp
+                equipment.rssi = packet.dBm
+                equipment.last_seen = packet.timestamp
                 if packet.is_eep:
-                    if not radio_telegram:
-                        self.logger.warning(
-                            f"message not interpretable: {equipment.name} {packet}"
+                    channel = None
+                    message_payload = self.format_enocean_message(telegram, equipment)
+                    # Get channel if present in telegram to split into sub-topics
+                    if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
+                        channel = message_payload[self.CHANNEL_MESSAGE_KEY]
+                    if equipment.publish_rssi:
+                        self.mqtt_publish(f"{equipment.topic}/{self.RSSI_TOPIC_KEY}", packet.dBm)
+                    if equipment.publish_rssi_quality:
+                        self.mqtt_publish(f"{equipment.topic}/{self.RSSI_TOPIC_KEY}/quality", rssi_quality(packet.dBm))
+                    message_payload[self.RSSI_MESSAGE_KEY] = packet.dBm
+                    try:
+                        # Debug purpose
+                        # if equipment.last_seen:
+                        #     delta = packet.timestamp - equipment.last_seen
+                        #     self.logger.debug(f"Timeslot between last timestamp from {equipment.address_label}: {delta}s")
+                        t_str = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(packet.timestamp))
+                        message_payload[self.TIMESTAMP_MESSAGE_KEY] = t_str
+                        self.mqtt_publish(f"{equipment.topic}/{self.LAST_SEEN_TOPIC_KEY}", t_str)
+                    except AttributeError:
+                        self.logger.debug(
+                            f"Timestamp is not set for equipment {equipment}"
                         )
-                    # Test if the telegram rorg corresponds to the equipment rorg, if not manage MSC
-                    elif packet.rorg == equipment.rorg:
-                        channel = None
-                        message_payload = self.format_enocean_message(
-                            radio_telegram, equipment
+                    try:
+                        equipment.repeated += packet.status.repeated
+                        message_payload[self.REPEATED_MESSAGE_KEY] = packet.status.repeated
+                        self.mqtt_publish(
+                            f"{equipment.topic}/{self.REPEATER_TOPIC_KEY}", equipment.repeated
                         )
-                        # Get channel if present in telegram to split into sub-topics
-                        if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
-                            channel = message_payload[self.CHANNEL_MESSAGE_KEY]
-                        if equipment.publish_rssi:
-                            self.mqtt_publish(f"{equipment.topic}/{self.RSSI_TOPIC_KEY}", packet.dBm)
-                        if equipment.publish_rssi_quality:
-                            self.mqtt_publish(f"{equipment.topic}/{self.RSSI_TOPIC_KEY}/quality", rssi_quality(packet.dBm))
-                        message_payload[self.RSSI_MESSAGE_KEY] = packet.dBm
-                        try:
-                            # Debug purpose
-                            # if equipment.last_seen:
-                            #     delta = packet.timestamp - equipment.last_seen
-                            #     self.logger.debug(f"Timeslot between last timestamp from {equipment.address_label}: {delta}s")
-                            t_str = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(packet.timestamp))
-                            message_payload[self.TIMESTAMP_MESSAGE_KEY] = t_str
-                            self.mqtt_publish(f"{equipment.topic}/{self.LAST_SEEN_TOPIC_KEY}", t_str)
-                        except AttributeError:
-                            self.logger.debug(
-                                f"Timestamp is not set for equipment {equipment}"
-                            )
-                        try:
-                            equipment.repeated += packet.status.repeated
-                            message_payload[self.REPEATED_MESSAGE_KEY] = packet.status.repeated
-                            self.mqtt_publish(
-                                f"{equipment.topic}/{self.REPEATER_TOPIC_KEY}", equipment.repeated
-                            )
-                        except AttributeError:
-                            pass
-                        # message_payload[self.RORG_MESSAGE_KEY] = packet.rorg  # needed ?
-                        self.logger.debug(f"Publish message {message_payload}")
-                        self._publish_mqtt_json(equipment, message_payload, channel=channel)
-                        if equipment.publish_flat:
-                            self._publish_mqtt_flat(
-                                equipment, radio_telegram, channel=channel
-                            )
-                    else:
-                        self.logger.warning(
-                            f"Received packet with rorg {hex(packet.rorg)} but expected {hex(equipment.rorg)} for {equipment.name}, publish raw data"
-                        )
-                else:
+                    except AttributeError:
+                        pass
+                    # message_payload[self.RORG_MESSAGE_KEY] = packet.rorg  # needed ?
+                    self.logger.debug(f"Publish message {message_payload}")
+                    self._publish_mqtt_json(equipment, message_payload, channel=channel)
+                    if equipment.publish_flat:
+                        self._publish_mqtt_flat(equipment, telegram, channel=channel)
+                elif packet.is_signal:
                     self.logger.info("Publish signal stats")
-                    for k, v in radio_telegram.items():
+                    for k, v in telegram.items():
                         self.mqtt_publish(
                             f"{equipment.topic}/${k}", v, retain=True
                         )

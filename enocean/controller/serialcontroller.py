@@ -24,7 +24,7 @@ class SerialController(BaseController):
 
     def run(self):
         self.logger.info(
-            f"SerialCommunicator started on port {self.__ser.name} with baudrate {self.__ser.baudrate}"
+            f"SerialController started on port {self.__ser.name} with baudrate {self.__ser.baudrate}"
         )
         self.__ser.read_until(b"\55")
         while not self._stop_flag.is_set():
@@ -51,4 +51,4 @@ class SerialController(BaseController):
                 pass
 
         self.__ser.close()
-        self.logger.info("SerialCommunicator stopped")
+        self.logger.info("SerialController stopped")
