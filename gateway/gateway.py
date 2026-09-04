@@ -110,6 +110,13 @@ class Gateway:
         self.controller.start()
 
         # setup mqtt connection
+
+        self.topic_handler_mapping = {
+            self.LEARN_EQUIPMENT_TOPIC: self.handle_learn_activation_request,
+            self.RELOAD_EQUIPMENT_TOPIC: self.handle_reload_equipments_request,
+            self.GATEWAY_COMMAND_TOPIC: self.handle_controller_command_request,
+        }
+
         client_id = self.conf.get("mqtt_client_id", None)
         self.mqtt_client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2, client_id=client_id
@@ -216,7 +223,7 @@ class Gateway:
             try:
                 s["topic_prefix"] = self.topic_prefix
                 new_equipments[address] = Equipment(**s)
-            except NotImplementedError:
+            except (NotImplementedError, ValueError):
                 self.logger.warning(f"Unable to setup device {address}")
         with self._equipments_lock:
             self.equipments = new_equipments
@@ -276,6 +283,7 @@ class Gateway:
 
     def _subscribe_to_equipments_requests(self):
         with self._equipments_lock:
+            # Set to list to avoid that the dict is modified while iterating over it
             equipments_snapshot = list(self.equipments.values())
             for equipment in equipments_snapshot:
                 self.mqtt_subscribe(equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX)
@@ -310,12 +318,9 @@ class Gateway:
     def _on_mqtt_message(self, mqtt_client, userdata, msg):
         # search for sensor
         self.logger.debug("received MQTT message: %s", msg.topic)
-        if msg.topic == self.LEARN_EQUIPMENT_TOPIC:
-            self.handle_learn_activation_request(msg)
-        elif msg.topic == self.RELOAD_EQUIPMENT_TOPIC:
-            self.handle_reload_equipments_request()
-        elif msg.topic == self.GATEWAY_COMMAND_TOPIC:
-            self.handle_controller_command_request(msg.topic, msg.payload)
+        message_handler = self.topic_handler_mapping.get(msg.topic)
+        if message_handler:
+            message_handler(msg)
         else:
             # Get how to handle MQTT message
             try:
@@ -335,7 +340,7 @@ class Gateway:
                 self.logger.error(f"unable to send {msg}")
                 self.logger.exception(Exception)
 
-    def handle_learn_activation_request(self, msg):
+    def handle_learn_activation_request(self, msg, *args, **kwargs):
         command = msg.payload.decode("utf-8").upper()
         if command == "ON":
             self.controller.teach_in = True
@@ -351,7 +356,7 @@ class Gateway:
                 f"{self.topic_prefix}{self.TEACH_IN_TOPIC}", command, retain=True
             )
 
-    def handle_reload_equipments_request(self):
+    def handle_reload_equipments_request(self, *args, **kwargs):
         self.logger.info("Reload equipments list")
         self.setup_equipments_list(force=True)
         self.mqtt_publish(
@@ -362,9 +367,9 @@ class Gateway:
         self.logger.debug(f"New equipments list {self.equipments}")
         self._subscribe_to_equipments_requests()
 
-    def handle_controller_command_request(self, topic, payload):
+    def handle_controller_command_request(self, msg, *args, **kwargs):
         """Handle controller command request received from MQTT"""
-        self.logger.info(f"Received controller command request: {topic} with payload {payload}")
+        self.logger.info(f"Received controller command request: {msg.topic} with payload {msg.payload}")
         try:
             base_id = self.controller.base_id
             self.logger.info(f"Controller base id: {to_hex_string(base_id)}")
