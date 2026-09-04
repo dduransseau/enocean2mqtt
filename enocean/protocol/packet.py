@@ -159,6 +159,7 @@ class RadioPacket(Packet):
                         sender=None,
                         learn_data=None,
                         default_data=None,
+                        profile=None, # Allow to overload a profile, MSC config use cas
                         **kwargs,
                         ):
         Packet.logger.debug(f"Create packet for equipment profile {equipment.profile}")
@@ -178,9 +179,13 @@ class RadioPacket(Packet):
         if sender is None or (sender is not None and not Packet.validate_address(sender)):
             raise ValueError(f"Invalid sender address: {sender!r}")
 
-        data = bytearray([equipment.rorg])
-        function_group = equipment.profile.get_telegram_form(command=command, direction=direction)
-
+        
+        if profile:
+            function_group = profile.get_telegram_form(command=command, direction=direction)
+            data = bytearray([equipment.alt_rorg])
+        else:
+            function_group = equipment.profile.get_telegram_form(command=command, direction=direction)
+            data = bytearray([equipment.rorg])
         # Initialize data depending on the profile.
         # set learn bit of 1BS or 4BS to 1 if not learn
         if equipment.rorg in [RORG.RPS, RORG.BS1]:
@@ -342,6 +347,13 @@ class RadioPacket(Packet):
             # Get the command id based on profile
             command_id = self.__get_command_id(equipment.profile)
             telegram_form = equipment.profile.get_telegram_form(command=command_id, direction=self.direction)
+            values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics, filter_unavailable=filter_unavailable)
+            self.logger.debug(f"Parsed data values {values}")
+        elif self.rorg == equipment.alt_rorg: # TODO: for Nodon devices
+            self.logger.debug(f"Using alternative profile {equipment.alt_profile} for parsing MSC telegram")
+            command_id = self.__get_command_id(equipment.alt_profile)
+            telegram_form = equipment.alt_profile.get_telegram_form(command=command_id, direction=self.direction)
+            self.logger.debug(f"Found alt command id: {command_id} and telegram form {telegram_form}")
             values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics, filter_unavailable=filter_unavailable)
             self.logger.debug(f"Parsed data values {values}")
         elif self.rorg == RORG.MSC:

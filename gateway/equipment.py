@@ -16,8 +16,18 @@ class Equipment(EnoceanEquipment):
             func = int(kwargs.get("func"))
             variant = kwargs.get("variant")
             variant = int(variant) if variant is not None else int(kwargs.get("type"))
-        self.name = kwargs.get("name", str(address)) # Default set equipment address as name if none is set
         super().__init__(address=address, rorg=rorg, func=func, variant=variant)
+        if "alt_eep" in kwargs:
+            try:
+                alt_rorg, alt_func, alt_variant = self.parse_eep_str(kwargs["alt_eep"])
+                self.alt_profile = self.eep.get_eep(alt_rorg, alt_func, alt_variant)
+            except (ValueError, NotImplementedError):
+                self.logger.warning(f"Alternative EEP not found for EEP: {kwargs['alt_eep']}")
+                self.alt_profile = None
+        else:   
+            self.alt_profile = None
+        self.name = kwargs.get("name", str(address)) # Default set equipment address as name if none is set
+        self.logger.debug(f"Setup equipment {self.address} with profile={self.profile} and alternate profile={self.alt_profile}")
         topic_prefix = kwargs.get("topic_prefix")
         if topic_prefix:
             self.name = self.name.removeprefix(topic_prefix)
@@ -38,7 +48,6 @@ class Equipment(EnoceanEquipment):
         self.log_learn = self.get_config_boolean(kwargs, "log_learn", default=False)
         self.ignore = self.get_config_boolean(kwargs, "ignore", default=False)
         self.answer = kwargs.get("answer")
-        self.command = kwargs.get("command", "CMD")
         self.channel = kwargs.get("channel")
         self.sender = kwargs.get("sender")
         self.direction = kwargs.get("direction")
@@ -69,15 +78,24 @@ class Equipment(EnoceanEquipment):
             rorg = int(rorg_str, 16)
             func = int(func_str, 16)
             variant = int(variant_str, 16)
-            print(f"Parsed EEP string '{eep_str}' into RORG: {rorg}, FUNC: {func}, VARIANT: {variant}")
             return rorg, func, variant
         except ValueError:
             raise ValueError(f"Invalid EEP string format: {eep_str}. Expected format is RORG-FUNC-TYPE.")
 
     @property
+    def alt_rorg(self):
+        if self.alt_profile:
+            return self.alt_profile.rorg
+
+    @property
     def address_label(self):
         return enocean.utils.to_hex_string(self.address)
 
+    @property
+    def command_shortcut(self):
+        """Return a command shortcut based on the equipment name and command"""
+        if self.profile.commands:
+            return self.profile.commands.shortcut
 
     @property
     def definition(self):
@@ -93,7 +111,6 @@ class Equipment(EnoceanEquipment):
                 publish_rssi=self.publish_rssi,
                 retain=self.retain,
                 ignore=self.ignore,
-                command=self.command,
                 sender=self.sender
             ),
         )

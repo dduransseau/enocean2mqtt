@@ -497,7 +497,7 @@ class TelegramFunctionGroup:
         self.profile_data = profile_data
         self.command_item = command
         self.command_shortcut = command_shortcut
-        if command and not command_shortcut:  # Set command shortcut to default value if set
+        if command and not command_shortcut:  # TODO: Confirm usage: Set command shortcut to default value if set
             self.command_shortcut = SpecificShortcut.COMMAND
         self.direction = direction
 

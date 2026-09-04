@@ -9,7 +9,7 @@ import threading
 from enocean.utils import combine_hex, to_hex_string, address_to_bytes_list, rssi_quality
 from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket, FrameBuildError
-from enocean.protocol.constants import PacketType, FieldSetName
+from enocean.protocol.constants import PacketType, FieldSetName, Direction
 
 from .equipment import Equipment
 
@@ -286,7 +286,9 @@ class Gateway:
             # Set to list to avoid that the dict is modified while iterating over it
             equipments_snapshot = list(self.equipments.values())
             for equipment in equipments_snapshot:
-                self.mqtt_subscribe(equipment.topic + self.EQUIPMENT_REQUEST_TOPIC_SUFFIX)
+                self.mqtt_subscribe(f"{equipment.topic}{self.EQUIPMENT_REQUEST_TOPIC_SUFFIX}")
+                if equipment.alt_profile:
+                    self.mqtt_subscribe(f"{equipment.topic}/config")
 
     def _publish_gateway_adapter_details(self):
         # Wait that enocean communicator is initialized before publishing teach in mode
@@ -322,7 +324,8 @@ class Gateway:
         if message_handler:
             message_handler(msg)
         else:
-            # Get how to handle MQTT message
+            if not msg.payload:
+                return
             try:
                 mqtt_payload = json.loads(msg.payload)
                 try:
@@ -381,61 +384,35 @@ class Gateway:
     # MQTT TO ENOCEAN
     # =============================================================================================
 
-    def _mqtt_message_json(self, mqtt_topic, mqtt_json_payload):
+    def _mqtt_message_json(self, mqtt_topic, payload):
         # Handle received PUBLISH message from the MQTT server as a JSON payload.
         equipment = self.get_equipment_by_topic(mqtt_topic)
         # If the equipment is not specified in topic path, check if specified in payload
         if not equipment:
             try:
-                equipment_id = mqtt_json_payload["equipment"]
+                equipment_id = payload["equipment"]
                 equipment = self.get_equipment(equipment_id)
-                del mqtt_json_payload[
+                del payload[
                     "equipment"
                 ]  # Remove key to avoid to have it during for loop
             except (KeyError, UnknownEquipment):
                 self.logger.warning(
-                    f"unable to get equipment topic={mqtt_topic} payload={mqtt_json_payload}"
+                    f"unable to get equipment topic={mqtt_topic} payload={payload}"
                 )
                 self.mqtt_publish(
                     f"{self.topic_prefix}{self.GATEWAY_ERROR_TOPIC}",
-                    {"error": "Unknown equipment", "topic": mqtt_topic, "payload": mqtt_json_payload},
+                    {"error": "Unknown equipment", "topic": mqtt_topic, "payload": payload},
                     retain=False,
                 )
                 return None
         self.logger.debug(f"found {equipment} for message in topic {mqtt_topic}")
-        self._handle_command_message(equipment, mqtt_json_payload)
-
-    def _handle_command_message(self, equipment, payload):
         # Send received command message to EnOcean controller.
         self.logger.debug(f"Message {payload} to send to {equipment.address}")
-        # Check command message has valid data
-        if not payload:
-            self.logger.warning("no data to send from command message!")
-            return
-        command_id = None
-        command_shortcut = (
-            equipment.command
-        )  # Get the command shortcut used by the device (commonly "CMD")
-        if command_shortcut:
-            # Check command message sets the command field and set the command id
-            command_id = payload.get(command_shortcut)
-            if command_id is not None:
-                self.logger.debug(
-                    f"retrieved command id from command message: {hex(command_id)}"
-                )
-            else:
-                self.logger.warning(
-                    f"Command field {command_shortcut} must be set in command message"
-                )
-                self._publish_equipment_error(
-                    equipment, f"Missing required command field '{command_shortcut}'", payload
-                )
-                return
         try:
-            self.logger.info(
-                f"Send command {hex(command_id) if command_id is not None else None} to equipment {equipment.address_label} with payload {payload}"
-            )
-            self._send_packet_to_esp(equipment, data=payload, command=command_id)
+            if mqtt_topic.endswith("/config"): # MSC config use case
+                self._send_packet_to_esp(equipment, payload, alternate_profile=True)
+            else:
+                self._send_packet_to_esp(equipment, payload)
         except FrameBuildError as e:
             self.logger.warning(
                 f"unable to build packet for {equipment.address_label}, {e} with data {payload}"
@@ -602,29 +579,29 @@ class Gateway:
         # destination = packet.sender
         self._send_packet_to_esp(
             equipment,
-            data=equipment.answer,
-            command=None,
-            negate_direction=True,
+            equipment.answer, # data
+            direction=Direction.TO,
             learn_data=packet.data if packet.learn else None,
         )
 
     def _send_packet_to_esp(
         self,
         equipment,
-        data=None,
-        command=None,
-        negate_direction=False,
+        data,
+        direction=None,
         learn_data=None,
+        alternate_profile=False
     ):
         """triggers sending of an enocean packet"""
-        # determine direction indicator
-        self.logger.debug(f"send packet to device {equipment.name}")
-        direction = equipment.direction
-        if negate_direction:
-            # we invert the direction in this reply
-            direction = 1 if direction == 2 else 2
+        # get command id from data if any, else use default command id
+        if equipment.command_shortcut and equipment.command_shortcut in data:
+            command_id = data[equipment.command_shortcut]
+        # elif equipment.command_shortcut:
+        #     raise ValueError(f"Command shortcut '{equipment.command_shortcut}' not found in data {data}")
         else:
-            direction = None
+            command_id = None
+        # determine direction indicator
+        direction = direction or equipment.direction
 
         # Add possibility for the user to indicate a specific sender address
         # in sensor configuration using added 'sender' field.
@@ -636,13 +613,16 @@ class Gateway:
         )
 
         try:
+            profile = equipment.alt_profile if alternate_profile else None # MSC config use case
+            self.logger.debug(f"Profile={profile}")
             packet = RadioPacket.prepare_telegram(
                 equipment,
                 direction=direction,
-                command=command,
+                command=command_id,
                 sender=sender,
                 learn_data=learn_data,
                 default_data=equipment.default_data,
+                profile=profile
             )
             self.logger.debug(f"packet built: {packet.data}")
         except (ValueError, NotImplementedError) as err:
@@ -660,6 +640,9 @@ class Gateway:
         elif learn_data is None:
             # what to do if we have no data to send yet?
             self.logger.warning(f"sending only default data as answer to {equipment.name}")
+        self.logger.info(
+            f"Send command {hex(command_id) if command_id is not None else ''} to equipment {equipment.address_label} with payload {data}"
+        )
         self.controller.send(packet)
 
     def register_new_equipments(self, publish=True):
@@ -728,6 +711,7 @@ class Gateway:
             return
         self._process_erp_packet(packet, equipment)
 
+        # TODO: evaluate that
         # check for necessary reply
         if equipment.answer:
             self._reply_packet(packet, equipment)
