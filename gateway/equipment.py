@@ -9,16 +9,18 @@ class Equipment(EnoceanEquipment):
 
     def __init__(self, **kwargs):
         address = kwargs["address"]
-        rorg = int(kwargs.get("rorg"))
-        func = int(kwargs.get("func"))
-        variant = kwargs.get("variant")
-        variant = int(variant) if variant is not None else int(kwargs.get("type"))
-        self.name = kwargs.get("name", str(address)) # Default set equipment address as name is none is set
+        if "eep" in kwargs:
+            rorg, func, variant = self.parse_eep_str(kwargs["eep"])
+        else:
+            rorg = int(kwargs.get("rorg"))
+            func = int(kwargs.get("func"))
+            variant = kwargs.get("variant")
+            variant = int(variant) if variant is not None else int(kwargs.get("type"))
+        self.name = kwargs.get("name", str(address)) # Default set equipment address as name if none is set
+        super().__init__(address=address, rorg=rorg, func=func, variant=variant)
         topic_prefix = kwargs.get("topic_prefix")
         if topic_prefix:
             self.name = self.name.removeprefix(topic_prefix)
-        # self.logger.debug(f"Lookup profile for {rorg} {func} {type_}")
-        super().__init__(address=address, rorg=rorg, func=func, variant=variant)
         self.publish_raw = self.get_config_boolean(kwargs, "publish_raw", default=False)
         self.publish_flat = self.get_config_boolean(
             kwargs, "publish_flat", default=False
@@ -58,6 +60,19 @@ class Equipment(EnoceanEquipment):
             return False if c.get(key, True) in ("false", "False", "0", 0) else True
         else:
             return True if c.get(key, False) in ("true", "True", "1", 1) else False
+
+    @staticmethod
+    def parse_eep_str(eep_str):
+        """Parse an EEP string in the format RORG-FUNC-TYPE and return a tuple of integers (rorg, func, type)"""
+        try:
+            rorg_str, func_str, variant_str = eep_str.split("-")
+            rorg = int(rorg_str, 16)
+            func = int(func_str, 16)
+            variant = int(variant_str, 16)
+            print(f"Parsed EEP string '{eep_str}' into RORG: {rorg}, FUNC: {func}, VARIANT: {variant}")
+            return rorg, func, variant
+        except ValueError:
+            raise ValueError(f"Invalid EEP string format: {eep_str}. Expected format is RORG-FUNC-TYPE.")
 
     @property
     def address_label(self):

@@ -6,8 +6,6 @@ import queue
 import json
 import threading
 
-from enum import StrEnum, auto
-
 from enocean.utils import combine_hex, to_hex_string, address_to_bytes_list, rssi_quality
 from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket, FrameBuildError
@@ -54,10 +52,11 @@ class Gateway:
         self.conf = self.conf_manager.global_config
         # Calculate the values that have unit or operator (multiplier or divisor) in the message
         self.process_metrics = self.conf.get("process_metrics", True)
+        self.filter_unavailable = self.conf.get("filter_unavailable_fields", True)
         self.publish_timestamp = self.conf.get("publish_timestamp", True)
         self.publish_raw = self.get_config_boolean("publish_raw")
         self.publish_internal = self.get_config_boolean("publish_internal")
-        self.logger.info(f"publish_internal={self.publish_internal!r} (type={type(self.publish_internal)})")
+        self.logger.info(f"publish_internal={self.publish_internal!r}")
         self.publish_response_status = self.get_config_boolean(
             "publish_response_status"
         )
@@ -500,6 +499,7 @@ class Gateway:
                 telegram = packet.parse_telegram(
                     equipment, process_metrics=self.process_metrics
                 )
+                self.logger.debug(f"Parsed telegram: {telegram}")
                 if not telegram:
                     self.logger.warning(f"message not interpretable: {equipment.name} {packet}")
                     return
@@ -530,14 +530,15 @@ class Gateway:
                             f"Timestamp is not set for equipment {equipment}"
                         )
                     try:
-                        equipment.repeated += packet.status.repeated
                         message_payload[self.REPEATED_MESSAGE_KEY] = packet.status.repeated
-                        self.mqtt_publish(
-                            f"{equipment.topic}/{self.REPEATER_TOPIC_KEY}", equipment.repeated
-                        )
+                        # TODO: Evaluate interest to count and publish repeated value to MQTT
+                        # equipment.repeated += packet.status.repeated
+                        # self.mqtt_publish(
+                        #     f"{equipment.topic}/{self.REPEATER_TOPIC_KEY}", equipment.repeated
+                        # )
                     except AttributeError:
                         pass
-                    # message_payload[self.RORG_MESSAGE_KEY] = packet.rorg  # needed ?
+                    # message_payload[self.RORG_MESSAGE_KEY] = packet.rorg  # usefull ?
                     self.logger.debug(f"Publish message {message_payload}")
                     self._publish_mqtt_json(equipment, message_payload, channel=channel)
                     if equipment.publish_flat:
@@ -664,15 +665,19 @@ class Gateway:
             with self._equipments_lock:
                 already_known = new_equipment.address in self.equipments
                 if not already_known:
-                    equipment = Equipment(
-                        address=new_equipment.address,
-                        rorg=new_equipment.rorg,
-                        func=new_equipment.func,
-                        type=new_equipment.variant,
-                        topic_prefix=self.topic_prefix,
-                        ignore=ignore,
-                    )
-                    self.equipments[new_equipment.address] = equipment
+                    try:
+                        equipment = Equipment(
+                            address=new_equipment.address,
+                            rorg=new_equipment.rorg,
+                            func=new_equipment.func,
+                            type=new_equipment.variant,
+                            topic_prefix=self.topic_prefix,
+                            ignore=ignore,
+                        )
+                        self.equipments[new_equipment.address] = equipment
+                    except NotImplementedError:
+                        self.logger.warning(f"Unable to register new equipment {new_equipment.address}: {e}")
+                        continue
             if not already_known:
                 self.mqtt_subscribe(
                     f"{equipment.topic}{self.EQUIPMENT_REQUEST_TOPIC_SUFFIX}"

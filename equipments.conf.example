@@ -1,8 +1,11 @@
-[pilote_lab]
+[switch1]
 address         = 0x0590FFFF
-rorg            = 0xD2
-func            = 0x01
-type            = 0x0C
+## Can be EEP directly
+eep = F6-02-01
+## Or specifing individual value
+# rorg            = 0xF6
+# func            = 0x02
+# type            = 0x01
 ## Allow to force equipment message to be send as raw (shortcut : raw_value)
 # publish_raw = true # Default false
 ## Publish message as flat: shortcut = topic value = raw_value (in addition to json)

@@ -99,9 +99,8 @@ class Packet:
 
     @staticmethod
     def validate_address(address):
-        if isinstance(address, list) and len(address) == 4:
-            if all(0 <= i <= 255 for i in address):
-                return True
+        if isinstance(address, bytearray) and len(address) == 4:
+            return True
         return False
 
     def parse(self):
@@ -337,13 +336,13 @@ class RadioPacket(Packet):
             command_id = profile.commands.parse_raw(self.data_payload)
             return command_id if command_id else None
 
-    def parse_telegram(self, equipment, process_metrics=True):
+    def parse_telegram(self, equipment, process_metrics=True, filter_unavailable=True):
         """Parse EEP based on FUNC and TYPE"""
         if self.rorg == equipment.rorg:
             # Get the command id based on profile
             command_id = self.__get_command_id(equipment.profile)
             telegram_form = equipment.profile.get_telegram_form(command=command_id, direction=self.direction)
-            values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics)
+            values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics, filter_unavailable=filter_unavailable)
             self.logger.debug(f"Parsed data values {values}")
         elif self.rorg == RORG.MSC:
             self.logger.warning(f"Received MSC telegram for equipment {equipment.address_label} with profile {equipment.profile}")

@@ -90,6 +90,9 @@ class ProfileField:
             return True
         return False
 
+    def __repr__(self) -> str:
+        return f"Profile field {self.shortcut} with value {self.value} and raw value {self.raw_value} ({self.description})"
+
 
 class BaseDataElt:
     logger = logging.getLogger("enocean.protocol.eep.data")
@@ -509,57 +512,64 @@ class TelegramFunctionGroup:
     def data_length(self):
         return int(self.profile_data.bytes)
 
-    def get_values(self, user_payload, status, global_process=True):
+    def calculate_composed_values(self, user_payload, status, bypass_list, output):
+        self.logger.debug("Profile data has global operation to perform")
+        factor = 1
+        unit = None
+        operator_item = self.profile_data.factor
+        unit_item = self.profile_data.unit
+        values_item = self.profile_data.values
+        if operator_item:
+            bypass_list.append(operator_item)
+            operator = operator_item.parse(user_payload, status)
+            if operator.shortcut == SpecificShortcut.DIVISOR:
+                factor = 1 / float(operator.value)
+            elif operator.shortcut == SpecificShortcut.MULTIPLIER:
+                factor = float(operator.value)
+            self.logger.debug(f"Defined factor for profile data is {factor}")
+        if unit_item:
+            u = unit_item.parse(user_payload, status)
+            unit = u.value
+            self.logger.debug(f"Defined unit for profile data is {unit}")
+        for v_i in values_item:
+            bypass_list.append(v_i)
+            v_i.unit = unit
+            v = v_i.parse(user_payload, status)
+            v.value = v.value * factor
+            output.append(v)
+
+    def filter_unavailable_values(self, user_payload, status, bypass_list):
+        for flag in self.profile_data.availability_fields:
+            availability_flag = flag.parse(user_payload, status)
+            self.logger.debug(
+                f"Field availability flags to process {availability_flag}"
+            )
+            if metric_shortcut := AVAILABILITY_FIELD_MAPPING.get(availability_flag.shortcut):
+                if availability_flag.raw_value == 0:
+                    metric_field = [
+                        v
+                        for v in self.profile_data.values
+                        if v.shortcut == metric_shortcut
+                    ]
+                    self.logger.debug(
+                        f"Found value field to disable: {metric_field}"
+                    )
+                    bypass_list.append(metric_field[0])
+                    bypass_list.append(flag)
+
+
+    def get_values(self, user_payload, status, global_process=True, filter_unavailable=True):
         """Get keys and values from user_payload"""
         output = []
         bypass_list = []
         # Calculate the values that have unit or operator (multiplier or divisor) in the message
         if global_process and self.profile_data.has_global_operation:
-            self.logger.debug("Profile data has global operation to perform")
-            factor = 1
-            unit = None
-            operator_item = self.profile_data.factor
-            unit_item = self.profile_data.unit
-            values_item = self.profile_data.values
-            if operator_item:
-                bypass_list.append(operator_item)
-                operator = operator_item.parse(user_payload, status)
-                if operator.shortcut == SpecificShortcut.DIVISOR:
-                    factor = 1 / float(operator.value)
-                elif operator.shortcut == SpecificShortcut.MULTIPLIER:
-                    factor = float(operator.value)
-                self.logger.debug(f"Defined factor for profile data is {factor}")
-            if unit_item:
-                u = unit_item.parse(user_payload, status)
-                unit = u.value
-                self.logger.debug(f"Defined unit for profile data is {unit}")
-            for v_i in values_item:
-                bypass_list.append(v_i)
-                v_i.unit = unit
-                v = v_i.parse(user_payload, status)
-                v.value = v.value * factor
-                output.append(v)
+            self.calculate_composed_values(user_payload, status, bypass_list, output)
         # Remove fields for device that have unavailable sensor
-        if global_process and self.profile_data.availability_fields:
+        if filter_unavailable and self.profile_data.availability_fields:
+            self.logger.debug("Profile data has fields availability flags")
             try:
-                self.logger.debug("Profile data has fields availability flags")
-                for flag in self.profile_data.availability_fields:
-                    availability_flag = flag.parse(user_payload, status)
-                    self.logger.debug(
-                        f"Field availability flags to process {availability_flag}"
-                    )
-                    if metric_shortcut := AVAILABILITY_FIELD_MAPPING.get(availability_flag.shortcut):
-                        if availability_flag.raw_value == 0:
-                            metric_field = [
-                                v
-                                for v in self.profile_data.values
-                                if v.shortcut == metric_shortcut
-                            ]
-                            self.logger.debug(
-                                f"Found value field to disable: {metric_field}"
-                            )
-                            bypass_list.append(metric_field[0])
-                            bypass_list.append(flag)
+                self.filter_unavailable_values(user_payload, status, bypass_list)
             except IndexError:
                 self.logger.warning("There is an error in unavailability field")
             except Exception:
@@ -570,7 +580,7 @@ class TelegramFunctionGroup:
             if source in bypass_list:
                 self.logger.debug(f"Bypass {source} this it has already been handled")
                 continue
-            if source.shortcut == "CMD":
+            if source.shortcut == SpecificShortcut.COMMAND:
                 output.append(ProfileField(SpecificShortcut.COMMAND, self.command_item.value, "Command identifier", value=self.command_item.description))
             else:
                 output.append(source.parse(user_payload, status))
