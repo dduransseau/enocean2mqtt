@@ -47,6 +47,7 @@ class Equipment(EnoceanEquipment):
         self.retain = self.get_config_boolean(kwargs, "persistent", default=False)
         self.log_learn = self.get_config_boolean(kwargs, "log_learn", default=False)
         self.ignore = self.get_config_boolean(kwargs, "ignore", default=False)
+        self.virtual = self.get_config_boolean(kwargs, "virtual", default=False)
         self.answer = kwargs.get("answer")
         self.channel = kwargs.get("channel")
         self.sender = kwargs.get("sender")
@@ -62,6 +63,14 @@ class Equipment(EnoceanEquipment):
             self.topic = f"{topic_prefix}{topic}"
         else:
             self.topic = f"{topic_prefix}{self.name}"
+        if self.virtual: # Allow to use simplier method for virtual equipment button/rocker mode
+            mode = kwargs.get("mode", "")
+            if mode.lower() in ("button", "rocker"):
+                self._mode = mode.lower()
+            else:
+                self._mode = None
+        else:
+            self._mode = None
 
     @staticmethod
     def get_config_boolean(c, key, default=False):

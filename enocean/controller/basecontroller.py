@@ -70,6 +70,9 @@ class BaseController(threading.Thread):
         self._pending_commands = {}
         self._pending_commands_lock = threading.Lock()
         self._wait_time = 0.01
+
+        self._value_listeners = {}
+        self._value_listeners_lock = threading.Lock()
         self._response_handlers = {
             CommandCode.CO_RD_VERSION: self._parse_version_response,
             CommandCode.CO_RD_IDBASE: self._parse_idbase_response,
@@ -109,7 +112,7 @@ class BaseController(threading.Thread):
         response_data = packet.response_data
         if len(response_data) < 4:
             raise ControllerResponseMismatch("CO_RD_IDBASE: unexpected response length")
-        self._base_id = response_data
+        self._set_and_notify("_base_id", response_data)
         self.logger.info(
             f"Controller info: base ID set to {to_hex_string(self._base_id)} with {int(packet.optional[0])} remaining writes"
         )
@@ -180,6 +183,7 @@ class BaseController(threading.Thread):
         if not isinstance(packet, Packet):
             self.logger.error(f"Object to send must be an instance of Packet, received {type(packet)}")
             raise ValueError("Object to send must be an instance of Packet")
+        self.logger.debug(f"Send packet {packet} to EnOcean controler")
         self.transmit.put(packet)
         return True
 
@@ -315,16 +319,26 @@ class BaseController(threading.Thread):
             app_version=self.app_version,
             api_version=self.api_version,
             app_description=self.app_description,
+            base_id=to_hex_string(self.base_id)
         )
 
     @property
+    def controller_info_ready(self):
+        return self.chip_id is not None and self.frequency is not None and self._base_id is not None
+
+    @property
     def controller_info_details(self):
-        if self.chip_id and self.frequency:
-            return self.__controller_info
-        if not self._request_and_wait(CommandCode.CO_RD_VERSION, "chip_id"):
-            self.logger.warning("Controller info incomplete: version/chip_id not received")
-        if not self._request_and_wait(CommandCode.CO_GET_FREQUENCY_INFO, "frequency"):
-            self.logger.warning("Controller info incomplete: frequency not received")
+        if not self.controller_info_ready:
+            if not self._request_and_wait(CommandCode.CO_RD_VERSION, "chip_id"):
+                self.logger.warning("Controller info incomplete: version/chip_id not received")
+            if not self._request_and_wait(CommandCode.CO_GET_FREQUENCY_INFO, "frequency"):
+                self.logger.warning("Controller info incomplete: frequency not received")
+            if not self._request_and_wait(CommandCode.CO_RD_IDBASE, "_base_id"):
+                self.logger.warning("Controller info incomplete: base id not received")
+        if not self.controller_info_ready:
+            raise ControllerTimeoutError(
+                "Controller info incomplete: missing chip_id and/or frequency"
+            )
         return self.__controller_info
 
     def init_adapter(self):
@@ -332,7 +346,7 @@ class BaseController(threading.Thread):
         for code in (
             CommandCode.CO_RD_VERSION,
             CommandCode.CO_GET_FREQUENCY_INFO,
-            # CommandCode.CO_RD_IDBASE,
+            CommandCode.CO_RD_IDBASE,
             # CommandCode.CO_GET_NOISETHRESHOLD,
             # CommandCode.CO_RD_REPEATER,
             # CommandCode.CO_GET_STEPCODE,
@@ -375,6 +389,7 @@ class BaseController(threading.Thread):
         self.enable_repeater(enable=False)
 
     def parse_common_command_response(self, packet):
+        """ Parse the response of the COMMAND response packet and ensure of resync if for any reason the queue become out of sync"""
         for index, command_id in enumerate(self.command_queue):
             if packet.return_code == ReturnCode.NOT_SUPPORTED:
                 self.logger.warning(
@@ -403,3 +418,31 @@ class BaseController(threading.Thread):
                 del self.command_queue[: index + 1]
                 return
         self.logger.warning(f"Unable to match RESPONSE to any pending command in queue: {self.command_queue}")
+
+    def add_listener(self, attr_name, callback):
+        with self._value_listeners_lock:
+            self._value_listeners.setdefault(attr_name, []).append(callback)
+
+    def remove_listener(self, attr_name, callback):
+        with self._value_listeners_lock:
+            listeners = self._value_listeners.get(attr_name, [])
+            if callback in listeners:
+                listeners.remove(callback)
+
+    def _notify_listeners(self, attr_name):
+        with self._value_listeners_lock:
+            listeners = list(self._value_listeners.get(attr_name, []))
+        if not listeners:
+            return
+        value = getattr(self, attr_name)
+        for callback in listeners:
+            try:
+                callback(self, value)
+            except Exception:
+                self.logger.exception(f"Error in listener for '{attr_name}'")
+
+    def _set_and_notify(self, attr_name, value):
+        was_unset = getattr(self, attr_name) is None
+        setattr(self, attr_name, value)
+        if was_unset and value is not None:
+            self._notify_listeners(attr_name)
