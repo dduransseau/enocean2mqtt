@@ -115,8 +115,6 @@ class Gateway:
         # self.controller.enable_repeater(enable=True, level=1)
         # self.controller.disable_repeater()
 
-        # setup mqtt connection
-
         self.topic_handler_mapping = {
             self.LEARN_EQUIPMENT_TOPIC: self.handle_learn_activation_request,
             self.RELOAD_EQUIPMENT_TOPIC: self.handle_reload_equipments_request,
@@ -124,6 +122,7 @@ class Gateway:
             self.GATEWAY_TEST_FUNCTION_TOPIC: self.handle_gateway_test_function,
         }
 
+        # setup mqtt connection
         client_id = self.conf.get("mqtt_client_id", None)
         self.mqtt_client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2, client_id=client_id
@@ -370,7 +369,7 @@ class Gateway:
             try:
                 mqtt_payload = json.loads(msg.payload)
                 try:
-                    self._mqtt_message_json(msg.topic, mqtt_payload)
+                    self._handle_mqtt_message_json(msg.topic, mqtt_payload)
                 except Exception as e:
                     self.logger.warning(
                         f"unexpected or erroneous MQTT message: {msg.topic}: {msg.payload}"
@@ -415,11 +414,6 @@ class Gateway:
     def handle_controller_command_request(self, msg, *args, **kwargs):
         """Handle controller command request received from MQTT"""
         self.logger.info(f"Received controller command request: {msg.topic} with payload {msg.payload}")
-        try:
-            base_id = self.controller.base_id
-            self.logger.info(f"Controller base id: {to_hex_string(base_id)}")
-        except Exception as e:
-            self.logger.error(f"Error while executing controller command: {e}")
 
     def handle_gateway_test_function(self, *args, **kwargs):
         self.logger.info("Called the test function")
@@ -428,7 +422,7 @@ class Gateway:
     # MQTT TO ENOCEAN
     # =============================================================================================
 
-    def _mqtt_message_json(self, mqtt_topic, payload):
+    def _handle_mqtt_message_json(self, mqtt_topic, payload):
         # Handle received PUBLISH message from the MQTT server as a JSON payload.
         equipment = self.get_equipment_by_topic(mqtt_topic)
         # If the equipment is not specified in topic path, check if specified in payload
@@ -464,7 +458,7 @@ class Gateway:
             self._publish_equipment_error(equipment, str(e), payload)
 
     def _handle_mqtt_message_text(self, msg):
-        # Handle received PUBLISH message from the MQTT server as a JSON payload.
+        # Handle received PUBLISH message from the MQTT server as a text payload.
         equipment = self.get_equipment_by_topic(msg.topic)
         if not equipment:
             self.logger.warning(f"Unable to find any equiment for topic {msg.topic}")
@@ -495,9 +489,6 @@ class Gateway:
                 self.logger.exception(e)
         else:
             self.logger.warning(f"Starget device is not virtual, unable to handle specific text content")
-
-
-
 
     # =============================================================================================
     # ENOCEAN TO MQTT
@@ -558,7 +549,7 @@ class Gateway:
                 # Handling received data packet
                 self.logger.debug(f"process radio packet for sensor {equipment}")
                 # Parse message based on fields definition (profile)
-                message = packet.parse_message(
+                message = packet.get_message(
                     equipment, process_metrics=self.process_metrics
                 )
                 if not message:
@@ -658,7 +649,7 @@ class Gateway:
         # destination = packet.sender
         self._send_packet_to_esp(
             equipment,
-            equipment.answer, # data
+            equipment.answer, # message
             direction=Direction.TO,
             learn_data=packet.data if packet.learn else None,
         )
@@ -666,17 +657,17 @@ class Gateway:
     def _send_packet_to_esp(
         self,
         equipment,
-        data,
+        message,
         direction=None,
         learn_data=None,
         alternate_profile=False
     ):
         """triggers sending of an enocean packet"""
         # get command id from data if any, else use default command id
-        if equipment.command_shortcut and equipment.command_shortcut in data:
-            command_id = data[equipment.command_shortcut]
+        if equipment.command_shortcut and equipment.command_shortcut in message:
+            command_id = message[equipment.command_shortcut]
         # elif equipment.command_shortcut:
-        #     raise ValueError(f"Command shortcut '{equipment.command_shortcut}' not found in data {data}")
+        #     raise ValueError(f"Command shortcut '{equipment.command_shortcut}' not found in message {message}")
         else:
             command_id = None
         # determine direction indicator
@@ -708,11 +699,11 @@ class Gateway:
             self.logger.error(f"cannot prepare radio packet: {err}")
             return
 
-        if learn_data is None and data: # if yes, already prepared in prepare_telegram
+        if learn_data is None and message: # if yes, already prepared in prepare_telegram
             try:
                 # override with specific data settings
                 self.logger.debug(f"packet with telegram {packet.function_group}")
-                packet.set_telegram_data(data)
+                packet.set_message(message)
             except FrameBuildError:
                 # self.logger.warning(f"unable to build packet")
                 raise
@@ -720,7 +711,7 @@ class Gateway:
             # what to do if we have no data to send yet?
             self.logger.warning(f"sending only default data as answer to {equipment.name}")
         self.logger.info(
-            f"Send command {hex(command_id) if command_id is not None else ''} to equipment {equipment.address_label} with payload {data}"
+            f"Send command {hex(command_id) if command_id is not None else ''} to equipment {equipment.address_label} with payload {message}"
         )
         self.controller.send(packet)
 

@@ -53,7 +53,7 @@ class Packet:
         return f"{PacketType(self.packet_type).name} data={data_dec} optional={optional_dec}"
 
     @staticmethod
-    def parse_frame(frame):
+    def parse(frame):
         """
         Parses packet from frame.
         returns:
@@ -94,7 +94,7 @@ class Packet:
             Packet.logger.warning(f"Received unsupported packet type: {packet_type}")
             packet = Packet(packet_type, data=data, optional=opt_data)
         # Packet.logger.debug(f"Parsed packet {packet}")
-        packet.parse()
+        packet.decode()
         return packet
 
     @staticmethod
@@ -103,11 +103,11 @@ class Packet:
             return True
         return False
 
-    def parse(self):
+    def decode(self):
         """ Parse generic values and flag """
         self.logger.debug(f"Parsed packet {self}")
 
-    def build(self):
+    def encode(self):
         """Build Packet for sending to EnOcean controller"""
         data_length = len(self.data)
         ords = [
@@ -215,7 +215,6 @@ class RadioPacket(Packet):
         elif default_data:
             # Initialize packet with default_data if specified
             packet.data[1:5] = address_to_bytes_list(default_data)
-        # packet.parse() # TODO: parse() should be called after the packet is built, not before
         return packet
 
     @property
@@ -298,13 +297,13 @@ class RadioPacket(Packet):
 
     @property
     def is_broadcast(self):
-        return True if int.from_bytes(self.destination) == 0xffffffff else False
+        return True if self.destination and int.from_bytes(self.destination) == 0xffffffff else False
 
     @property
     def is_base_id(self):
-        return True if 0xff800000 <= int.from_bytes(self.destination) <= 0xfffffffe else False
+        return True if self.destination and 0xff800000 <= int.from_bytes(self.destination) <= 0xfffffffe else False
 
-    def parse(self):
+    def decode(self):
         """Parse data from Packet"""
         # parse learn bit and FUNC/TYPE, if applicable
         if self.rorg == RORG.BS1:
@@ -343,7 +342,7 @@ class RadioPacket(Packet):
                 self.logger.info(f"Parse packet with an unsupported RORG: {RORG(self.rorg)}")
             except ValueError:
                 self.logger.warning(f"Parse packet with an unknown RORG: {self.rorg}")
-        super().parse()
+        super().decode()
 
     def __get_command_id(self, profile):
         """interpret packet to retrieve command id from VLD packets"""
@@ -352,7 +351,7 @@ class RadioPacket(Packet):
             command_id = profile.commands.parse_raw(self.data_payload)
             return command_id if command_id else None
 
-    def parse_message(self, equipment, process_metrics=True, filter_unavailable=True):
+    def get_message(self, equipment, process_metrics=True, filter_unavailable=True):
         """Parse EEP based on FUNC and TYPE"""
         if self.rorg == equipment.rorg:
             # Get the command id based on profile
@@ -376,10 +375,9 @@ class RadioPacket(Packet):
             self.logger.warning(f"Received packet with rorg {hex(self.rorg)} but expected {hex(equipment.rorg)} for {equipment.name}")
         return values
 
-    def set_telegram_data(self, data):
+    def set_message(self, message):
         try:
-            self.function_group.set_values(self, data)
-            # return Packet.parse_frame(self.build())
+            self.function_group.set_values(self, message)
         except AttributeError as e:
             raise FrameBuildError(f"Missing attribute while building frame: {e}")
         except ValueError as e:
@@ -414,7 +412,7 @@ class UTETeachInPacket(RadioPacket):
     def eep_label(self):
         return f"{self.eep_rorg:X}-{self.eep_func:X}-{self.eep_type:X}"
 
-    def parse(self):
+    def decode(self):
         self.unidirectional = not get_bits_from_byte(self.data[1], 7)
         self.response_expected = not get_bits_from_byte(self.data[1], 6)
         self.request_type = get_bits_from_byte(self.data[1], 4, 2)
@@ -428,7 +426,7 @@ class UTETeachInPacket(RadioPacket):
         self.eep_type = self.data[5]
         if self.teach_in:
             self.learn = True
-        # super().parse()
+        # super().decode()
         self.logger.info(
             f"Received UTE teach in packet from {to_hex_string(self.sender)} "
             f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)} "

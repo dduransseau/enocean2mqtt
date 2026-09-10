@@ -243,7 +243,7 @@ class BaseController(threading.Thread):
                 # Discard data
                 self._buffer = self._buffer[sync_byte_index:]
                 raise CrcMismatchError
-            packet = Packet.parse_frame(frame)
+            packet = Packet.parse(frame)
             if self.set_timestamp:
                 packet.timestamp = time.time()
             if packet.packet_type == PacketType.RADIO_ERP1:

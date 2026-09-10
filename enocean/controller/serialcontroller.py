@@ -33,7 +33,7 @@ class SerialController(BaseController):
                 while not self.transmit.empty():
                     packet = self.transmit.get(block=False)
                     self.logger.debug(f"Sending: {packet}")
-                    self.__ser.write(bytearray(packet.build()))
+                    self.__ser.write(bytearray(packet.encode()))
                 # Read chars from serial port as hex numbers
                 pending = self.__ser.in_waiting
                 data = self.__ser.read(pending if pending else 1)
