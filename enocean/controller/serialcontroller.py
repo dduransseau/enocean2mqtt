@@ -4,7 +4,7 @@ import logging
 
 import serial
 
-from enocean.controller.basecontroller import BaseController, FrameIncompleteError
+from enocean.controller.basecontroller import BaseController, PacketIncompleteError
 
 
 class SerialController(BaseController):
@@ -47,7 +47,7 @@ class SerialController(BaseController):
                 continue
             try:
                 self.read()
-            except FrameIncompleteError:
+            except PacketIncompleteError:
                 pass
 
         self.__ser.close()

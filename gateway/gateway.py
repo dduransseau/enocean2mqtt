@@ -8,7 +8,7 @@ import threading
 
 from enocean.utils import combine_hex, to_hex_string, address_to_bytes_list, rssi_quality
 from enocean.controller.serialcontroller import SerialController
-from enocean.protocol.packet import RadioPacket, RockerSwitchTelegram, FrameBuildError
+from enocean.protocol.packet import RadioPacket, RockerSwitchTelegram, PacketBuildError
 from enocean.protocol.constants import PacketType, FieldSetName, Direction
 
 from .equipment import Equipment
@@ -451,7 +451,7 @@ class Gateway:
                 self._send_packet_to_esp(equipment, payload, alternate_profile=True)
             else:
                 self._send_packet_to_esp(equipment, payload)
-        except FrameBuildError as e:
+        except PacketBuildError as e:
             self.logger.warning(
                 f"unable to build packet for {equipment.address_label}, {e} with data {payload}"
             )
@@ -704,7 +704,7 @@ class Gateway:
                 # override with specific data settings
                 self.logger.debug(f"packet with telegram {packet.function_group}")
                 packet.set_message(message)
-            except FrameBuildError:
+            except PacketBuildError:
                 # self.logger.warning(f"unable to build packet")
                 raise
         elif learn_data is None:

@@ -6,7 +6,7 @@ import threading
 import queue
 from enocean.protocol.packet import (
     Packet,
-    FrameIncompleteError,
+    PacketIncompleteError,
     CrcMismatchError,
 )
 from enocean.protocol.constants import (
@@ -233,7 +233,7 @@ class BaseController(threading.Thread):
                 packet_len = 7 + data_len + opt_len
                 if packet_len > len(self._buffer):
                     self.next_sync_byte = self.next_sync_byte + packet_len
-                    raise FrameIncompleteError
+                    raise PacketIncompleteError
                 frame = self._buffer[0:packet_len]
                 self.next_sync_byte = 1
                 self._buffer = self._buffer[packet_len:]
@@ -289,7 +289,7 @@ class BaseController(threading.Thread):
             else:
                 self.logger.info(f"Received packet type {packet.packet_type} {PacketType(packet.packet_type)}")
         except (ValueError, IndexError):
-            raise FrameIncompleteError
+            raise PacketIncompleteError
         except CrcMismatchError:
             self.crc_errors += 1
             self.logger.info(f"Error to parse packet, remaining buffer {self._buffer}")

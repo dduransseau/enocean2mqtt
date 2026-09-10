@@ -20,18 +20,20 @@ from .constants import (
 )
 from .signal import SignalMessage
 
-class FrameParserError(Exception):
+class PacketParserError(Exception):
     """ Base error class for parser exception"""
 
 
-class FrameIncompleteError(FrameParserError):
-    """ Frame is not complete """
+class PacketIncompleteError(PacketParserError):
+    """ Packet is not complete """
 
-class FrameBuildError(Exception):
+
+class PacketBuildError(Exception):
     """ Base error class for builder exception"""
 
-class CrcMismatchError(FrameParserError):
-    """ Frame is corrupted, CRC mismatch"""
+
+class CrcMismatchError(PacketParserError):
+    """ Packet is corrupted, CRC mismatch"""
 
 
 class Packet:
@@ -78,7 +80,7 @@ class Packet:
                 "Packet incomplete, Index error"
             )  # check if it can be moved into controller
             # If the fields don't exist, message is incomplete
-            raise FrameIncompleteError()
+            raise PacketIncompleteError()
         if packet_type == PacketType.RADIO_ERP1:
             # Need to handle UTE Teach-in here, as it's a separate packet type
             if data[0] == RORG.UTE:
@@ -379,9 +381,9 @@ class RadioPacket(Packet):
         try:
             self.function_group.set_values(self, message)
         except AttributeError as e:
-            raise FrameBuildError(f"Missing attribute while building frame: {e}")
+            raise PacketBuildError(f"Missing attribute while building frame: {e}")
         except ValueError as e:
-            raise FrameBuildError(e)
+            raise PacketBuildError(e)
 
 
 class UTETeachInPacket(RadioPacket):
