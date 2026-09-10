@@ -12,10 +12,11 @@ from configparser import ConfigParser, DuplicateSectionError
 
 from gateway import Gateway
 
+
 DISCOVERED_EQUIPMENTS_FILE = "./discovered.conf"
 
 conf = {
-    "debug": False,
+    "debug": True,
     "config": ["/etc/gateway.conf", "./gateway.conf", "./equipments.conf"],
     "logfile": "./gateway.log",
 }

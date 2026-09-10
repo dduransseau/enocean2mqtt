@@ -551,17 +551,17 @@ class Gateway:
             retain=False
         )
 
-    def _process_erp_packet(self, packet, equipment):
+    def _decode_and_publish_telegram(self, packet, equipment):
         """interpret radio packet, read properties and publish to MQTT"""
         if not packet.learn or equipment.log_learn:
             try:
                 # Handling received data packet
                 self.logger.debug(f"process radio packet for sensor {equipment}")
                 # Parse message based on fields definition (profile)
-                telegram = packet.parse_telegram(
+                message = packet.parse_message(
                     equipment, process_metrics=self.process_metrics
                 )
-                if not telegram:
+                if not message:
                     self.logger.warning(f"message not interpretable: {equipment.name} {packet}")
                     return
                 # set latest rssi value in equipment
@@ -569,8 +569,8 @@ class Gateway:
                 equipment.last_seen = packet.timestamp
                 if packet.is_eep:
                     channel = None
-                    message_payload = self.format_enocean_message(telegram, equipment)
-                    # Get channel if present in telegram to split into sub-topics
+                    message_payload = self.format_enocean_message(message, equipment)
+                    # Get channel if present in message to split into sub-topics
                     if self.CHANNEL_MESSAGE_KEY in message_payload.keys():
                         channel = message_payload[self.CHANNEL_MESSAGE_KEY]
                     if equipment.publish_rssi:
@@ -603,10 +603,10 @@ class Gateway:
                     self.logger.debug(f"Publish message {message_payload}")
                     self._publish_mqtt_json(equipment, message_payload, channel=channel)
                     if equipment.publish_flat:
-                        self._publish_mqtt_flat(equipment, telegram, channel=channel)
+                        self._publish_mqtt_flat(equipment, message, channel=channel)
                 elif packet.is_signal:
                     self.logger.info("Publish signal stats")
-                    for k, v in telegram.items():
+                    for k, v in message.items():
                         self.mqtt_publish(
                             f"{equipment.topic}/${k}", v, retain=True
                         )
@@ -640,7 +640,7 @@ class Gateway:
         for prop in parsed_message:
             key = getattr(prop, property_key)
             val = getattr(prop, value_key)
-            # Log if telegram have duplicate key, should not append and EEP must be fix in that case
+            # Log if message have duplicate key, should not append and EEP must be fix in that case
             if key in message_payload: 
                 self.logger.warning(f"Duplicate key '{key}' in EEP fields for {equipment.name}, overwriting previous value")
             message_payload[key] = val
@@ -761,34 +761,38 @@ class Gateway:
                 retain=True,
             )
 
-    def _handle_erp_packet(self, packet):
-        # first, look whether we have this sensor configured
+    def _resolve_equipment(self, packet):
+        """Return equipment if it's known and not ignore """
         sender_address = combine_hex(packet.sender)
         formatted_address = to_hex_string(packet.sender)
-        # self.logger.debug(f"process radio for address {formatted_address}")
-        # Check if new device has been detected and add it to known equipment
+
         if self.controller.learned_equipment:
             self.register_new_equipments()
+
         try:
             equipment = self.get_equipment(sender_address)
             if sender_address not in self.detected_equipments:
                 self.detected_equipments.add(sender_address)
                 self.logger.debug(f"Detected known equipment with address {formatted_address}")
                 equipment.first_seen = packet.timestamp
-                # self.mqtt_publish(f"{self.topic_prefix}gateway/detected_equipments", list(self.detected_equipments))
-            # self.logger.debug(f"received: {packet}")
         except UnknownEquipment:
             if sender_address not in self.detected_equipments:
                 self.detected_equipments.add(sender_address)
                 self.logger.info(f"Detected unknown equipment with address {formatted_address}")
-            # skip unknown sensor
             self.logger.debug(f"unknown sender id {formatted_address}, telegram disregarded")
-            return
+            return None
+
         if equipment.ignore:
-            # skip ignored sensors
             self.logger.debug(f"ignored sensor: {formatted_address}")
+            return None
+
+        return equipment
+
+    def _dispatch_esp_packet(self, packet):
+        equipment = self._resolve_equipment(packet)
+        if equipment is None:
             return
-        self._process_erp_packet(packet, equipment)
+        self._decode_and_publish_telegram(packet, equipment)
 
         # TODO: evaluate that
         # check for necessary reply
@@ -818,7 +822,7 @@ class Gateway:
                 packet = self.controller.receive.get(block=True, timeout=1)
                 # check packet type
                 if packet.packet_type == PacketType.RADIO_ERP1:
-                    self._handle_erp_packet(packet)
+                    self._dispatch_esp_packet(packet)
                 elif packet.packet_type == PacketType.RESPONSE:
                     self.logger.debug(
                         f"received esp response packet: {packet.return_code.name}"

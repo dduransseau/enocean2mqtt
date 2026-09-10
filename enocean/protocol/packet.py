@@ -352,7 +352,7 @@ class RadioPacket(Packet):
             command_id = profile.commands.parse_raw(self.data_payload)
             return command_id if command_id else None
 
-    def parse_telegram(self, equipment, process_metrics=True, filter_unavailable=True):
+    def parse_message(self, equipment, process_metrics=True, filter_unavailable=True):
         """Parse EEP based on FUNC and TYPE"""
         if self.rorg == equipment.rorg:
             # Get the command id based on profile
