@@ -99,7 +99,7 @@ class Packet:
 
     @staticmethod
     def validate_address(address):
-        if isinstance(address, bytearray) and len(address) == 4:
+        if isinstance(address, (bytes, bytearray)) and len(address) == 4:
             return True
         return False
 
@@ -126,13 +126,13 @@ class Packet:
 
 class RadioPacket(Packet):
 
-    DEFAULT_ADDRESS = [0xFF, 0xFF, 0xFF, 0xFF]
+    BROADCAST_ADDRESS = [0xFF, 0xFF, 0xFF, 0xFF]
     DEFAULT_RSSI = 0xFF
     DEFAULT_SECURITY_LEVEL = 0
     DEFAULT_SUB_TEL_NUM = 3
     DEFAULT_STATUS = 0
 
-    DEFAULT_OPTIONAL = bytearray([DEFAULT_SUB_TEL_NUM, *DEFAULT_ADDRESS, DEFAULT_RSSI, DEFAULT_SECURITY_LEVEL])
+    DEFAULT_OPTIONAL = bytearray([DEFAULT_SUB_TEL_NUM, *BROADCAST_ADDRESS, DEFAULT_RSSI, DEFAULT_SECURITY_LEVEL])
 
     def __init__(self, optional=None, function_group=None, direction=None, **kwargs):
         # If no optional data is passed on init, set default value for sending
@@ -172,12 +172,16 @@ class RadioPacket(Packet):
             if equipment.address:
                 destination = address_to_bytes_list(equipment.address)
             else:
-                destination = cls.DEFAULT_ADDRESS
+                destination = cls.BROADCAST_ADDRESS
                 Packet.logger.warning("Replacing destination with broadcast address.")
+        if sender is not None:
+            if isinstance(sender, int):
+                sender = sender.to_bytes(4, "big")
+                # print(f"Converted sender: {sender}")
         elif not Packet.validate_address(destination):
-            raise ValueError(f"Invalid destination address: {destination!r}")
+            raise ValueError(f"Invalid destination address: {destination}")
         if sender is None or (sender is not None and not Packet.validate_address(sender)):
-            raise ValueError(f"Invalid sender address: {sender!r}")
+            raise ValueError(f"Invalid sender address: {sender}")
 
         
         if profile:
@@ -189,7 +193,8 @@ class RadioPacket(Packet):
         # Initialize data depending on the profile.
         # set learn bit of 1BS or 4BS to 1 if not learn
         if equipment.rorg in [RORG.RPS, RORG.BS1]:
-            data.extend([0 if is_learn else 0 | 1 << 3])
+            data.extend([0 if is_learn else 0 | 1 << 3]) # TODO: confirm logic
+            # data.extend([1 if is_learn else 0 | 1 << 3])
         elif equipment.rorg == RORG.BS4:
             data.extend([0, 0, 0, 0 if is_learn else 0 | 1 << 3])
         else:  # For VLD extend the data variable len
@@ -201,7 +206,7 @@ class RadioPacket(Packet):
         packet.destination = destination
         packet.direction = Direction.TO
 
-        if is_learn:
+        if is_learn: # TODO: Should be only on VLD packet
             # learn request received
             # copy EEP and manufacturer ID
             packet.data[1:5] = learn_data[1:5]
@@ -210,8 +215,6 @@ class RadioPacket(Packet):
         elif default_data:
             # Initialize packet with default_data if specified
             packet.data[1:5] = address_to_bytes_list(default_data)
-
-        Packet.logger.debug(f"Packet data length {len(packet.data)} after set_eep")
         # packet.parse() # TODO: parse() should be called after the packet is built, not before
         return packet
 
@@ -258,6 +261,14 @@ class RadioPacket(Packet):
             return self.data[0]
         except IndexError:
             return None
+
+    @rorg.setter
+    def rorg(self, value):
+        try:
+            valid_rorg = RORG(value)
+            self.data[0] = valid_rorg
+        except:
+            raise ValueError("Not a supported RORG")
 
     @property
     def is_eep(self):
@@ -509,3 +520,41 @@ class ErpStatusByte:
 
     def __repr__(self):
         return str(self.value)
+
+class RockerSwitchTelegram(RadioPacket):
+
+    R1 = {"A": {"I": 0, "O": 1}, "B": {"I": 2, "O": 3}}
+
+    def __init__(self, equipment, channel="A", **kwargs):
+        self.equipment = equipment
+        if self.R1.get(channel.upper()):
+            self.channel = self.R1[channel.upper()] 
+        else:
+            raise ValueError("Unsupported channel, must be A or B")
+        super().__init__(**kwargs)
+
+    def _encode_press(self, state):
+        if state.upper() in ("I", "O"):
+            r1 = self.channel[state.upper()]
+        return (r1 << 5) | (1 << 4)
+
+    @staticmethod
+    def _encode_release():
+        return 0x0
+    
+    @staticmethod
+    def _encode_status(is_press: bool, t21: int = 1) -> int:
+        nu = 1 if is_press else 0
+        return (t21 << 5) | (nu << 4)
+
+    def get_press_telegram(self, state="O"):
+        telegram = self.prepare_telegram(self.equipment, direction=Direction.TO, sender=self.equipment.address, destination=RadioPacket.BROADCAST_ADDRESS)
+        telegram._status = self._encode_status(True)
+        telegram.data_payload = bytearray([self._encode_press(state)])
+        return telegram
+
+    def get_release_telegram(self, state="O"):
+        telegram = self.prepare_telegram(self.equipment, direction=Direction.TO, sender=self.equipment.address, destination=RadioPacket.BROADCAST_ADDRESS)
+        telegram._status = self._encode_status(False)
+        telegram.data_payload = bytearray([self._encode_release()])
+        return telegram
