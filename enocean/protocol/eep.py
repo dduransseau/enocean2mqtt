@@ -41,6 +41,7 @@ class EEPLibraryInitError(Exception):
 
 
 class ProfileField:
+    __slots__ = ("shortcut", "raw_value", "description", "_value", "unit", "status")
 
     def __init__(self, shortcut, raw_value, description, value=None, unit=None, status=False):
         self.shortcut = shortcut
@@ -95,9 +96,10 @@ class ProfileField:
 
 
 class BaseDataElt:
-    logger = logging.getLogger("enocean.protocol.eep.data")
     " Base class inherit from every value data telegram"
-
+    __slots__ = ("description", "shortcut", "offset", "size", "unit", "_raw_value")
+    logger = logging.getLogger("enocean.protocol.eep.data")
+    
     def __init__(self, elt):
         self.description = elt.get("description", "")
         self.shortcut = elt.get("shortcut")
@@ -121,6 +123,7 @@ class DataStatus(BaseDataElt):
     """Status element
     ex: <status description="T21" shortcut="T21" offset="2" size="1" />
     """
+    __slots__ = ()
 
     def __str__(self) -> str:
         return f"Data status for {self.description}"
@@ -151,6 +154,7 @@ class DataValue(BaseDataElt):
             </scale>
           </value>
     """
+    __slots__ = ("is_range", "scale", "range_min", "range_max", "scale_min", "scale_max", "multiplier")
 
     ROUNDING = 3
 
@@ -195,6 +199,8 @@ class DataValue(BaseDataElt):
 
 
 class DataEnumItem:
+    __slots__ = ("value", "description")
+
     def __init__(self, elt):
         self.value = parse_number_value(elt.get("value"))
         self.description = elt.get("description", "")
@@ -208,6 +214,8 @@ class DataEnumItem:
 
 
 class DataEnumRangeItem:
+    __slots__ = ("description", "multiplier", "range_min", "range_max", "scale_min", "scale_max", "start", "end")
+
     def __init__(self, elt):
         self.description = elt.get("description", "")
         _range = elt.find("range")
@@ -257,6 +265,7 @@ class DataEnumRangeItem:
 
 class DataEnum(BaseDataElt):
     """Base class used for Enum and EnumRange"""
+    __slots__ = ("items", "range_items", "__first", "__last")
 
     def __init__(self, elt):
         super().__init__(elt)
@@ -337,6 +346,7 @@ class DataEnum(BaseDataElt):
 
 class ProfileCommand(DataEnum):
     """Used to define available commands"""
+    __slots__ = ()
 
     def __str__(self) -> str:
         return f"Command enum: {self.description}"
@@ -344,7 +354,8 @@ class ProfileCommand(DataEnum):
 
 class ProfileData:
     """"""
-
+    __slots__ = ("command", "direction", "bytes", "items", "_data_value",
+                 "_operator_fields", "_unit_fields", "_availability_fields")
     logger = logging.getLogger("enocean.protocol.eep.profile")
 
     def __init__(self, elt):
@@ -424,6 +435,7 @@ class ProfileData:
 
 
 class Profile:
+    __slots__ = ("rorg", "func", "type", "description", "commands", "datas")
     logger = logging.getLogger("enocean.protocol.eep.profile")
 
     def __init__(self, elt, rorg=None, func=None):
@@ -489,6 +501,7 @@ class Profile:
 
 
 class TelegramFunctionGroup:
+    __slots__ = ("profile_data", "command_item", "command_shortcut", "direction")
     logger = logging.getLogger("enocean.protocol.eep.functiongroup")
 
     def __init__(

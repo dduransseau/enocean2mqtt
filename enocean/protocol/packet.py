@@ -500,8 +500,6 @@ class EventPacket(Packet):
 class ErpStatusByte:
 
     def __init__(self, b):
-        # print("ErpStatus passed byte:", b, type(b), bin(b))
-        # print(self, read_bits_from_byte(b, 5), read_bits_from_byte(b, 4), read_bits_from_byte(b, 0, 4))
         self.value = b
         self.hash_type = "CRC" if get_bits_from_byte(b, 7) else "Checksum"
         # self.rfu = int(get_bits_from_byte(b, 6))
