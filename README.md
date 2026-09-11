@@ -16,13 +16,14 @@ Based on work of [kipe](https://github.com/kipe/enocean), [embyt](https://github
 - Remove Beautifulsoup4 dependencies (use ElementTree) lxml should work without effort
 - Defined EEP profiles class to avoid parsing xml on fly
 - Added some EEP
-- Support >= 3.8 (remove OrderedDict, use f-string, use PEP 572)
+- Remove OrderedDict, use f-string, use PEP 572
 - Replaced os module by pathlib
 - Added descriptions to metrics
 - Map unit to metrics
 - Compatibility with paho-mqtt>=2.0
+- Replace pySerial by [serialx](https://github.com/puddly/serialx) (support Python >= 3.10)
 - Added equipment definition to facilitate EEP parsing 
-- Remove usage of bit list() (`_bitarray`), replaced by direct [bytearray()](https://docs.python.org/3/library/stdtypes.html#bytearray) manipulation, improve speed and reduce memory consumption
+- Remove usage of bit list() (`_bitarray`), replaced by direct [bytearray()](https://docs.python.org/3/library/stdtypes.html#bytearray) manipulation
 - Publish technical metrics (rssi, last_seen, repeated)
 - [Signal telegram](https://www.enocean-alliance.org/wp-content/uploads/Signal-Telegram-V3.6.pdf) support
 

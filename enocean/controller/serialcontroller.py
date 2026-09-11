@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-import time
 import logging
 
 import serialx
@@ -27,7 +25,8 @@ class SerialController(BaseController):
         self.logger.info(
             f"SerialController started on path {self.__ser.path} with baudrate {self.__baudrate}"
         )
-        self.__ser.read_until(expected=self.SYNC_BYTE)
+        self.__ser.open()
+        self.__ser.reset_read_buffer()
         while not self._stop_flag.is_set():
             try:
                 # If there's messages in transmit queue send them
@@ -40,9 +39,9 @@ class SerialController(BaseController):
                 data = self.__ser.read(pending if pending else 1)
                 if data:
                     self._buffer.extend(data)
-            except FileNotFoundError:
+            except (FileNotFoundError, OSError):
                 self.logger.error(
-                    f"Serial port not found! (device disconnected or multiple access on port {self.__ser.path} ?)"
+                    f"Serial port not found! (device disconnected or multiple access on {self.__ser.path} ?)"
                 )
                 self.stop()
                 continue
