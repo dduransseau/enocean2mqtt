@@ -688,3 +688,13 @@ class EepLibrary:
     @classmethod
     def load_library(cls):
         cls._profiles = EepLibraryLoader().profiles
+
+    @classmethod
+    def get_eep_list(cls):
+        cls._ensure_loaded()
+        eeps = list()
+        for rorg in cls._profiles:
+            for func in cls._profiles[rorg]:
+                for variant in cls._profiles[rorg][func]:
+                    eeps.append(f"{rorg:02X}-{func:02X}-{variant:02X}")
+        return eeps
