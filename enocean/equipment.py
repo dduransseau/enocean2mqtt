@@ -2,7 +2,7 @@
 import logging
 
 from enocean.protocol.eep import EepLibrary
-from enocean.utils import to_hex_string
+from enocean.protocol.address import Address
 
 
 class Equipment:
@@ -12,7 +12,7 @@ class Equipment:
     logger = logging.getLogger("enocean.protocol.equipment")
 
     def __init__(self, address, rorg=None, func=None, variant=None) -> None:
-        self.address = address
+        self.address = address if isinstance(address, Address) else Address(address)
         self.rorg = rorg
         self.func = func
         self.variant = variant
@@ -32,4 +32,4 @@ class Equipment:
         return self.profile.code
 
     def __str__(self) -> str:
-        return f"equipment {to_hex_string(self.address)} eep {self.eep_code}"
+        return f"equipment {self.address} eep {self.eep_code}"

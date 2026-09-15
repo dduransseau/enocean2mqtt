@@ -100,22 +100,22 @@ class BaseController(threading.Thread):
             raise ControllerResponseMismatch("CO_RD_VERSION: unexpected response length")
         self.app_version = ".".join([str(b) for b in response_data[0:4]])
         self.api_version = ".".join([str(b) for b in response_data[4:8]])
-        self.chip_id = response_data[8:12]
+        self.chip_id = Address(response_data[8:12])
         self._chip_version = response_data[12:16]
         # self._chip_version = ".".join([str(b) for b in response_data[12:16]])
         self.app_description = "".join([chr(c) for c in response_data[16:] if c])
         self.logger.info(
             f"Controller info: app_version={self.app_version} api_version={self.api_version} "
-            f"chip_id={to_hex_string(self.chip_id)} chip_version={to_hex_string(self._chip_version)}"
+            f"chip_id={self.chip_id} chip_version={to_hex_string(self._chip_version)}"
         )
 
     def _parse_idbase_response(self, packet):
         response_data = packet.response_data
         if len(response_data) < 4:
             raise ControllerResponseMismatch("CO_RD_IDBASE: unexpected response length")
-        self._set_and_notify("_base_id", response_data)
+        self._set_and_notify("_base_id", Address(response_data))
         self.logger.info(
-            f"Controller info: base ID set to {to_hex_string(self._base_id)} with {int(packet.optional[0])} remaining writes"
+            f"Controller info: base ID set to {self._base_id} with {int(packet.optional[0])} remaining writes"
         )
 
     def _parse_frequency_response(self, packet):
@@ -250,7 +250,7 @@ class BaseController(threading.Thread):
             if packet.packet_type == PacketType.RADIO_ERP1:
                 # Define direction of packed base on address
                 self.logger.debug(
-                    f"Compare sender address to gateway to check direction {bytes(packet.sender)} {bytes(packet.destination)}"
+                    f"Compare sender address to gateway to check direction {packet.sender} {packet.destination}"
                 )
                 if packet.sender == self.address:
                     self.logger.debug("Identified TO packet")
@@ -309,18 +309,20 @@ class BaseController(threading.Thread):
     @base_id.setter
     def base_id(self, base_id):
         """Sets the Base ID manually, only for testing purposes."""
+        if isinstance(base_id, int):
+            base_id = Address(base_id)
         self._base_id = base_id
 
     @property
     def __controller_info(self):
         return dict(
-            EURID=to_hex_string(self.chip_id),
+            EURID=str(self.chip_id),
             frequency= self.frequency,
             protocol = self.protocol,
             app_version=self.app_version,
             api_version=self.api_version,
             app_description=self.app_description,
-            base_id=to_hex_string(self.base_id)
+            base_id=str(self.base_id)
         )
 
     @property

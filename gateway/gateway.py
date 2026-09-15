@@ -103,7 +103,7 @@ class Gateway:
         mqtt_keepalive = (
             int(self.conf["mqtt_keepalive"]) if self.conf.get("mqtt_keepalive") else 60
         )
-        self._use_base_id = self.conf.get("use_base_id", False)
+        self.use_base_id = self.conf.get("use_base_id", False)
         # setup enocean connection
         self.controller = SerialController(
             self.conf["enocean_port"],
@@ -178,7 +178,9 @@ class Gateway:
 
     @property
     def controller_address(self):
-        return self.controller.address if self.controller else None
+        if self.use_base_id:
+            return self.controller.base_id
+        return self.controller.chip_id if self.controller else None
 
     @property
     def controller_info(self):
@@ -224,9 +226,9 @@ class Gateway:
         new_equipments = dict()
         for s in self.conf_manager.equipments:
             try:
-                address = s["address"]
                 s["topic_prefix"] = self.topic_prefix
-                new_equipments[address] = Equipment(**s)
+                equipment = Equipment(**s)
+                new_equipments[equipment.address] = equipment
             except KeyError:
                 is_virtual = s.get("virtual")
                 offset = s.get("offset")
@@ -235,28 +237,28 @@ class Gateway:
                 else:
                     self.logger.warning(f"Unable to identify address for equipment {s['name']}, ommit")
             except (NotImplementedError, ValueError):
-                self.logger.warning(f"Unable to setup device {address}")
+                self.logger.warning(f"Unable to setup device {s['address']}")
         with self._equipments_lock:
             self.equipments = new_equipments
 
 
     def _on_controller_base_id(self, controller, base_id):
-        self.logger.info(f"Controller base ID resolved: {to_hex_string(base_id)}")
+        self.logger.info(f"Controller base ID resolved: {base_id}")
         if self.publish_internal:
             self.mqtt_publish(
                 f"{self.topic_prefix}{self.GATEWAY_TOPIC}/base_id",
-                to_hex_string(base_id),
+                str(base_id),
                 retain=True,
             )
         self.logger.info("Setup virtual aquipment devices")
-        b = int.from_bytes(base_id)
         for equipment in self._virtual_equipments:
             try:
                 offset = int(equipment.get("offset"))
                 if offset:
-                    address = b + offset
-                    self.logger.debug(f"Install virtual equipment with address {to_hex_string(address)}")
-                    equipment["address"] = address
+                    address = base_id + offset
+                    self.logger.debug(f"Install virtual equipment with address {address}")
+                    equipment["address"] = int(address)
+                    equipment["sender"] = int(address)
                     equipment["topic_prefix"] = self.topic_prefix
                     self._add_equipment(Equipment(**equipment))
             except ValueError as e:
@@ -268,7 +270,7 @@ class Gateway:
                 self.equipments[e.address] = e
                 self.mqtt_subscribe(f"{e.topic}{self.EQUIPMENT_REQUEST_TOPIC_SUFFIX}")
             else:
-                raise ValueError(f"The equipment with address {to_hex_string(e.address)} is already set")
+                raise ValueError(f"The equipment with address {e.address} is already set")
 
 
     # =============================================================================================
@@ -428,7 +430,7 @@ class Gateway:
             # sender = self.controller_address
             equipment = self.get_equipment(equipment_id)
             const = EltakoTeachInTelegram()
-            self.logger.debug(f"Prepare packet for Eltako device {to_hex_string(equipment.address)} from {to_hex_string(self.controller_address)}")
+            self.logger.debug(f"Prepare packet for Eltako device {equipment.address} from {self.controller_address}")
             packet = const.get_teachin_telegram(sender)            
             self.controller.send(packet)
         except UnknownEquipment:
@@ -618,10 +620,10 @@ class Gateway:
                         self.mqtt_publish(
                             f"{equipment.topic}/${k}", v, retain=True
                         )
-            except Exception as e:
+            except SyntaxError as e:
                 self.logger.error(f"Unable to process ERP packet, cause: {e}")
         elif packet.learn and not self.controller.teach_in:
-            self.logger.info(f"Received teach-in packet from {to_hex_string(packet.sender)} but learn is not enabled")
+            self.logger.info(f"Received teach-in packet from {packet.sender} but learn is not enabled")
         else:
             # learn request received
             self.logger.info("learn request not emitted to mqtt")
@@ -694,10 +696,11 @@ class Gateway:
         # Add possibility for the user to indicate a specific sender address
         # in sensor configuration using added 'sender' field.
         # So use specified sender address if any
+        self.logger.debug(f"Controller address id {self.controller_address} {type(self.controller_address)}")
         sender = (
-            address_to_bytes_list(equipment.sender)
+            equipment.sender.to_bytes()
             if equipment.sender
-            else self.controller_address
+            else self.controller_address.to_bytes()
         )
 
         try:
@@ -728,7 +731,7 @@ class Gateway:
             # what to do if we have no data to send yet?
             self.logger.warning(f"sending only default data as answer to {equipment.name}")
         self.logger.info(
-            f"Send command {hex(command_id) if command_id is not None else ''} to equipment {equipment.address_label} with payload {message}"
+            f"Send command {hex(command_id) if command_id is not None else ''} to equipment {equipment.address} with payload {message}"
         )
         self.controller.send(packet)
 
@@ -771,27 +774,26 @@ class Gateway:
 
     def _resolve_equipment(self, packet):
         """Return equipment if it's known and not ignore """
-        sender_address = combine_hex(packet.sender)
-        formatted_address = to_hex_string(packet.sender)
+        # sender_address = combine_hex(packet.sender)
 
         if self.controller.learned_equipment:
             self.register_new_equipments()
 
         try:
-            equipment = self.get_equipment(sender_address)
-            if sender_address not in self.detected_equipments:
-                self.detected_equipments.add(sender_address)
-                self.logger.debug(f"Detected known equipment with address {formatted_address}")
+            equipment = self.get_equipment(packet.sender)
+            if packet.sender not in self.detected_equipments:
+                self.detected_equipments.add(packet.sender)
+                self.logger.debug(f"Detected known equipment with address {packet.sender}")
                 equipment.first_seen = packet.timestamp
         except UnknownEquipment:
-            if sender_address not in self.detected_equipments:
-                self.detected_equipments.add(sender_address)
-                self.logger.info(f"Detected unknown equipment with address {formatted_address}")
-            self.logger.debug(f"unknown sender id {formatted_address}, telegram disregarded")
+            if packet.sender not in self.detected_equipments:
+                self.detected_equipments.add(packet.sender)
+                self.logger.info(f"Detected unknown equipment with address {packet.sender}")
+            self.logger.debug(f"unknown sender id {packet.sender}, telegram disregarded")
             return None
 
         if equipment.ignore:
-            self.logger.debug(f"ignored sensor: {formatted_address}")
+            self.logger.debug(f"ignored sensor: {packet.sender}")
             return None
 
         return equipment

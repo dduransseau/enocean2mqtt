@@ -3,6 +3,8 @@ from enocean.utils import to_hex_string
 
 class Address:
 
+    BROADCAST = b'\xff\xff\xff\xff'
+
     def __init__(self, val) -> None:
         if isinstance(val, int):
             if not (0 <= val <= 0xFFFFFFFF):
@@ -15,7 +17,7 @@ class Address:
                 raise ValueError("Address must be composed of 4 bytes")
             self._address = int.from_bytes(val, "big")
         else:
-            raise ValueError("Address must be an integer or bytearray")
+            raise ValueError(f"Address must be an integer or bytearray, got {val}")
 
     @property
     def is_eurid(self):
@@ -29,15 +31,25 @@ class Address:
     def is_broadcast(self):
         return self._address == 0xFFFFFFFF
 
-    @property
-    def bytearray(self):
+    def to_bytes(self):
         return self._address.to_bytes(4, "big")
 
     def __int__(self):
         return self._address
 
+    def __add__(self, offset):
+        if not isinstance(offset, int):
+            raise ValueError("Addition offset must be an integer type")
+        return Address(self._address+offset)
+    
+    def __hash__(self):
+        return self._address
+
     def __str__(self):
         return to_hex_string(self._address)
+
+    def __repr__(self):
+        return str(self)
 
     def __eq__(self, target):
         if not isinstance(target, Address):

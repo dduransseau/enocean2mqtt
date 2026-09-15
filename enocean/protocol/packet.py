@@ -7,6 +7,7 @@ from enocean.utils import (
     address_to_bytes_list,
     get_bits_from_byte
 )
+from .address import Address
 from . import crc8
 from .constants import (
     PacketType,
@@ -149,7 +150,7 @@ class RadioPacket(Packet):
 
     def __str__(self):
         packet_str = super().__str__()
-        return (f"{to_hex_string(self.sender)}->{to_hex_string(self.destination)} "
+        return (f"{self.sender}->{self.destination} "
                 f"({self.dBm} dBm): {packet_str} status:{self.status}")
 
     @classmethod
@@ -172,17 +173,13 @@ class RadioPacket(Packet):
 
         if destination is None:
             if equipment.address:
-                destination = address_to_bytes_list(equipment.address)
+                destination = equipment.address.to_bytes()
             else:
                 destination = cls.BROADCAST_ADDRESS
                 Packet.logger.warning("Replacing destination with broadcast address.")
-
-        if destination is not None:
-            if isinstance(destination, int):
-                destination = destination.to_bytes(4, "big")
-                # print(f"Converted sender: {sender}")
-        elif not Packet.validate_address(destination):
-            raise ValueError(f"Invalid destination address: {destination}")
+        else:
+            destination_address = Address(destination)
+            destination = destination_address.to_bytes()
         if sender is not None:
             if isinstance(sender, int):
                 sender = sender.to_bytes(4, "big")
@@ -249,7 +246,7 @@ class RadioPacket(Packet):
     def destination(self):
         if len(self.optional) < 5:
             return None
-        return self.optional[1:5]
+        return Address(self.optional[1:5])
 
     @destination.setter
     def destination(self, value):
@@ -259,7 +256,7 @@ class RadioPacket(Packet):
     def sender(self):
         if len(self.data) < 5:
             return None
-        return self.data[-5:-1]
+        return Address(self.data[-5:-1])
 
     @property
     def rorg(self):
@@ -374,7 +371,7 @@ class RadioPacket(Packet):
             values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics, filter_unavailable=filter_unavailable)
             self.logger.debug(f"Parsed data values {values}")
         elif self.rorg == RORG.MSC:
-            self.logger.warning(f"Received MSC telegram for equipment {equipment.address_label} with profile {equipment.profile}")
+            self.logger.warning(f"Received MSC telegram for equipment {equipment.address} with profile {equipment.profile}")
         elif self.rorg == RORG.SIGNAL:
             res = SignalMessage.decode(self.data_payload)
             values = res.fields
@@ -435,7 +432,7 @@ class UTETeachInPacket(RadioPacket):
             self.learn = True
         # super().decode()
         self.logger.info(
-            f"Received UTE teach in packet from {to_hex_string(self.sender)} "
+            f"Received UTE teach in packet from {self.sender} "
             f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)} "
             f"EEP={self.eep_label}"
         )
@@ -447,13 +444,13 @@ class UTETeachInPacket(RadioPacket):
         # - Databytes 5 to 0 are copied from the original message
         # - Set sender id and status
         # Docs: EnOcean-Equipment-Profiles-3-1.pdf
-        self.logger.debug(f"Preparing UTE response sender={to_hex_string(sender_id)} manu={MANUFACTURER_CODE.get(self.man_id, self.man_id)} destination={to_hex_string(self.sender)}")
+        self.logger.debug(f"Preparing UTE response sender={sender_id} manu={MANUFACTURER_CODE.get(self.man_id, self.man_id)} destination={self.sender}")
 
         data = bytearray(13)
         data[0] = self.rorg
         data[1] = 0b10000001 | (response << 4)
         data[2:8] = self.data[2:8]
-        data[8:12] = sender_id
+        data[8:12] = sender_id.to_bytes()
         data[12] = 0
 
         response_packet = UTETeachInPacket(data=data)
@@ -551,13 +548,13 @@ class RockerSwitchTelegram(RadioPacket):
         return (t21 << 5) | (nu << 4)
 
     def get_press_telegram(self, state="O"):
-        telegram = self.prepare_telegram(self.equipment, direction=Direction.TO, sender=self.equipment.address, destination=RadioPacket.BROADCAST_ADDRESS)
+        telegram = self.prepare_telegram(self.equipment, direction=Direction.TO, sender=self.equipment.address, destination=Address.BROADCAST)
         telegram._status = self._encode_status(True)
         telegram.data_payload = bytearray([self._encode_press(state)])
         return telegram
 
     def get_release_telegram(self, state="O"):
-        telegram = self.prepare_telegram(self.equipment, direction=Direction.TO, sender=self.equipment.address, destination=RadioPacket.BROADCAST_ADDRESS)
+        telegram = self.prepare_telegram(self.equipment, direction=Direction.TO, sender=self.equipment.address, destination=Address.BROADCAST)
         telegram._status = self._encode_status(False)
         telegram.data_payload = bytearray([self._encode_release()])
         return telegram

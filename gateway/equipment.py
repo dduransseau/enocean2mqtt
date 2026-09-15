@@ -1,8 +1,7 @@
 import logging
 
-import enocean.utils
 from enocean.equipment import Equipment as EnoceanEquipment
-
+from enocean.equipment import Address
 
 class Equipment(EnoceanEquipment):
     logger = logging.getLogger("enocean.mqtt.equipment")
@@ -50,7 +49,7 @@ class Equipment(EnoceanEquipment):
         self.virtual = self.get_config_boolean(kwargs, "virtual", default=False)
         self.answer = kwargs.get("answer")
         self.channel = kwargs.get("channel")
-        self.sender = kwargs.get("sender")
+        self.sender = Address(kwargs["sender"]) if kwargs.get("sender") else None
         self.direction = kwargs.get("direction") # TODO: confirm usage ?
         self.default_data = kwargs.get("default_data")
         self.is_controllable = self.profile.has_direction_to # Equipment can receive command from gateway
@@ -98,10 +97,6 @@ class Equipment(EnoceanEquipment):
             return self.alt_profile.rorg
 
     @property
-    def address_label(self):
-        return enocean.utils.to_hex_string(self.address)
-
-    @property
     def command_shortcut(self):
         """Return a command shortcut based on the equipment name and command"""
         if self.profile.commands:
@@ -115,12 +110,12 @@ class Equipment(EnoceanEquipment):
             func=self.func,
             variant=self.variant,
             description=self.description,
-            address=self.address_label,
+            address=str(self.address),
             topic=self.topic,
             config=dict(
                 publish_rssi=self.publish_rssi,
                 retain=self.retain,
                 ignore=self.ignore,
-                sender=self.sender
+                sender=str(self.sender)
             ),
         )
