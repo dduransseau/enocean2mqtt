@@ -8,12 +8,13 @@ import threading
 
 from enocean.utils import combine_hex, to_hex_string, address_to_bytes_list, rssi_quality
 from enocean.controller.serialcontroller import SerialController
-from enocean.protocol.packet import RadioPacket, RockerSwitchTelegram, PacketBuildError
+from enocean.protocol.packet import RadioPacket, RockerSwitchTelegram, EltakoTeachInTelegram, PacketBuildError
 from enocean.protocol.constants import PacketType, FieldSetName, Direction
 
 from .equipment import Equipment
 
 import paho.mqtt.client as mqtt
+from paho.mqtt.enums import CallbackAPIVersion
 
 
 class UnknownEquipment(Exception):
@@ -125,7 +126,7 @@ class Gateway:
         # setup mqtt connection
         client_id = self.conf.get("mqtt_client_id", None)
         self.mqtt_client = mqtt.Client(
-            mqtt.CallbackAPIVersion.VERSION2, client_id=client_id
+            CallbackAPIVersion.VERSION2, client_id=client_id
         )
         self.mqtt_client.on_connect = self._on_connect
         self.mqtt_client.on_disconnect = self._on_disconnect
@@ -328,8 +329,10 @@ class Gateway:
             # Set to list to avoid that the dict is modified while iterating over it
             equipments_snapshot = list(self.equipments.values())
             for equipment in equipments_snapshot:
-                self.mqtt_subscribe(f"{equipment.topic}{self.EQUIPMENT_REQUEST_TOPIC_SUFFIX}")
-                if equipment.alt_profile:
+                if equipment.is_controllable: # Subscribe to cmd topic only if equipment can receive telegram
+                    self.logger.debug(f"Subscribe to equipement {equipment.name}")
+                    self.mqtt_subscribe(f"{equipment.topic}{self.EQUIPMENT_REQUEST_TOPIC_SUFFIX}")
+                if equipment.alt_profile: # Used for equipment with aditionnal MSC support
                     self.mqtt_subscribe(f"{equipment.topic}/config")
 
     def _publish_gateway_adapter_details(self):
@@ -415,8 +418,22 @@ class Gateway:
         """Handle controller command request received from MQTT"""
         self.logger.info(f"Received controller command request: {msg.topic} with payload {msg.payload}")
 
-    def handle_gateway_test_function(self, *args, **kwargs):
+    def handle_gateway_test_function(self, msg, *args, **kwargs):
         self.logger.info("Called the test function")
+        equipment_id = msg.payload.decode("utf-8")
+        try:
+            
+            base_id = 0xFFADE784
+            sender = base_id
+            # sender = self.controller_address
+            equipment = self.get_equipment(equipment_id)
+            const = EltakoTeachInTelegram()
+            self.logger.debug(f"Prepare packet for Eltako device {to_hex_string(equipment.address)} from {to_hex_string(self.controller_address)}")
+            packet = const.get_teachin_telegram(sender)            
+            self.controller.send(packet)
+        except UnknownEquipment:
+            self.logger.warning(f"Unable to retrieve an equipment with equipment id: {equipment_id}")
+
 
     # =============================================================================================
     # MQTT TO ENOCEAN
@@ -448,9 +465,9 @@ class Gateway:
         self.logger.debug(f"Message {payload} to send to {equipment.address}")
         try:
             if mqtt_topic.endswith("/config"): # MSC config use case
-                self._send_packet_to_esp(equipment, payload, alternate_profile=True)
+                self._send_packet_to_esp(equipment, payload, direction=Direction.TO, alternate_profile=True)
             else:
-                self._send_packet_to_esp(equipment, payload)
+                self._send_packet_to_esp(equipment, payload, direction=Direction.TO)
         except PacketBuildError as e:
             self.logger.warning(
                 f"unable to build packet for {equipment.address_label}, {e} with data {payload}"
@@ -664,6 +681,7 @@ class Gateway:
     ):
         """triggers sending of an enocean packet"""
         # get command id from data if any, else use default command id
+        self.logger.debug(f"Get command id for equipment command shortcut {equipment.command_shortcut} for {equipment.profile.commands}")
         if equipment.command_shortcut and equipment.command_shortcut in message:
             command_id = message[equipment.command_shortcut]
         # elif equipment.command_shortcut:
@@ -684,7 +702,7 @@ class Gateway:
 
         try:
             profile = equipment.alt_profile if alternate_profile else None # MSC config use case
-            self.logger.debug(f"Profile={profile}")
+            self.logger.debug(f"Profile={profile} with direction={direction}")
             packet = RadioPacket.prepare_telegram(
                 equipment,
                 direction=direction,
@@ -694,7 +712,6 @@ class Gateway:
                 default_data=equipment.default_data,
                 profile=profile
             )
-            self.logger.debug(f"packet built: {packet.data}")
         except (ValueError, NotImplementedError) as err:
             self.logger.error(f"cannot prepare radio packet: {err}")
             return
@@ -702,7 +719,7 @@ class Gateway:
         if learn_data is None and message: # if yes, already prepared in prepare_telegram
             try:
                 # override with specific data settings
-                self.logger.debug(f"packet with telegram {packet.function_group}")
+                # self.logger.debug(f"packet with telegram {packet.function_group}")
                 packet.set_message(message)
             except PacketBuildError:
                 # self.logger.warning(f"unable to build packet")

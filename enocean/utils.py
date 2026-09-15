@@ -103,7 +103,7 @@ def combine_hex(data):
 
 
 def to_hex_string(data):
-    """Convert list of integers to a hex string, separated by ":" """
+    """Convert list of integers to a hex string"""
     if isinstance(data, int):
         return f"{data:X}"
     return "".join([f"{o:X}".zfill(2) for o in data])

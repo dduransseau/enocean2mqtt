@@ -151,5 +151,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 *.conf
-
+estimate_memory_usage.py
+docs/
 TODO
+mqtt_test_command.py
+check_eeps.py
+identify_eep_to.py
+mapping_command_value.py

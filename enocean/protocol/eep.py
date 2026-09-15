@@ -5,6 +5,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from enocean.utils import from_hex_string, get_bits_from_bytearray, get_bits_from_byte, set_bits_in_bytearray, set_bits_to_byte
+from enocean.protocol.constants import Direction
 
 logger = logging.getLogger("enocean.protocol.eep")
 
@@ -394,7 +395,6 @@ class ProfileData:
         """
         return: BaseDataElt
         """
-        self.logger.debug(f"Get profile data for shortcut {shortcut}")
         for item in self.items:
             if item.shortcut == shortcut:
                 return item
@@ -435,7 +435,7 @@ class ProfileData:
 
 
 class Profile:
-    __slots__ = ("rorg", "func", "type", "description", "commands", "datas")
+    __slots__ = ("rorg", "func", "type", "description", "commands", "datas", "has_direction_to")
     logger = logging.getLogger("enocean.protocol.eep.profile")
 
     def __init__(self, elt, rorg=None, func=None):
@@ -443,6 +443,7 @@ class Profile:
         self.func = func
         self.type = int(elt.get("type", 0), 16)
         self.description = elt.get("description", "")
+        self.has_direction_to = False # use to know if device can receive command
         if len(elt.findall("command")) > 1:
             raise ValueError("More then 1 command for profile")
         c = elt.find("command")
@@ -457,6 +458,9 @@ class Profile:
             profile_data = ProfileData(p)
             profile_key = (profile_data.command, profile_data.direction)
             self.datas[profile_key] = profile_data
+            # Identify if this profile can be managed by controler
+            if profile_data.direction == Direction.TO:
+                self.has_direction_to = True
 
     @property
     def code(self):
@@ -571,10 +575,10 @@ class TelegramFunctionGroup:
                     bypass_list.append(flag)
 
 
-    def get_values(self, user_payload, status, global_process=True, filter_unavailable=True):
+    def get_values(self, user_payload, status, global_process=False, filter_unavailable=False):
         """Get keys and values from user_payload"""
         output = []
-        bypass_list = []
+        bypass_list = [] # used to remove the key/value from the message
         # Calculate the values that have unit or operator (multiplier or divisor) in the message
         if global_process and self.profile_data.has_global_operation:
             self.calculate_composed_values(user_payload, status, bypass_list, output)
@@ -669,6 +673,7 @@ class EepLibrary:
 
     @classmethod
     def get_eep(cls, eep_rorg, rorg_func, rorg_type):
+        """ return: Profile()"""
         cls._ensure_loaded()
         try:
             return cls._profiles[eep_rorg][rorg_func][rorg_type]

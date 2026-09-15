@@ -9,6 +9,7 @@ from enocean.protocol.packet import (
     PacketIncompleteError,
     CrcMismatchError,
 )
+from enocean.protocol.address import Address
 from enocean.protocol.constants import (
     PacketType,
     RORG,

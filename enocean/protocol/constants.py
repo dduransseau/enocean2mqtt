@@ -251,7 +251,7 @@ MANUFACTURER_CODE = {
     0x43: "Soda Gmbh",
     0x44: "Eke Automation",
     0x45: "Holter Regelarmutren",
-    0x46: "ID RF",
+    0x46: "ID-RF",
     0x47: "Deuta Controls Gmbh",
     0x48: "Ewattch",
     0x49: "Micropelt",

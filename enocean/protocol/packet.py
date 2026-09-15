@@ -164,7 +164,7 @@ class RadioPacket(Packet):
                         profile=None, # Allow to overload a profile, MSC config use cas
                         **kwargs,
                         ):
-        Packet.logger.debug(f"Create packet for equipment profile {equipment.profile}")
+        Packet.logger.debug(f"Create packet for equipment profile {profile or equipment.profile} with command {command} for direction {direction}")
         if equipment.rorg not in [RORG.RPS, RORG.BS1, RORG.BS4, RORG.VLD, RORG.MSC]:
             raise NotImplementedError("RORG not supported by this function.")
         
@@ -176,13 +176,18 @@ class RadioPacket(Packet):
             else:
                 destination = cls.BROADCAST_ADDRESS
                 Packet.logger.warning("Replacing destination with broadcast address.")
+
+        if destination is not None:
+            if isinstance(destination, int):
+                destination = destination.to_bytes(4, "big")
+                # print(f"Converted sender: {sender}")
+        elif not Packet.validate_address(destination):
+            raise ValueError(f"Invalid destination address: {destination}")
         if sender is not None:
             if isinstance(sender, int):
                 sender = sender.to_bytes(4, "big")
                 # print(f"Converted sender: {sender}")
-        elif not Packet.validate_address(destination):
-            raise ValueError(f"Invalid destination address: {destination}")
-        if sender is None or (sender is not None and not Packet.validate_address(sender)):
+        elif sender is None or (sender is not None and not Packet.validate_address(sender)):
             raise ValueError(f"Invalid sender address: {sender}")
 
         
@@ -556,3 +561,17 @@ class RockerSwitchTelegram(RadioPacket):
         telegram._status = self._encode_status(False)
         telegram.data_payload = bytearray([self._encode_release()])
         return telegram
+    
+class EltakoTeachInTelegram(RadioPacket):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get_teachin_telegram(self, sender):
+        packet = Packet(PacketType.RADIO_ERP1, data=bytearray([0xa5, 0xE0, 0x40, 0x0D, 0x80]), optional=bytearray([0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]))
+        packet.data.extend(sender.to_bytes(4, "big"))
+        packet.data.append(0x0)
+        # packet = self.prepare_telegram(self.equipment, command=1, direction=Direction.TO, sender=sender, destination=RadioPacket.BROADCAST_ADDRESS)
+        # packet._status = 0x0
+        # packet.data_payload = bytearray([0xE0, 0x40, 0x0D, 0x80])
+        return packet

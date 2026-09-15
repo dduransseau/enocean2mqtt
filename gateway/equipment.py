@@ -51,8 +51,9 @@ class Equipment(EnoceanEquipment):
         self.answer = kwargs.get("answer")
         self.channel = kwargs.get("channel")
         self.sender = kwargs.get("sender")
-        self.direction = kwargs.get("direction")
+        self.direction = kwargs.get("direction") # TODO: confirm usage ?
         self.default_data = kwargs.get("default_data")
+        self.is_controllable = self.profile.has_direction_to # Equipment can receive command from gateway
         self.first_seen = None
         self.last_seen = None
         self.rssi = None

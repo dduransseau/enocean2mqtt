@@ -32,7 +32,7 @@ class SerialController(BaseController):
                 # If there's messages in transmit queue send them
                 while not self.transmit.empty():
                     packet = self.transmit.get(block=False)
-                    self.logger.debug(f"Sending: {packet}")
+                    # self.logger.debug(f"Sending: {packet}")
                     self.__ser.write(bytearray(packet.encode()))
                 # Read chars from serial port as hex numbers
                 pending = self.__ser.num_unread_bytes()

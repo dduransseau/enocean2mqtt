@@ -4,10 +4,66 @@
   <profiles func="0x46" description="ID RF">
    <profile type="0x00" description="Repeater">
     <command description="Command Type" shortcut="CMD" offset="16" size="8">
+     <item description="FW version query" value="2" />
+     <item description="FW version response" value="3" />
      <item description="Repeater set level" value="8" />
      <item description="Repeater status query" value="9" />
      <item description="Repeater status response" value="10" />
     </command>
+    <data command="2" bits="3">
+     <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+      <item description="ID RF" value="70" />
+     </enum>
+     <enum description="Command Type" shortcut="CMD" offset="16" size="8">
+      <item description="FW version query" value="2" />
+      <item description="FW version response" value="3" />
+      <item description="Repeater set level" value="8" />
+      <item description="Repeater status query" value="9" />
+      <item description="Repeater status response" value="10" />
+     </enum>
+    </data>
+    <data command="3" bits="3">
+     <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+      <item description="ID RF" value="70" />
+     </enum>
+     <enum description="Command Type" shortcut="CMD" offset="16" size="8">
+      <item description="FW version query" value="2" />
+      <item description="FW version response" value="3" />
+      <item description="Repeater set level" value="8" />
+      <item description="Repeater status query" value="9" />
+      <item description="Repeater status response" value="10" />
+     </enum>
+     <value description="Major version" shortcut="MAJV" offset="24" size="8">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>255</max>
+      </scale>
+     </value>
+     <value description="Minor version" shortcut="MINV" offset="32" size="8">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>255</max>
+      </scale>
+     </value>
+     <value description="Revision" shortcut="REVV" offset="40" size="8">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>255</max>
+      </scale>
+     </value>
+    </data>
     <data command="8" bits="5">
      <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
       <item description="ID-RF" value="70" />
@@ -53,10 +109,66 @@
    </profile>
    <profile type="0x01" description="Repeater">
     <command description="Command Type" shortcut="CMD" offset="16" size="8">
+     <item description="FW version query" value="2" />
+     <item description="FW version response" value="3" />
      <item description="Repeater set level" value="8" />
      <item description="Repeater status query" value="9" />
      <item description="Repeater status response" value="10" />
     </command>
+    <data command="2" bits="3">
+     <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+      <item description="ID RF" value="70" />
+     </enum>
+     <enum description="Command Type" shortcut="CMD" offset="16" size="8">
+      <item description="FW version query" value="2" />
+      <item description="FW version response" value="3" />
+      <item description="Repeater set level" value="8" />
+      <item description="Repeater status query" value="9" />
+      <item description="Repeater status response" value="10" />
+     </enum>
+    </data>
+    <data command="3" bits="3">
+     <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+      <item description="ID RF" value="70" />
+     </enum>
+     <enum description="Command Type" shortcut="CMD" offset="16" size="8">
+      <item description="FW version query" value="2" />
+      <item description="FW version response" value="3" />
+      <item description="Repeater set level" value="8" />
+      <item description="Repeater status query" value="9" />
+      <item description="Repeater status response" value="10" />
+     </enum>
+     <value description="Major version" shortcut="MAJV" offset="24" size="8">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>255</max>
+      </scale>
+     </value>
+     <value description="Minor version" shortcut="MINV" offset="32" size="8">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>255</max>
+      </scale>
+     </value>
+     <value description="Revision" shortcut="REVV" offset="40" size="8">
+      <range>
+       <min>0</min>
+       <max>255</max>
+      </range>
+      <scale>
+       <min>0</min>
+       <max>255</max>
+      </scale>
+     </value>
+    </data>
     <data command="8" bits="5">
      <enum description="Manufacturer ID" shortcut="MID" offset="0" size="8">
       <item description="ID-RF" value="70" />
@@ -75,7 +187,7 @@
      </enum>
     </data>
     <data command="9" bits="3">
-     <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+     <enum description="Manufacturer ID" shortcut="MID" offset="0" size="8">
       <item description="ID RF" value="70" />
      </enum>
      <enum description="Command Type" shortcut="CMD" offset="16" size="8">
@@ -85,7 +197,7 @@
      </enum>
     </data>
     <data command="10" bits="4">
-     <enum description="Manufacturer ID" shortcut="MID" offset="8" size="8">
+     <enum description="Manufacturer ID" shortcut="MID" offset="0" size="8">
       <item description="ID RF" value="70" />
      </enum>
      <enum description="Command Type" shortcut="CMD" offset="16" size="8">
@@ -2836,12 +2948,17 @@
   </profiles>
   <profiles func="0x38" description="Central Command">
    <profile type="0x08" description="Gateway">
-    <command description="Command ID" shortcut="COM" offset="0" size="8">
+    <command description="Command ID" shortcut="CMD" offset="0" size="8">
      <item description="Switching" value="1" />
      <item description="Dimming" value="2" />
+     <item description="Setpoint shift" value="3" />
+     <item description="Basic setpoint" value="4" />
+     <item description="Control variable" value="5" />
+     <item description="Fan stage" value="6" />
+     <item description="Blind central command" value="7" />
     </command>
     <data command="1" direction="2">
-     <enum shortcut="COM" description="Command ID" offset="0" size="8">
+     <enum shortcut="CMD" description="Command ID" offset="0" size="8">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <value shortcut="TIM" description="Time in 1/10 seconds. 0 = no time specifed" offset="8" size="16" unit="s">
@@ -2854,6 +2971,10 @@
        <max>6553.5</max>
       </scale>
      </value>
+     <enum shortcut="LRNB" description="Learn Bit" offset="28" size="1">--&gt;
+						<item description="Teach-In" value="0" />
+      <item description="Data" value="1" />
+     </enum>
      <enum description="Lock for duration time if time &gt;0, unlimited time of no time specified. Locking may be cleared with &quot;unlock&quot;. During lock phase no other commands will be accepted or executed" shortcut="LCK" offset="29" size="1">
       <item description="Unlock" value="0" />
       <item description="Lock" value="1" />
@@ -2868,7 +2989,7 @@
      </enum>
     </data>
     <data command="2" direction="2">
-     <enum shortcut="COM" description="Command ID" offset="0" size="8">
+     <enum shortcut="CMD" description="Command ID" offset="0" size="8">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <value shortcut="EDIM" description="Dimming value (absolute [0...255] or relative [0...100])" offset="8" size="8" unit="%">
@@ -2905,7 +3026,7 @@
      </enum>
     </data>
     <data command="3" direction="2">
-     <enum shortcut="COM" description="Command ID" offset="0" size="8">
+     <enum shortcut="CMD" description="Command ID" offset="0" size="8">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <value shortcut="SP" description="Setpoint shift" offset="16" size="8" unit="k">
@@ -2920,7 +3041,7 @@
      </value>
     </data>
     <data command="4">
-     <enum shortcut="COM" description="Command ID" offset="0" size="8">
+     <enum shortcut="CMD" description="Command ID" offset="0" size="8">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <value shortcut="BSP" description="Basip setpoint" offset="16" size="8" unit="k">
@@ -2935,7 +3056,7 @@
      </value>
     </data>
     <data command="5" direction="2">
-     <enum shortcut="COM" description="Command ID" offset="0" size="8">
+     <enum shortcut="CMD" description="Command ID" offset="0" size="8">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <value shortcut="CVOV" description="Control variable override" offset="16" size="8" unit="%">
@@ -2970,7 +3091,7 @@
      </enum>
     </data>
     <data command="6" direction="2">
-     <enum shortcut="COM" description="Command ID" offset="0" size="8">
+     <enum shortcut="CMD" description="Command ID" offset="0" size="8">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Fan stage override" shortcut="FO" offset="16" size="8">
@@ -2983,7 +3104,7 @@
      </enum>
     </data>
     <data command="7" direction="2">
-     <enum shortcut="COM" description="Command ID" offset="0" size="8">
+     <enum shortcut="CMD" description="Command ID" offset="0" size="8">
       <rangeitem description="Command ID {value}" start="0" end="13" />
      </enum>
      <enum description="Parameter 1" shortcut="P1" offset="8" size="8" unit="%">
