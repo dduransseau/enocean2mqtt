@@ -94,14 +94,6 @@ def set_bits_to_byte(byte, offset, value, num_bits=1):
     return byte
 
 
-def combine_hex(data):
-    """Combine list of integer values to one big integer"""
-    output = 0x00
-    for i, value in enumerate(reversed(data)):
-        output |= value << i * 8
-    return output
-
-
 def to_hex_string(data):
     """Convert list of integers to a hex string"""
     if isinstance(data, int):
@@ -115,9 +107,6 @@ def from_hex_string(hex_string):
         return reval[0]
     return reval
 
-
-def address_to_bytes_list(a):
-    return [(a >> i * 8) & 0xFF for i in reversed(range(4))]
 
 def rssi_quality(dbm):
     """

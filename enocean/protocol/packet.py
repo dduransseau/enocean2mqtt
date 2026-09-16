@@ -1,12 +1,7 @@
 # -*- encoding: utf-8 -*-
 import logging
 
-from enocean.utils import (
-    combine_hex,
-    to_hex_string,
-    address_to_bytes_list,
-    get_bits_from_byte
-)
+from enocean.utils import get_bits_from_byte
 from .address import Address
 from . import crc8
 from .constants import (
@@ -161,7 +156,6 @@ class RadioPacket(Packet):
                         destination=None,
                         sender=None,
                         learn_data=None,
-                        default_data=None,
                         profile=None, # Allow to overload a profile, MSC config use cas
                         **kwargs,
                         ):
@@ -173,18 +167,15 @@ class RadioPacket(Packet):
 
         if destination is None:
             if equipment.address:
-                destination = equipment.address.to_bytes()
+                destination = equipment.address
             else:
-                destination = cls.BROADCAST_ADDRESS
+                destination = Address.BROADCAST
                 Packet.logger.warning("Replacing destination with broadcast address.")
         else:
-            destination_address = Address(destination)
-            destination = destination_address.to_bytes()
-        if sender is not None:
-            if isinstance(sender, int):
-                sender = sender.to_bytes(4, "big")
-                # print(f"Converted sender: {sender}")
-        elif sender is None or (sender is not None and not Packet.validate_address(sender)):
+            destination = Address(destination)
+        if sender is not None and isinstance(sender, Address):
+            pass
+        else:
             raise ValueError(f"Invalid sender address: {sender}")
 
         
@@ -216,9 +207,6 @@ class RadioPacket(Packet):
             packet.data[1:5] = learn_data[1:5]
             # update flags to acknowledge learn request
             packet.data[4] = 0xF0
-        elif default_data:
-            # Initialize packet with default_data if specified
-            packet.data[1:5] = address_to_bytes_list(default_data)
         return packet
 
     @property
@@ -322,7 +310,7 @@ class RadioPacket(Packet):
                     variant = ((self.data[1] << 8) | self.data[2]) >> 3 & 0b1111111
                     self.man_id = ((self.data[2] << 8) | self.data[3]) & 0b11111111111
                     self.logger.info(
-                        f"Parse BS4 learn packet from {combine_hex(self.sender)} "
+                        f"Parse BS4 learn packet from {self.sender} "
                         f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)} "
                         f"EEP={self.rorg:X}-{func:X}-{variant:X}"
                     )
@@ -338,7 +326,7 @@ class RadioPacket(Packet):
         elif self.rorg == RORG.MSC:
             # Get the ManId from the 11 bits after RORG of the telegram
             self.man_id = ((self.data[1] << 8) | self.data[2]) & 0b11111111111
-            self.logger.info(f"Parse MSC telegram from {combine_hex(self.sender)} "
+            self.logger.info(f"Parse MSC telegram from {self.sender} "
                              f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)}")
             # print(self) # debug purposes
         else:
@@ -363,7 +351,7 @@ class RadioPacket(Packet):
             telegram_form = equipment.profile.get_telegram_form(command=command_id, direction=self.direction)
             values = telegram_form.get_values(self.data_payload, self._status, global_process=process_metrics, filter_unavailable=filter_unavailable)
             self.logger.debug(f"Parsed data values {values}")
-        elif self.rorg == equipment.alt_rorg: # TODO: for Nodon devices
+        elif self.rorg == equipment.alt_rorg: # TODO: for Nodon devices, probably Eltako
             self.logger.debug(f"Using alternative profile {equipment.alt_profile} for parsing MSC telegram")
             command_id = self.__get_command_id(equipment.alt_profile)
             telegram_form = equipment.alt_profile.get_telegram_form(command=command_id, direction=self.direction)
@@ -450,7 +438,7 @@ class UTETeachInPacket(RadioPacket):
         data[0] = self.rorg
         data[1] = 0b10000001 | (response << 4)
         data[2:8] = self.data[2:8]
-        data[8:12] = sender_id.to_bytes()
+        data[8:12] = sender_id
         data[12] = 0
 
         response_packet = UTETeachInPacket(data=data)
@@ -566,7 +554,7 @@ class EltakoTeachInTelegram(RadioPacket):
 
     def get_teachin_telegram(self, sender):
         packet = Packet(PacketType.RADIO_ERP1, data=bytearray([0xa5, 0xE0, 0x40, 0x0D, 0x80]), optional=bytearray([0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]))
-        packet.data.extend(sender.to_bytes(4, "big"))
+        packet.data.extend(sender)
         packet.data.append(0x0)
         # packet = self.prepare_telegram(self.equipment, command=1, direction=Direction.TO, sender=sender, destination=RadioPacket.BROADCAST_ADDRESS)
         # packet._status = 0x0

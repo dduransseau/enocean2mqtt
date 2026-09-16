@@ -277,7 +277,7 @@ class BaseController(threading.Thread):
                             "Received UTE teach-in packet, but teach_in is disabled."
                         )
                 # TODO: Check if already known
-                # self.learned_equipment.add(Equipment(combine_hex(packet.sender), rorg=packet.equipment_eep_rorg,
+                # self.learned_equipment.add(Equipment(packet.sender, rorg=packet.equipment_eep_rorg,
                 #                                      variant=packet.equipment_eep_type, func=packet.equipment_eep_func))
                 # Add received packet into receive queue
                 self.receive.put(packet)

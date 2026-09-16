@@ -3,8 +3,6 @@ from enocean.utils import to_hex_string
 
 class Address:
 
-    BROADCAST = b'\xff\xff\xff\xff'
-
     def __init__(self, val) -> None:
         if isinstance(val, int):
             if not (0 <= val <= 0xFFFFFFFF):
@@ -31,9 +29,6 @@ class Address:
     def is_broadcast(self):
         return self._address == 0xFFFFFFFF
 
-    def to_bytes(self):
-        return self._address.to_bytes(4, "big")
-
     def __int__(self):
         return self._address
 
@@ -51,9 +46,22 @@ class Address:
     def __repr__(self):
         return str(self)
 
+    def __bytes__(self):
+        return self._address.to_bytes(4, "big")
+
+    def __iter__(self):
+        return iter(bytes(self))
+
+    def __len__(self):
+        return 4
+
+    def __getitem__(self, index):
+        return bytes(self)[index]
+
     def __eq__(self, target):
         if not isinstance(target, Address):
             return NotImplemented
         return int(self) == int(target)
 
 
+Address.BROADCAST = Address(b'\xff\xff\xff\xff')

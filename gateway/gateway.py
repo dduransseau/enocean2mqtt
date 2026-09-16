@@ -6,7 +6,7 @@ import queue
 import json
 import threading
 
-from enocean.utils import combine_hex, to_hex_string, address_to_bytes_list, rssi_quality
+from enocean.utils import rssi_quality
 from enocean.controller.serialcontroller import SerialController
 from enocean.protocol.packet import RadioPacket, RockerSwitchTelegram, EltakoTeachInTelegram, PacketBuildError
 from enocean.protocol.constants import PacketType, FieldSetName, Direction
@@ -243,13 +243,7 @@ class Gateway:
 
 
     def _on_controller_base_id(self, controller, base_id):
-        self.logger.info(f"Controller base ID resolved: {base_id}")
-        if self.publish_internal:
-            self.mqtt_publish(
-                f"{self.topic_prefix}{self.GATEWAY_TOPIC}/base_id",
-                str(base_id),
-                retain=True,
-            )
+        self.logger.info(f"Controller base ID: {base_id}")
         self.logger.info("Setup virtual aquipment devices")
         for equipment in self._virtual_equipments:
             try:
@@ -569,7 +563,7 @@ class Gateway:
                 self.logger.debug(f"process radio packet for sensor {equipment}")
                 # Parse message based on fields definition (profile)
                 message = packet.get_message(
-                    equipment, process_metrics=self.process_metrics
+                    equipment, process_metrics=self.process_metrics, filter_unavailable=self.filter_unavailable
                 )
                 if not message:
                     self.logger.warning(f"message not interpretable: {equipment.name} {packet}")
@@ -698,9 +692,9 @@ class Gateway:
         # So use specified sender address if any
         self.logger.debug(f"Controller address id {self.controller_address} {type(self.controller_address)}")
         sender = (
-            equipment.sender.to_bytes()
+            equipment.sender
             if equipment.sender
-            else self.controller_address.to_bytes()
+            else self.controller_address
         )
 
         try:
@@ -712,7 +706,6 @@ class Gateway:
                 command=command_id,
                 sender=sender,
                 learn_data=learn_data,
-                default_data=equipment.default_data,
                 profile=profile
             )
         except (ValueError, NotImplementedError) as err:
@@ -774,7 +767,6 @@ class Gateway:
 
     def _resolve_equipment(self, packet):
         """Return equipment if it's known and not ignore """
-        # sender_address = combine_hex(packet.sender)
 
         if self.controller.learned_equipment:
             self.register_new_equipments()
