@@ -136,14 +136,14 @@ class ErpStatusHashType(IntEnum):
     CRC = 1
 
 
-class UteTeachInQueryRequestType(IntEnum):
+class UteQueryRequestType(IntEnum):
     REGISTRATION = 0b00
     DELETION = 0b01
     NOT_SPECIFIED = 0b10
     NOT_USED = 0b11
 
 
-class UteTeachInResponseRequestType(IntEnum):
+class UteResponseRequestType(IntEnum):
     REFUSED_GENERAL = 0b00
     ACCEPTED_REGISTRATION = 0b01
     ACCEPTED_DELETION = 0b10

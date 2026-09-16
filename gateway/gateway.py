@@ -109,6 +109,7 @@ class Gateway:
             self.conf["enocean_port"],
             teach_in=False,
             set_timestamp=self.publish_timestamp,
+            use_base_id=self.use_base_id
         )
         self.controller.start()
         self.controller.add_listener("_base_id", self._on_controller_base_id)

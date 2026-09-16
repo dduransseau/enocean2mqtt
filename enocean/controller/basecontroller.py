@@ -40,7 +40,7 @@ class BaseController(threading.Thread):
     COMMAND_TIMEOUT = 1.0
     SYNC_BYTE = b"\x55"
 
-    def __init__(self, teach_in=True, set_timestamp=False):
+    def __init__(self, teach_in=True, set_timestamp=False, use_base_id=False):
         super().__init__()
         # Create an event to stop the thread
         self._stop_flag = threading.Event()
@@ -55,6 +55,7 @@ class BaseController(threading.Thread):
         self.learned_equipment = set()
         # Internal variable for the Base ID of the module.
         self._base_id = None
+        self._use_base_id = use_base_id
         # Should new messages be learned automatically? Defaults to True.
         self.teach_in = teach_in
         self.set_timestamp = set_timestamp
@@ -88,8 +89,10 @@ class BaseController(threading.Thread):
     @property
     def address(self):
         """Referring to EnOcean documentation (EURID-v1.2.pdf)
-        EURID should be use as address, base id can be used for dev purpose"""
-        # return self.base_id
+        EURID should be use as address, base id can be used for dev purpose
+        Should be set at controller level to manage UTE address in response"""
+        if self._use_base_id:
+            return self.base_id
         return self.chip_id
 
     # ---- Response parsing methods for common commands ----
@@ -259,22 +262,22 @@ class BaseController(threading.Thread):
                     self.logger.debug("Identified FROM packet")
                     direction = Direction.FROM
                 packet.direction = direction
-                # Check if the packet is UTE Teach-in to send response back if learn enable
+                # Check if the packet is UTE to send response back if learn enable
                 if packet.rorg == RORG.UTE:
                     if self.teach_in:
                         # Check if destination address is not controller address, might append when repeater installed
                         # If not detected it might cause loop by submitting request to itself
                         if self.address != packet.destination:
                             response_packet = packet.create_response_packet(self.address)
-                            self.logger.info("Sending response to UTE teach-in.")
+                            self.logger.info("Sending response to UTE request")
                             self.send(response_packet)
                         else:
                             self.logger.info(
-                                "Received UTE teach-in packet from itself, probably caused by repeater, omit request"
+                                "Received UTE packet from itself, probably caused by repeater, omit request"
                             )
                     else:
                         self.logger.debug(
-                            "Received UTE teach-in packet, but teach_in is disabled."
+                            "Received UTE packet, but teach-in is disabled."
                         )
                 # TODO: Check if already known
                 # self.learned_equipment.add(Equipment(packet.sender, rorg=packet.equipment_eep_rorg,

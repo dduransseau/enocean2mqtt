@@ -10,8 +10,8 @@ from .constants import (
     EventCode,
     RORG,
     Direction,
-    UteTeachInQueryRequestType,
-    UteTeachInResponseRequestType,
+    UteQueryRequestType,
+    UteResponseRequestType,
     MANUFACTURER_CODE,
 )
 from .signal import SignalMessage
@@ -78,10 +78,10 @@ class Packet:
             # If the fields don't exist, message is incomplete
             raise PacketIncompleteError()
         if packet_type == PacketType.RADIO_ERP1:
-            # Need to handle UTE Teach-in here, as it's a separate packet type
+            # Need to handle UTE here, as it's a separate packet type
             if data[0] == RORG.UTE:
-                # Packet.logger.info(f"Received UTE teach in packet: {frame}")
-                packet = UTETeachInPacket(data=data, optional=opt_data)
+                # Packet.logger.info(f"Received UTE packet: {frame}")
+                packet = UtePacket(data=data, optional=opt_data)
             else:
                 packet = RadioPacket(data=data, optional=opt_data)
         elif packet_type == PacketType.RESPONSE:
@@ -376,10 +376,10 @@ class RadioPacket(Packet):
             raise PacketBuildError(e)
 
 
-class UTETeachInPacket(RadioPacket):
+class UtePacket(RadioPacket):
 
-    REQUEST_TYPE = UteTeachInQueryRequestType
-    RESPONSE_TYPE = UteTeachInResponseRequestType
+    REQUEST_TYPE = UteQueryRequestType
+    RESPONSE_TYPE = UteResponseRequestType
 
     unidirectional = False
     response_expected = False
@@ -420,14 +420,14 @@ class UTETeachInPacket(RadioPacket):
             self.learn = True
         # super().decode()
         self.logger.info(
-            f"Received UTE teach in packet from {self.sender} "
+            f"Received UTE packet from {self.sender} "
             f"manufacturer={MANUFACTURER_CODE.get(self.man_id, self.man_id)} "
             f"EEP={self.eep_label}"
         )
 
     def create_response_packet(self, sender_id, response=RESPONSE_TYPE.ACCEPTED_REGISTRATION):
         # Create data:
-        # - Respond with same RORG (UTE Teach-in)
+        # - Respond with same RORG (UTE)
         # - Always use bidirectional communication, set response code, set command identifier.
         # - Databytes 5 to 0 are copied from the original message
         # - Set sender id and status
@@ -438,10 +438,10 @@ class UTETeachInPacket(RadioPacket):
         data[0] = self.rorg
         data[1] = 0b10000001 | (response << 4)
         data[2:8] = self.data[2:8]
-        data[8:12] = sender_id
+        data[8:12] = bytes(sender_id)
         data[12] = 0
 
-        response_packet = UTETeachInPacket(data=data)
+        response_packet = UtePacket(data=data)
         response_packet.destination = self.sender
         return response_packet
 
